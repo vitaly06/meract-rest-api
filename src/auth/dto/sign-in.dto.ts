@@ -1,16 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Length } from 'class-validator';
+import { IsEmail, IsString, Length } from 'class-validator';
 
 export class SignInRequest {
   @ApiProperty({
-    description: 'login',
-    example: 'vitaly.sadikov',
+    description: 'email',
+    example: 'vitaly.sadikov1@yandex.ru',
   })
-  @IsString({ message: 'Login must be a string' })
-  @Length(5, 20, {
-    message: 'The login length must be from 5 to 20 characters.',
-  })
-  login: string;
+  @IsString({ message: 'Email must be a string' })
+  @IsEmail({}, { message: 'Invalid mail format' })
+  email: string;
   @ApiProperty({
     description: 'password',
     example: '123456',

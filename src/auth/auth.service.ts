@@ -24,9 +24,9 @@ export class AuthService {
   ) {}
 
   async signUp(dto: SignUpRequest) {
-    const { login, password } = { ...dto };
+    const { email, password } = { ...dto };
 
-    const checkUser: User = await this.userService.findByLogin(login);
+    const checkUser: User = await this.userService.findByEmail(email);
     if (checkUser) {
       throw new BadRequestException('This user is already registered');
     }
@@ -35,7 +35,7 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
-        login,
+        email,
         password: hashedPassword,
       },
     });
@@ -47,9 +47,8 @@ export class AuthService {
   }
 
   async signIn(dto: SignInRequest) {
-    const { login, password } = { ...dto };
-
-    const checkUser = await this.userService.findByLogin(login);
+    const { email, password } = { ...dto };
+    const checkUser = await this.userService.findByEmail(email);
     if (!checkUser) {
       throw new UnauthorizedException('User does not exist');
     }
@@ -78,11 +77,11 @@ export class AuthService {
       where: { id: userId },
     });
     if (!user || !user.refreshToken) {
-      throw new ForbiddenException('Доступ запрещён');
+      throw new ForbiddenException('Access denied');
     }
 
     if (refreshToken !== user.refreshToken) {
-      throw new ForbiddenException('Доступ запрещён');
+      throw new ForbiddenException('Access denied');
     }
 
     const tokens = await this.getTokens(user.id, user.login);

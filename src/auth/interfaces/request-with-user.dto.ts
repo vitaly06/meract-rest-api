@@ -8,3 +8,13 @@ export interface RequestWithUser extends Request {
 export interface RequestWithUserRefresh extends Request {
   user: JwtPayloadWithRt;
 }
+
+export interface RequestWithGoogleUser extends Request {
+  user: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    picture: string;
+    accessToken: string;
+  };
+}

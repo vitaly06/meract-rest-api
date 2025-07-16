@@ -8,11 +8,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
+import { GoogleStrategy } from './strategies/google.strategy'; // Добавляем импорт GoogleStrategy
 
 @Module({
   imports: [
     ConfigModule,
-    PassportModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }), // Изменяем на 'jwt' или другую основную стратегию
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -31,6 +32,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
     JwtStrategy,
     JwtRefreshStrategy,
     JwtAuthGuard,
+    GoogleStrategy,
   ],
 })
 export class AuthModule {}

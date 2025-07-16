@@ -1,17 +1,35 @@
-import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpRequest } from './dto/sign-up.dto';
 import { SignInRequest } from './dto/sign-in.dto';
 import { Response } from 'express';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import {
+  RequestWithGoogleUser,
   RequestWithUser,
   RequestWithUserRefresh,
 } from './interfaces/request-with-user.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { UserService } from 'src/user/user.service';
+import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('sign-up')
   async signUp(
@@ -33,6 +51,41 @@ export class AuthController {
     const result = await this.authService.signIn(dto);
     this.setCookies(res, result.tokens);
     return { message: 'Successful login' };
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {}
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(
+    @Req() req: RequestWithGoogleUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (!req.user) {
+      throw new UnauthorizedException('Google authentication failed');
+    }
+
+    const googleUser = req.user;
+
+    let user = await this.userService.findByEmail(googleUser.email);
+
+    if (!user) {
+      // Create new user if doesn't exist
+      user = await this.userService.create({
+        login: googleUser.email,
+        email: googleUser.email,
+        password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10),
+      });
+    }
+
+    const tokens = await this.authService.getTokens(user.id, user.login);
+    await this.authService.updateRefreshToken(user.id, tokens.refreshToken);
+
+    this.setCookies(res, tokens);
+
+    res.redirect(`${this.configService.get('FRONTEND_URL')}/auth/success`);
   }
 
   @UseGuards(JwtAuthGuard)
