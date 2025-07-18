@@ -46,7 +46,7 @@ export class AuthService {
     return { tokens, user };
   }
 
-  async signIn(dto: SignInRequest) {
+  async signIn(dto: SignInRequest, admin: string) {
     const { email, password } = { ...dto };
     const checkUser = await this.userService.findByEmail(email);
     if (!checkUser) {
@@ -56,6 +56,14 @@ export class AuthService {
     const passwordMatch = await bcrypt.compare(password, checkUser.password);
     if (!passwordMatch) {
       throw new UnauthorizedException('Invalid password');
+    }
+    if (admin) {
+      const role = await this.prisma.role.findUnique({
+        where: { name: 'admin' },
+      });
+      if (checkUser.roleId != role.id) {
+        throw new UnauthorizedException('Insufficient rights');
+      }
     }
 
     const tokens = await this.getTokens(checkUser.id, checkUser.login);

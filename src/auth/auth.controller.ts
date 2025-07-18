@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   Req,
   Res,
   UnauthorizedException,
@@ -22,6 +23,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
+import { ApiOperation, ApiQuery } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
@@ -31,6 +33,9 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
+  @ApiOperation({
+    summary: 'Registration',
+  })
   @Post('sign-up')
   async signUp(
     @Body() dto: SignUpRequest,
@@ -40,19 +45,30 @@ export class AuthController {
 
     this.setCookies(res, result.tokens);
 
-    return { message: 'Successful registration' };
+    return result.user;
   }
 
+  @ApiOperation({
+    summary: 'Authorization',
+  })
+  @ApiQuery({
+    name: 'admin',
+    required: false,
+  })
   @Post('sign-in')
   async signIn(
     @Body() dto: SignInRequest,
     @Res({ passthrough: true }) res: Response,
+    @Query('admin') admin?: string,
   ) {
-    const result = await this.authService.signIn(dto);
+    const result = await this.authService.signIn(dto, admin || null);
     this.setCookies(res, result.tokens);
-    return { message: 'Successful login' };
+    return result.checkUser;
   }
 
+  @ApiOperation({
+    summary: 'Authorization with google',
+  })
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {}
@@ -85,9 +101,12 @@ export class AuthController {
 
     this.setCookies(res, tokens);
 
-    res.redirect(`${this.configService.get('FRONTEND_URL')}/auth/success`);
+    res.redirect(`${this.configService.get('FRONTEND_URL')}/`);
   }
 
+  @ApiOperation({
+    summary: 'Exit from the system',
+  })
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   async logout(
@@ -99,6 +118,9 @@ export class AuthController {
     return { message: 'Successful exit' };
   }
 
+  @ApiOperation({
+    summary: 'Update tokens',
+  })
   @UseGuards(JwtAuthGuard)
   @Post('refresh')
   async refresh(
@@ -119,14 +141,14 @@ export class AuthController {
     tokens: { accessToken: string; refreshToken: string },
   ) {
     res.cookie('access_token', tokens.accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
