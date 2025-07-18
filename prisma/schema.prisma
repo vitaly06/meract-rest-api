@@ -7,22 +7,107 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserStatus {
+  ACTIVE
+  WARNED
+  BLOCKED
+}
+
+enum StreamStatus {
+  ONLINE
+  OFFLINE
+}
+
 model User {
-  id       Int     @id @default(autoincrement())
-  login    String? @unique
-  password String
-  email    String  @unique
-  roleId   Int     @default(1)
-  role     Role    @relation(fields: [roleId], references: [id])
+  id           Int        @id @default(autoincrement())
+  login        String?    @unique
+  password     String
+  email        String     @unique
+  status       UserStatus @default(ACTIVE)
+  warningCount Int        @default(0)
+  roleId       Int        @default(1)
+  role         Role       @relation(fields: [roleId], references: [id])
+
+  following User[] @relation("UserFollows")
+  followers User[] @relation("UserFollows")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  refreshToken String?
+  refreshToken             String?
+  Stream                   Stream[]
+  UserActivity             UserActivity[]
+  UserActivityParticipants UserActivityParticipants[]
+  Guild                    Guild?                     @relation(fields: [guildId], references: [id])
+  guildId                  Int?
 }
 
 model Role {
   id   Int    @id @default(autoincrement())
   name String @unique
   User User[]
+}
+
+model Guild {
+  id           Int     @id @default(autoincrement())
+  name         String  @unique
+  description  String?
+  logoFileName String?
+
+  ownerId Int
+
+  members User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Stream {
+  id              Int            @id @default(autoincrement())
+  name            String
+  previewFileName String?
+  status          StreamStatus   @default(ONLINE)
+  startedAt       DateTime       @default(now())
+  endedAt         DateTime?
+  // Stream Category
+  categoryId      Int
+  category        Category       @relation(fields: [categoryId], references: [id])
+  // Streamer
+  userId          Int
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  UserActivity    UserActivity[]
+}
+
+// Stream Categories
+model Category {
+  id     Int      @id @default(autoincrement())
+  name   String   @unique
+  Stream Stream[]
+}
+
+model UserActivity {
+  id        Int      @id @default(autoincrement())
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  // Связь с участниками действия
+  participants UserActivityParticipants[]
+  User         User?                      @relation(fields: [userId], references: [id])
+  userId       Int?
+  Stream       Stream?                    @relation(fields: [streamId], references: [id])
+  streamId     Int?
+}
+
+model UserActivityParticipants {
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  activity   UserActivity @relation(fields: [activityId], references: [id])
+  activityId Int
+
+  // example: "initiator", "target"
+  role String?
+
+  @@id([userId, activityId])
 }
