@@ -46,6 +46,9 @@ export class GuildService {
   async findById(guildId: number) {
     return await this.prisma.guild.findUnique({
       where: { id: guildId },
+      include: {
+        members: true,
+      },
     });
   }
 
