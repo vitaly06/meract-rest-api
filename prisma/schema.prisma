@@ -93,14 +93,14 @@ model UserActivity {
 
   // Связь с участниками действия
   participants UserActivityParticipants[]
-  User         User?                      @relation(fields: [userId], references: [id])
+  User         User?                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       Int?
   Stream       Stream?                    @relation(fields: [streamId], references: [id])
   streamId     Int?
 }
 
 model UserActivityParticipants {
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
 
   activity   UserActivity @relation(fields: [activityId], references: [id])

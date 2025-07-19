@@ -595,7 +595,7 @@ ALTER TABLE ONLY public."UserActivityParticipants"
 --
 
 ALTER TABLE ONLY public."UserActivityParticipants"
-    ADD CONSTRAINT "UserActivityParticipants_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "UserActivityParticipants_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -611,7 +611,7 @@ ALTER TABLE ONLY public."UserActivity"
 --
 
 ALTER TABLE ONLY public."UserActivity"
-    ADD CONSTRAINT "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+    ADD CONSTRAINT "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
