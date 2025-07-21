@@ -126,9 +126,7 @@ export class StreamService {
     // terminated by admins
     const admins = await this.prisma.user.findMany({
       where: {
-        role: {
-          name: 'admin',
-        },
+        role: { OR: [{ name: 'admin' }, { name: 'main admin' }] },
         terminateCount: {
           not: null,
         },

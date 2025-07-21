@@ -9,6 +9,7 @@ import { join } from 'path';
 import { ImageModule } from './image/image.module';
 import { GuildModule } from './guild/guild.module';
 import { UtilsModule } from './common/utils/utils.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { UtilsModule } from './common/utils/utils.module';
     ImageModule,
     GuildModule,
     UtilsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

@@ -61,7 +61,10 @@ export class AuthService {
       const role = await this.prisma.role.findUnique({
         where: { name: 'admin' },
       });
-      if (checkUser.roleId != role.id) {
+      const secondRole = await this.prisma.role.findUnique({
+        where: { name: 'main admin' },
+      });
+      if (checkUser.roleId != role.id && checkUser.roleId != secondRole.id) {
         throw new UnauthorizedException('Insufficient rights');
       }
     }
