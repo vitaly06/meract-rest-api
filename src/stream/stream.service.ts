@@ -32,7 +32,7 @@ export class StreamService {
         category: stream.category.name,
         categoryId: stream.category.id,
         status: stream.status,
-        spectators: 'НЕ СДЕЛАНО',
+        spectators: 'Not done',
         duration: this.formatTimeDifference(
           stream.startedAt,
           stream.endedAt || new Date().toISOString(),
