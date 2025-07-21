@@ -156,7 +156,7 @@ export class UserService {
 
     await this.utilsService.addRecordToActivityJournal(
       `Admin ${admin.login || admin.email} has deleted user ${checkUser.login || checkUser.email}`,
-      [admin.id, checkUser.id],
+      [admin.id],
     );
 
     return { message: 'User successfully deleted' };

@@ -129,6 +129,12 @@ export class GuildService {
   }
 
   async deleteGuild(guildId: number, req: RequestWithUser) {
+    const checkGuild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+    });
+    if (!checkGuild) {
+      throw new NotFoundException('Guild with this id not found');
+    }
     await this.prisma.guild.delete({
       where: { id: guildId },
     });
@@ -138,7 +144,7 @@ export class GuildService {
       where: { id: req.user.sub },
     });
     await this.utilsSerivce.addRecordToActivityJournal(
-      `Admin ${currentAdmin.login || currentAdmin.email} deleted guild: '${(await this.findById(guildId)).name}'`,
+      `Admin ${currentAdmin.login || currentAdmin.email} deleted guild: '${checkGuild.name}'`,
       [currentAdmin.id],
     );
 
