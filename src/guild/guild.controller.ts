@@ -119,7 +119,8 @@ export class GuildController {
   }
 
   @Delete(':id')
-  async deleteGuild(@Param('id') id: string) {
-    return await this.guildService.deleteGuild(+id);
+  @UseGuards(JwtAuthGuard)
+  async deleteGuild(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return await this.guildService.deleteGuild(+id, req);
   }
 }

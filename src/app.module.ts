@@ -8,6 +8,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { ImageModule } from './image/image.module';
 import { GuildModule } from './guild/guild.module';
+import { UtilsModule } from './common/utils/utils.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { GuildModule } from './guild/guild.module';
     }),
     ImageModule,
     GuildModule,
+    UtilsModule,
   ],
 })
 export class AppModule {}

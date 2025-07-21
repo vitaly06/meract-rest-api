@@ -7,10 +7,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateGuildRequest } from './dto/create-guild.dto';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { UpdateGuildRequest } from './dto/update-guild.dto';
+import { UtilsService } from 'src/common/utils/utils.serivice';
 
 @Injectable()
 export class GuildService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly utilsSerivce: UtilsService,
+  ) {}
 
   async createGuild(
     dto: CreateGuildRequest,
@@ -27,7 +31,7 @@ export class GuildService {
       throw new BadRequestException('A guild with this name already exists');
     }
 
-    await this.prisma.guild.create({
+    const guild = await this.prisma.guild.create({
       data: {
         name,
         description,
@@ -35,6 +39,15 @@ export class GuildService {
         ownerId: req.user.sub,
       },
     });
+
+    // current admin
+    const currentAdmin = await this.prisma.user.findUnique({
+      where: { id: req.user.sub },
+    });
+    await this.utilsSerivce.addRecordToActivityJournal(
+      `Admin ${currentAdmin.login || currentAdmin.email} created guild: '${guild.name}'`,
+      [currentAdmin.id],
+    );
 
     return { message: 'The guild has been successfully created.' };
   }
@@ -115,10 +128,19 @@ export class GuildService {
     return { message: 'User successfully removed from guild' };
   }
 
-  async deleteGuild(guildId: number) {
+  async deleteGuild(guildId: number, req: RequestWithUser) {
     await this.prisma.guild.delete({
       where: { id: guildId },
     });
+
+    // current admin
+    const currentAdmin = await this.prisma.user.findUnique({
+      where: { id: req.user.sub },
+    });
+    await this.utilsSerivce.addRecordToActivityJournal(
+      `Admin ${currentAdmin.login || currentAdmin.email} deleted guild: '${(await this.findById(guildId)).name}'`,
+      [currentAdmin.id],
+    );
 
     return { message: 'Guild successfully deleted' };
   }
