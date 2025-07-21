@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 export class UpdateAdminRequest {
   @ApiProperty({
@@ -10,15 +16,17 @@ export class UpdateAdminRequest {
   @IsNotEmpty({ message: 'Login is required' })
   login: string;
   @ApiProperty({
-    description: 'password',
+    description: 'oldPassword',
     example: '123456',
   })
-  @IsString({ message: 'Password must be a string' })
-  @IsNotEmpty({ message: 'Password is required' })
-  @Length(6, 20, {
-    message: 'Password length must be between 6 and 20 characters',
+  @IsString({ message: 'Old password must be a string' })
+  oldPassword: string;
+  @ApiProperty({
+    description: 'newPassword',
+    example: '123456',
   })
-  password: string;
+  @IsString({ message: 'new Password must be a string' })
+  newPassword: string;
   @ApiProperty({
     description: 'email',
     example: 'admin@admin.com',

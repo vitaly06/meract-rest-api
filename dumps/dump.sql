@@ -366,7 +366,8 @@ COPY public."Guild" (id, name, "logoFileName", "createdAt", "updatedAt", "ownerI
 
 COPY public."Role" (id, name) FROM stdin;
 1	user
-2	admin
+2	main admin
+5	admin
 \.
 
 
@@ -386,8 +387,9 @@ COPY public."Stream" (id, name, "previewFileName", "startedAt", "endedAt", "cate
 
 COPY public."User" (id, login, password, "roleId", "createdAt", "updatedAt", "refreshToken", email, "warningCount", status, "guildId", "terminateCount") FROM stdin;
 3	fedulova103@gmail.com	$2b$10$zUVYO3NKFZvDrZLQHPrhze43xH8pOIr0OVhM.8gaGeSb8iVJUtvSG	1	2025-07-16 16:06:19.36	2025-07-16 16:06:19.371	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImxvZ2luIjoiZmVkdWxvdmExMDNAZ21haWwuY29tIiwiaWF0IjoxNzUyNjgxOTc5LCJleHAiOjE3NTMyODY3Nzl9.irH8vsRVslYvfrQztFzb3MZvHH9XSwzmSL90-6098Qo	fedulova103@gmail.com	0	ACTIVE	\N	\N
-4	\N	$2b$10$Ei6C.kIMBUnSKxU8azqCpObFdBL/v80ZzN/wKFInVw09tEWcG/PtG	2	2025-07-18 07:27:52.31	2025-07-21 07:14:53.348	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NTMwODE5MzksImV4cCI6MTc1MzY4NjczOX0.CaKixeKS_7QXiiYo4Y8nW1bo70qYrU2UwtzZr8FRthk	test@test.com	0	ACTIVE	\N	1
 5	\N	$2b$10$61PIYTgR9PX0dxwoD3uNNOhPRag9N/34RmNXPflvNy2jywLQrXNYy	1	2025-07-18 07:34:46.875	2025-07-18 07:35:41.557	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImxvZ2luIjpudWxsLCJpYXQiOjE3NTI4MjQxNDEsImV4cCI6MTc1MzQyODk0MX0.asNu6Vv_GIeqK15eLC4Gk-zB1sG_nuLiVDwQd3czTOY	egor@mail.com	0	ACTIVE	\N	\N
+4	main.admin	$2b$10$Ei6C.kIMBUnSKxU8azqCpObFdBL/v80ZzN/wKFInVw09tEWcG/PtG	2	2025-07-18 07:27:52.31	2025-07-21 09:05:15.217	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjoibWFpbi5hZG1pbiIsImlhdCI6MTc1MzA4ODcxNSwiZXhwIjoxNzUzNjkzNTE1fQ.XeB2TRf310KUn2hyR5CWE570pEctwnPsL6VamoY5GNc	test@test.com	0	ACTIVE	\N	1
+8	default.admin	$2b$10$FpaW4GP9kBd9OK5zzvDNR.yzYtSa4UDKBu6kIuYQmmdMAHuh02lHC	5	2025-07-21 09:08:33.416	2025-07-21 09:08:33.416	\N	admin@admin.com	0	ACTIVE	\N	\N
 2	vitalysadikov9@gmail.com	$2b$10$UhBmAvAmsEMrIwYcGFPgsu2QCFeNfdi5yKQqdWNlH6pVeUo3Pqdt2	1	2025-07-16 08:05:46.909	2025-07-18 10:03:39.3	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzUyNjUzMTQ2LCJleHAiOjE3NTMyNTc5NDZ9.dwryJDX4G1dhU0GKgnYSwHZtBfyUIpk4EnxZoz2HHsE	vitalysadikov9@gmail.com	2	WARNED	\N	\N
 \.
 
@@ -437,7 +439,7 @@ SELECT pg_catalog.setval('public."Guild_id_seq"', 3, true);
 -- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Role_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."Role_id_seq"', 5, true);
 
 
 --
@@ -458,7 +460,7 @@ SELECT pg_catalog.setval('public."UserActivity_id_seq"', 1, true);
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 5, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 8, true);
 
 
 --
