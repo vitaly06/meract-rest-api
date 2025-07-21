@@ -4,7 +4,9 @@ import {
   Get,
   Post,
   Query,
+  Req,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { StreamService } from './stream.service';
@@ -12,6 +14,8 @@ import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateStreamRequest } from './dto/create-stream.dto';
 import { Multer } from 'multer';
+import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
+import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 
 @Controller('stream')
 export class StreamController {
@@ -41,19 +45,8 @@ export class StreamController {
   async createProject(
     @Body() dto: CreateStreamRequest,
     @UploadedFile() photo: Multer.File,
-  ): Promise<{
-    name: string;
-    userId: number;
-    categoryId: number;
-    id: number;
-    previewFileName: string | null;
-    status: string;
-    startedAt: Date;
-    endedAt: Date | null;
-  }> {
+  ) {
     return await this.streamService.createStream(dto, photo.filename);
-
-    // return { message: 'Stream created successfully' };
   }
 
   @Get('get-streams')
@@ -62,8 +55,9 @@ export class StreamController {
   }
 
   @Post('stop-stream')
-  async stopStream(@Query('id') id: string) {
-    return await this.streamService.stopStream(+id);
+  @UseGuards(JwtAuthGuard)
+  async stopStream(@Query('id') id: string, @Req() req: RequestWithUser) {
+    return await this.streamService.stopStream(+id, req);
   }
 
   @ApiOperation({

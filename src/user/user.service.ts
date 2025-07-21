@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
+import { UtilsService } from 'src/common/utils/utils.serivice';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly utilsService: UtilsService,
+  ) {}
 
   async findById(id: number): Promise<User> {
     const user = await this.prisma.user.findUnique({
@@ -90,7 +94,7 @@ export class UserService {
     // Current admin
     const admin = await this.findById(req.user.sub);
 
-    await this.addRecordToActivityJournal(
+    await this.utilsService.addRecordToActivityJournal(
       `Admin ${admin.login || admin.email} issued a warning to user ${checkUser.login || checkUser.email}`,
       [admin.id, checkUser.id],
     );
@@ -111,7 +115,7 @@ export class UserService {
     // Current admin
     const admin = await this.findById(req.user.sub);
 
-    await this.addRecordToActivityJournal(
+    await this.utilsService.addRecordToActivityJournal(
       `Admin ${admin.login || admin.email} has blocked user ${checkUser.login || checkUser.email}`,
       [admin.id, checkUser.id],
     );
@@ -132,7 +136,7 @@ export class UserService {
     // Current admin
     const admin = await this.findById(req.user.sub);
 
-    await this.addRecordToActivityJournal(
+    await this.utilsService.addRecordToActivityJournal(
       `Admin ${admin.login || admin.email} has unblocked user ${checkUser.login || checkUser.email}`,
       [admin.id, checkUser.id],
     );
@@ -150,7 +154,7 @@ export class UserService {
     // Current admin
     const admin = await this.findById(req.user.sub);
 
-    await this.addRecordToActivityJournal(
+    await this.utilsService.addRecordToActivityJournal(
       `Admin ${admin.login || admin.email} has deleted user ${checkUser.login || checkUser.email}`,
       [admin.id, checkUser.id],
     );
@@ -227,24 +231,6 @@ export class UserService {
         email: true,
       },
     });
-  }
-
-  private async addRecordToActivityJournal(message: string, users: number[]) {
-    if (users.length == 2) {
-      await this.prisma.userActivity.create({
-        data: {
-          action: message,
-          participants: {
-            createMany: {
-              data: [
-                { userId: users[0], role: 'initiator' },
-                { userId: users[1], role: 'target' },
-              ],
-            },
-          },
-        },
-      });
-    }
   }
 
   private timeAgo(

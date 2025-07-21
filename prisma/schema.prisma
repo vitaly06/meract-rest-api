@@ -19,14 +19,15 @@ enum StreamStatus {
 }
 
 model User {
-  id           Int        @id @default(autoincrement())
-  login        String?    @unique
-  password     String
-  email        String     @unique
-  status       UserStatus @default(ACTIVE)
-  warningCount Int        @default(0)
-  roleId       Int        @default(1)
-  role         Role       @relation(fields: [roleId], references: [id])
+  id             Int        @id @default(autoincrement())
+  login          String?    @unique
+  password       String
+  email          String     @unique
+  status         UserStatus @default(ACTIVE)
+  warningCount   Int        @default(0)
+  roleId         Int        @default(1)
+  role           Role       @relation(fields: [roleId], references: [id])
+  terminateCount Int?
 
   following User[] @relation("UserFollows")
   followers User[] @relation("UserFollows")
