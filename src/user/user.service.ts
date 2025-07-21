@@ -72,7 +72,7 @@ export class UserService {
         login: user.login,
         email: user.email,
         status: user.status,
-        lastActivity: 'НЕ СДЕЛАЛ',
+        lastActivity: 'Not done',
         warnings: user.warningCount,
         streams: user.Stream.length,
         followers: user.followers.length,
