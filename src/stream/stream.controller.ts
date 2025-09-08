@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Query,
+  Param,
   Req,
   UploadedFile,
   UseGuards,
@@ -66,5 +67,20 @@ export class StreamController {
   @Get('statistic')
   async getStatistic() {
     return await this.streamService.getStatistic();
+  }
+
+  // Маршрут для генерации Agora токена (с опциональным :uid)
+  @Get('token/:channel/:role/:tokentype/:uid?')
+  async getToken(
+    @Param('channel') channel: string,
+    @Param('role') role: string,
+    @Param('tokentype') tokentype: string,
+    @Param('uid') uid: string,
+    @Query('expiry') expiryStr: string,
+  ) {
+    console.log(`Генерация токена для channel: ${channel}, role: ${role}, tokentype: ${tokentype}, uid: ${uid || '0'}, expiry: ${expiryStr}`);
+    const expiry = parseInt(expiryStr, 10) || 3600;
+    const token = this.streamService.generateToken(channel, role, tokentype, uid || '0', expiry);
+    return { token };
   }
 }

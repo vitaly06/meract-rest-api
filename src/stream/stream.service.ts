@@ -4,6 +4,7 @@ import * as moment from 'moment';
 import { CreateStreamRequest } from './dto/create-stream.dto';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
+import { RtcRole, RtcTokenBuilder } from 'agora-access-token';
 
 @Injectable()
 export class StreamService {
@@ -147,6 +148,28 @@ export class StreamService {
     };
   }
 
+  generateToken(channel: string, roleStr: string, tokenType: string, uidStr: string, expiry: number): string {
+    const appID = process.env.AGORA_APP_ID;
+    const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+
+    if (!appID || !appCertificate) {
+      throw new Error('AGORA_APP_ID и AGORA_APP_CERTIFICATE должны быть указаны в .env');
+    }
+
+    const uid = parseInt(uidStr, 10) || 0;
+    const role = roleStr.toUpperCase() === 'PUBLISHER' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const privilegeExpiredTs = currentTimestamp + expiry;
+
+    if (tokenType === 'uid') {
+      return RtcTokenBuilder.buildTokenWithUid(appID, appCertificate, channel, uid, role, privilegeExpiredTs);
+    } else if (tokenType === 'userAccount') {
+      return RtcTokenBuilder.buildTokenWithAccount(appID, appCertificate, channel, uid.toString(), role, privilegeExpiredTs);
+    } else {
+      throw new Error('Недопустимый tokenType');
+    }
+  }
+
   private formatTimeDifference(
     start: Date | string,
     end: Date | string,
@@ -168,33 +191,4 @@ export class StreamService {
       duration.seconds().toString().padStart(2, '0'),
     ].join(':');
   }
-
-  // private async addRecordToActivityJournal(message: string, users: number[]) {
-  //   if (users.length == 2) {
-  //     await this.prisma.userActivity.create({
-  //       data: {
-  //         action: message,
-  //         participants: {
-  //           createMany: {
-  //             data: [
-  //               { userId: users[0], role: 'initiator' },
-  //               { userId: users[1], role: 'target' },
-  //             ],
-  //           },
-  //         },
-  //       },
-  //     });
-  //   } else if (users.length == 1) {
-  //     await this.prisma.userActivity.create({
-  //       data: {
-  //         action: message,
-  //         participants: {
-  //           createMany: {
-  //             data: [{ userId: users[0], role: 'initiator' }],
-  //           },
-  //         },
-  //       },
-  //     });
-  //   }
-  // }
 }

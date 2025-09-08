@@ -4,9 +4,11 @@ import { StreamController } from './stream.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
+import { ConfigModule } from '@nestjs/config'; // Добавили для загрузки .env
 
 @Module({
   imports: [
+    ConfigModule.forRoot(), // Добавили для загрузки .env
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads/streams',
