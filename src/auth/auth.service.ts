@@ -33,10 +33,19 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const checkRole = await this.prisma.role.findFirst({
+      where: { name: 'user' },
+    });
+
+    if (!checkRole) {
+      throw new BadRequestException('Роли user не существует');
+    }
+
     const user = await this.prisma.user.create({
       data: {
         email,
         password: hashedPassword,
+        roleId: checkRole.id,
       },
     });
 
