@@ -2,12 +2,15 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.18 (Ubuntu 14.18-0ubuntu0.22.04.1)
--- Dumped by pg_dump version 14.18 (Ubuntu 14.18-0ubuntu0.22.04.1)
+\restrict ZWR01WhFcuuzrL3TugcKwV9tSmNizJX8X3Ye9M3oPrUscCmdoe0fjmEjywYsAjo
+
+-- Dumped from database version 17.6
+-- Dumped by pg_dump version 17.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -17,16 +20,53 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: StreamStatus; Type: TYPE; Schema: public; Owner: postgres
+-- Name: ActFormat; Type: TYPE; Schema: public; Owner: postgres
 --
 
-CREATE TYPE public."StreamStatus" AS ENUM (
+CREATE TYPE public."ActFormat" AS ENUM (
+    'SINGLE',
+    'SEVERAL'
+);
+
+
+ALTER TYPE public."ActFormat" OWNER TO postgres;
+
+--
+-- Name: ActStatus; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."ActStatus" AS ENUM (
     'ONLINE',
     'OFFLINE'
 );
 
 
-ALTER TYPE public."StreamStatus" OWNER TO postgres;
+ALTER TYPE public."ActStatus" OWNER TO postgres;
+
+--
+-- Name: ActType; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."ActType" AS ENUM (
+    'SINGLE',
+    'MULTI'
+);
+
+
+ALTER TYPE public."ActType" OWNER TO postgres;
+
+--
+-- Name: SelectionMethods; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."SelectionMethods" AS ENUM (
+    'VOTING',
+    'BIDDING',
+    'MANUAL'
+);
+
+
+ALTER TYPE public."SelectionMethods" OWNER TO postgres;
 
 --
 -- Name: UserStatus; Type: TYPE; Schema: public; Owner: postgres
@@ -44,6 +84,52 @@ ALTER TYPE public."UserStatus" OWNER TO postgres;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: Act; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Act" (
+    id integer NOT NULL,
+    "previewFileName" text,
+    "startedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "endedAt" timestamp(3) without time zone,
+    "categoryId" integer NOT NULL,
+    "userId" integer NOT NULL,
+    status public."ActStatus" DEFAULT 'ONLINE'::public."ActStatus" NOT NULL,
+    format public."ActFormat" DEFAULT 'SINGLE'::public."ActFormat" NOT NULL,
+    sequel text,
+    title text NOT NULL,
+    type public."ActType" DEFAULT 'SINGLE'::public."ActType" NOT NULL,
+    "biddingTime" text NOT NULL,
+    "heroMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
+    "navigatorMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL
+);
+
+
+ALTER TABLE public."Act" OWNER TO postgres;
+
+--
+-- Name: Act_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Act_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Act_id_seq" OWNER TO postgres;
+
+--
+-- Name: Act_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Act_id_seq" OWNED BY public."Act".id;
+
 
 --
 -- Name: Category; Type: TABLE; Schema: public; Owner: postgres
@@ -70,7 +156,7 @@ CREATE SEQUENCE public."Category_id_seq"
     CACHE 1;
 
 
-ALTER TABLE public."Category_id_seq" OWNER TO postgres;
+ALTER SEQUENCE public."Category_id_seq" OWNER TO postgres;
 
 --
 -- Name: Category_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -86,11 +172,11 @@ ALTER SEQUENCE public."Category_id_seq" OWNED BY public."Category".id;
 CREATE TABLE public."Guild" (
     id integer NOT NULL,
     name text NOT NULL,
+    description text,
     "logoFileName" text,
-    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL,
     "ownerId" integer NOT NULL,
-    description text
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
 );
 
 
@@ -109,7 +195,7 @@ CREATE SEQUENCE public."Guild_id_seq"
     CACHE 1;
 
 
-ALTER TABLE public."Guild_id_seq" OWNER TO postgres;
+ALTER SEQUENCE public."Guild_id_seq" OWNER TO postgres;
 
 --
 -- Name: Guild_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -143,53 +229,13 @@ CREATE SEQUENCE public."Role_id_seq"
     CACHE 1;
 
 
-ALTER TABLE public."Role_id_seq" OWNER TO postgres;
+ALTER SEQUENCE public."Role_id_seq" OWNER TO postgres;
 
 --
 -- Name: Role_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public."Role_id_seq" OWNED BY public."Role".id;
-
-
---
--- Name: Stream; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public."Stream" (
-    id integer NOT NULL,
-    name text NOT NULL,
-    "previewFileName" text,
-    "startedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "endedAt" timestamp(3) without time zone,
-    "categoryId" integer NOT NULL,
-    "userId" integer NOT NULL,
-    status public."StreamStatus" DEFAULT 'ONLINE'::public."StreamStatus" NOT NULL
-);
-
-
-ALTER TABLE public."Stream" OWNER TO postgres;
-
---
--- Name: Stream_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public."Stream_id_seq"
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public."Stream_id_seq" OWNER TO postgres;
-
---
--- Name: Stream_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public."Stream_id_seq" OWNED BY public."Stream".id;
 
 
 --
@@ -200,15 +246,15 @@ CREATE TABLE public."User" (
     id integer NOT NULL,
     login text,
     password text NOT NULL,
+    email text NOT NULL,
+    status public."UserStatus" DEFAULT 'ACTIVE'::public."UserStatus" NOT NULL,
+    "warningCount" integer DEFAULT 0 NOT NULL,
     "roleId" integer DEFAULT 1 NOT NULL,
+    "terminateCount" integer,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
     "refreshToken" text,
-    email text NOT NULL,
-    "warningCount" integer DEFAULT 0 NOT NULL,
-    status public."UserStatus" DEFAULT 'ACTIVE'::public."UserStatus" NOT NULL,
-    "guildId" integer,
-    "terminateCount" integer
+    "guildId" integer
 );
 
 
@@ -220,11 +266,11 @@ ALTER TABLE public."User" OWNER TO postgres;
 
 CREATE TABLE public."UserActivity" (
     id integer NOT NULL,
-    "userId" integer,
-    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "streamId" integer,
     action text NOT NULL,
-    details jsonb
+    details jsonb,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "userId" integer,
+    "streamId" integer
 );
 
 
@@ -256,7 +302,7 @@ CREATE SEQUENCE public."UserActivity_id_seq"
     CACHE 1;
 
 
-ALTER TABLE public."UserActivity_id_seq" OWNER TO postgres;
+ALTER SEQUENCE public."UserActivity_id_seq" OWNER TO postgres;
 
 --
 -- Name: UserActivity_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -278,7 +324,7 @@ CREATE SEQUENCE public."User_id_seq"
     CACHE 1;
 
 
-ALTER TABLE public."User_id_seq" OWNER TO postgres;
+ALTER SEQUENCE public."User_id_seq" OWNER TO postgres;
 
 --
 -- Name: User_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -298,6 +344,13 @@ CREATE TABLE public."_UserFollows" (
 
 
 ALTER TABLE public."_UserFollows" OWNER TO postgres;
+
+--
+-- Name: Act id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Act" ALTER COLUMN id SET DEFAULT nextval('public."Act_id_seq"'::regclass);
+
 
 --
 -- Name: Category id; Type: DEFAULT; Schema: public; Owner: postgres
@@ -321,13 +374,6 @@ ALTER TABLE ONLY public."Role" ALTER COLUMN id SET DEFAULT nextval('public."Role
 
 
 --
--- Name: Stream id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."Stream" ALTER COLUMN id SET DEFAULT nextval('public."Stream_id_seq"'::regclass);
-
-
---
 -- Name: User id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -342,12 +388,18 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
+-- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, sequel, title, type, "biddingTime", "heroMethods", "navigatorMethods") FROM stdin;
+\.
+
+
+--
 -- Data for Name: Category; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."Category" (id, name) FROM stdin;
-2	Gaming
-3	Music
 \.
 
 
@@ -355,8 +407,7 @@ COPY public."Category" (id, name) FROM stdin;
 -- Data for Name: Guild; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Guild" (id, name, "logoFileName", "createdAt", "updatedAt", "ownerId", description) FROM stdin;
-3	Gremlin	1752842306822-214435515.jpg	2025-07-18 12:38:26.832	2025-07-18 12:38:26.832	4	Best guild from the world
+COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdAt", "updatedAt") FROM stdin;
 \.
 
 
@@ -366,18 +417,8 @@ COPY public."Guild" (id, name, "logoFileName", "createdAt", "updatedAt", "ownerI
 
 COPY public."Role" (id, name) FROM stdin;
 1	user
-2	main admin
-5	admin
-\.
-
-
---
--- Data for Name: Stream; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."Stream" (id, name, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status) FROM stdin;
-1	World Of Tanks skoof stream	\N	2025-07-16 08:05:46.909	\N	2	2	ONLINE
-2	CS 2 Faceit stream	1752664775927-455729908.png	2025-07-16 11:19:35.938	2025-07-21 07:14:53.339	2	2	ONLINE
+2	admin
+3	main admin
 \.
 
 
@@ -385,12 +426,8 @@ COPY public."Stream" (id, name, "previewFileName", "startedAt", "endedAt", "cate
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, login, password, "roleId", "createdAt", "updatedAt", "refreshToken", email, "warningCount", status, "guildId", "terminateCount") FROM stdin;
-3	fedulova103@gmail.com	$2b$10$zUVYO3NKFZvDrZLQHPrhze43xH8pOIr0OVhM.8gaGeSb8iVJUtvSG	1	2025-07-16 16:06:19.36	2025-07-16 16:06:19.371	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImxvZ2luIjoiZmVkdWxvdmExMDNAZ21haWwuY29tIiwiaWF0IjoxNzUyNjgxOTc5LCJleHAiOjE3NTMyODY3Nzl9.irH8vsRVslYvfrQztFzb3MZvHH9XSwzmSL90-6098Qo	fedulova103@gmail.com	0	ACTIVE	\N	\N
-5	\N	$2b$10$61PIYTgR9PX0dxwoD3uNNOhPRag9N/34RmNXPflvNy2jywLQrXNYy	1	2025-07-18 07:34:46.875	2025-07-18 07:35:41.557	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImxvZ2luIjpudWxsLCJpYXQiOjE3NTI4MjQxNDEsImV4cCI6MTc1MzQyODk0MX0.asNu6Vv_GIeqK15eLC4Gk-zB1sG_nuLiVDwQd3czTOY	egor@mail.com	0	ACTIVE	\N	\N
-4	main.admin	$2b$10$Ei6C.kIMBUnSKxU8azqCpObFdBL/v80ZzN/wKFInVw09tEWcG/PtG	2	2025-07-18 07:27:52.31	2025-07-21 09:05:15.217	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjoibWFpbi5hZG1pbiIsImlhdCI6MTc1MzA4ODcxNSwiZXhwIjoxNzUzNjkzNTE1fQ.XeB2TRf310KUn2hyR5CWE570pEctwnPsL6VamoY5GNc	test@test.com	0	ACTIVE	\N	1
-8	default.admin	$2b$10$FpaW4GP9kBd9OK5zzvDNR.yzYtSa4UDKBu6kIuYQmmdMAHuh02lHC	5	2025-07-21 09:08:33.416	2025-07-21 09:08:33.416	\N	admin@admin.com	0	ACTIVE	\N	\N
-2	vitalysadikov9@gmail.com	$2b$10$UhBmAvAmsEMrIwYcGFPgsu2QCFeNfdi5yKQqdWNlH6pVeUo3Pqdt2	1	2025-07-16 08:05:46.909	2025-07-18 10:03:39.3	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzUyNjUzMTQ2LCJleHAiOjE3NTMyNTc5NDZ9.dwryJDX4G1dhU0GKgnYSwHZtBfyUIpk4EnxZoz2HHsE	vitalysadikov9@gmail.com	2	WARNED	\N	\N
+COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
+2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-09-10 11:34:50.591	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NTc1MDQwOTAsImV4cCI6MTc1ODEwODg5MH0.1uvyAb6oXh_kag5jgAg-qYD04rfCaX4qgiEwpv-TY18	\N
 \.
 
 
@@ -398,8 +435,7 @@ COPY public."User" (id, login, password, "roleId", "createdAt", "updatedAt", "re
 -- Data for Name: UserActivity; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."UserActivity" (id, "userId", "createdAt", "streamId", action, details) FROM stdin;
-1	\N	2025-07-18 10:03:39.305	\N	Admin test@test.com issued a warning to user vitalysadikov9@gmail.com	\N
+COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamId") FROM stdin;
 \.
 
 
@@ -408,8 +444,6 @@ COPY public."UserActivity" (id, "userId", "createdAt", "streamId", action, detai
 --
 
 COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin;
-4	1	initiator
-2	1	target
 \.
 
 
@@ -422,45 +456,53 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 
 
 --
+-- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Act_id_seq"', 1, false);
+
+
+--
 -- Name: Category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Category_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."Category_id_seq"', 1, false);
 
 
 --
 -- Name: Guild_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Guild_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."Guild_id_seq"', 1, false);
 
 
 --
 -- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Role_id_seq"', 5, true);
-
-
---
--- Name: Stream_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."Stream_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."Role_id_seq"', 3, true);
 
 
 --
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 1, false);
 
 
 --
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 8, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 2, true);
+
+
+--
+-- Name: Act Act_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Act"
+    ADD CONSTRAINT "Act_pkey" PRIMARY KEY (id);
 
 
 --
@@ -485,14 +527,6 @@ ALTER TABLE ONLY public."Guild"
 
 ALTER TABLE ONLY public."Role"
     ADD CONSTRAINT "Role_pkey" PRIMARY KEY (id);
-
-
---
--- Name: Stream Stream_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."Stream"
-    ADD CONSTRAINT "Stream_pkey" PRIMARY KEY (id);
 
 
 --
@@ -570,19 +604,19 @@ CREATE INDEX "_UserFollows_B_index" ON public."_UserFollows" USING btree ("B");
 
 
 --
--- Name: Stream Stream_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Act Act_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public."Stream"
-    ADD CONSTRAINT "Stream_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES public."Category"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE ONLY public."Act"
+    ADD CONSTRAINT "Act_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES public."Category"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
--- Name: Stream Stream_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: Act Act_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public."Stream"
-    ADD CONSTRAINT "Stream_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY public."Act"
+    ADD CONSTRAINT "Act_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -606,7 +640,7 @@ ALTER TABLE ONLY public."UserActivityParticipants"
 --
 
 ALTER TABLE ONLY public."UserActivity"
-    ADD CONSTRAINT "UserActivity_streamId_fkey" FOREIGN KEY ("streamId") REFERENCES public."Stream"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+    ADD CONSTRAINT "UserActivity_streamId_fkey" FOREIGN KEY ("streamId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
@@ -652,4 +686,6 @@ ALTER TABLE ONLY public."_UserFollows"
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict ZWR01WhFcuuzrL3TugcKwV9tSmNizJX8X3Ye9M3oPrUscCmdoe0fjmEjywYsAjo
 

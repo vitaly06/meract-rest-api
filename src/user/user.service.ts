@@ -57,7 +57,7 @@ export class UserService {
         email: true,
         status: true,
         warningCount: true,
-        Stream: true,
+        Act: true,
         followers: true,
         role: true,
       },
@@ -74,7 +74,7 @@ export class UserService {
         status: user.status,
         lastActivity: 'Not done',
         warnings: user.warningCount,
-        streams: user.Stream.length,
+        streams: user.Act.length,
         followers: user.followers.length,
       });
     }
@@ -171,7 +171,7 @@ export class UserService {
       },
     });
 
-    const activeStreams = await this.prisma.stream.count({
+    const activeActs = await this.prisma.act.count({
       where: {
         status: {
           not: 'OFFLINE',
@@ -181,7 +181,7 @@ export class UserService {
 
     const activeGuilds = await this.prisma.guild.count();
 
-    return { activeUsers, activeStreams, activeGuilds };
+    return { activeUsers, activeActs, activeGuilds };
   }
 
   async getActivityLogs() {

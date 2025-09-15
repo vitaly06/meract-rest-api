@@ -13,9 +13,25 @@ enum UserStatus {
   BLOCKED
 }
 
-enum StreamStatus {
+enum ActStatus {
   ONLINE
   OFFLINE
+}
+
+enum ActType {
+  SINGLE
+  MULTI
+}
+
+enum ActFormat {
+  SINGLE
+  SEVERAL
+}
+
+enum SelectionMethods {
+  VOTING
+  BIDDING
+  MANUAL
 }
 
 model User {
@@ -36,7 +52,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   refreshToken             String?
-  Stream                   Stream[]
+  Act                   Act[]
   UserActivity             UserActivity[]
   UserActivityParticipants UserActivityParticipants[]
   Guild                    Guild?                     @relation(fields: [guildId], references: [id])
@@ -63,17 +79,24 @@ model Guild {
   updatedAt DateTime @updatedAt
 }
 
-model Stream {
+model Act {
   id              Int            @id @default(autoincrement())
-  name            String
+  title            String
   previewFileName String?
-  status          StreamStatus   @default(ONLINE)
+  sequel String?
+  type ActType @default(SINGLE)
+  format ActFormat @default(SINGLE)
+  heroMethods SelectionMethods @default(VOTING)
+  navigatorMethods SelectionMethods @default(VOTING)
+  biddingTime String
+
+  status          ActStatus   @default(ONLINE)
   startedAt       DateTime       @default(now())
   endedAt         DateTime?
-  // Stream Category
+  // Act Category
   categoryId      Int
   category        Category       @relation(fields: [categoryId], references: [id])
-  // Streamer
+  // Act
   userId          Int
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   UserActivity    UserActivity[]
@@ -83,7 +106,7 @@ model Stream {
 model Category {
   id     Int      @id @default(autoincrement())
   name   String   @unique
-  Stream Stream[]
+  Act Act[]
 }
 
 model UserActivity {
@@ -96,7 +119,7 @@ model UserActivity {
   participants UserActivityParticipants[]
   User         User?                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       Int?
-  Stream       Stream?                    @relation(fields: [streamId], references: [id])
+  Act       Act?                    @relation(fields: [streamId], references: [id])
   streamId     Int?
 }
 
