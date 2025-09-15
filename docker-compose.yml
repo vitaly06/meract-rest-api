@@ -1,0 +1,67 @@
+services:
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/Meract?schema=public
+      - JWT_ACCESS_SECRET=26bfc6eb447766315e7735c1f20639cb9e6b25924bf5abd4d582342c28e80ebb7dfe61b4a32fbbc4252133fda1610f92
+      - JWT_REFRESH_SECRET=eb05d83f17e73780f1c10dac599823ea4601a2eb4131da9945c8a0fd2e583d68ab8c4b3dad45af1813fe8b09e1daa1b8
+      - JWT_ACCESS_EXPIRES_IN=15m
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - GOOGLE_CLIENT_ID=790402689634-eq69t5j4d392f45lc48301uh5t5bupn9.apps.googleusercontent.com
+      - GOOGLE_CLIENT_SECRET=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
+      - GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
+      - FRONTEND_URL=http://localhost:5173
+      - SMTP_HOST=smtp.beget.com
+      - SMTP_PORT=465
+      - SMTP_USER=codered-it@coderedit.ru
+      - SMTP_PASSWORD=Stas-2001
+      - REDIS_HOST=localhost
+      - REDIS_PORT=6379
+      - CACHE_TTL=3600
+      - AGORA_APP_ID=67f58d2ce54b46ddb2e73f2cadaa6899
+      - AGORA_APP_CERTIFICATE=e086b7ae19ae4b05b83d3fda3fade947
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: sh -c "sleep 5 && npx prisma db push --accept-data-loss && nest start --watch"
+
+  db:
+    image: postgres:13-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=Meract
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./dumps/dump.sql:/docker-entrypoint-initdb.d/dump.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis: # Добавляем сервис Redis
+    image: redis:7-alpine
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data: # Volume для Redis
