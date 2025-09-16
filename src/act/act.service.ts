@@ -27,7 +27,6 @@ export class ActService {
       navigatorMethods,
       biddingTime,
       userId,
-      categoryId,
     } = dto;
 
     // Проверка существования пользователя
@@ -38,13 +37,13 @@ export class ActService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    // Проверка существования категории
-    const category = await this.prisma.category.findUnique({
-      where: { id: +categoryId },
-    });
-    if (!category) {
-      throw new NotFoundException(`Category with ID ${categoryId} not found`);
-    }
+    // // Проверка существования категории
+    // const category = await this.prisma.category.findUnique({
+    //   where: { id: +categoryId },
+    // });
+    // if (!category) {
+    //   throw new NotFoundException(`Category with ID ${categoryId} not found`);
+    // }
 
     try {
       const newStream = await this.prisma.act.create({
@@ -57,7 +56,7 @@ export class ActService {
           navigatorMethods,
           biddingTime,
           userId: +userId,
-          categoryId: +categoryId,
+          // categoryId: +categoryId,
           previewFileName: filename || null,
           status: 'ONLINE', // Устанавливаем статус по умолчанию
           startedAt: new Date(),

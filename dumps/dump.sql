@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ZWR01WhFcuuzrL3TugcKwV9tSmNizJX8X3Ye9M3oPrUscCmdoe0fjmEjywYsAjo
+-- \restrict 0xza5KA3rZdAqdVmwGMRR1fLCJR7MzbKdDugVb0hxayfm3ztj7pZGP8XlTzTQD5
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -10,7 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
+-- SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -94,7 +94,7 @@ CREATE TABLE public."Act" (
     "previewFileName" text,
     "startedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "endedAt" timestamp(3) without time zone,
-    "categoryId" integer NOT NULL,
+    "categoryId" integer,
     "userId" integer NOT NULL,
     status public."ActStatus" DEFAULT 'ONLINE'::public."ActStatus" NOT NULL,
     format public."ActFormat" DEFAULT 'SINGLE'::public."ActFormat" NOT NULL,
@@ -608,7 +608,7 @@ CREATE INDEX "_UserFollows_B_index" ON public."_UserFollows" USING btree ("B");
 --
 
 ALTER TABLE ONLY public."Act"
-    ADD CONSTRAINT "Act_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES public."Category"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT "Act_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES public."Category"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
@@ -687,5 +687,5 @@ ALTER TABLE ONLY public."_UserFollows"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ZWR01WhFcuuzrL3TugcKwV9tSmNizJX8X3Ye9M3oPrUscCmdoe0fjmEjywYsAjo
+-- \unrestrict 0xza5KA3rZdAqdVmwGMRR1fLCJR7MzbKdDugVb0hxayfm3ztj7pZGP8XlTzTQD5
 

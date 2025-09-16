@@ -75,14 +75,14 @@ export class CreateActRequest {
   @IsInt({ message: 'userId must be an integer' })
   @IsPositive({ message: 'userId must be a positive number' })
   userId: number;
-  @ApiProperty({
-    description: 'categoryId',
-    example: 2,
-    type: Number,
-  })
-  @Type(() => Number)
-  @IsNumber({}, { message: 'categoryId must be a number' })
-  @IsInt({ message: 'categoryId must be an integer' })
-  @IsPositive({ message: 'categoryId must be a positive number' })
-  categoryId: number;
+  // @ApiProperty({
+  //   description: 'categoryId',
+  //   example: 2,
+  //   type: Number,
+  // })
+  // @Type(() => Number)
+  // @IsNumber({}, { message: 'categoryId must be a number' })
+  // @IsInt({ message: 'categoryId must be an integer' })
+  // @IsPositive({ message: 'categoryId must be a positive number' })
+  // categoryId: number;
 }
