@@ -94,8 +94,8 @@ model Act {
   startedAt       DateTime       @default(now())
   endedAt         DateTime?
   // Act Category
-  categoryId      Int
-  category        Category       @relation(fields: [categoryId], references: [id])
+  categoryId      Int?
+  category        Category?      @relation(fields: [categoryId], references: [id])
   // Act
   userId          Int
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)

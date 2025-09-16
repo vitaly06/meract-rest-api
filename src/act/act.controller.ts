@@ -45,7 +45,7 @@ export class ActController {
       required: [
         'title',
         'userId',
-        'categoryId',
+        // 'categoryId',
         'type',
         'format',
         'heroMethods',
@@ -77,7 +77,7 @@ export class ActController {
         },
         biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
         userId: { type: 'number', example: 2 },
-        categoryId: { type: 'number', example: 2 },
+        // categoryId: { type: 'number', example: 2 },
         photo: {
           type: 'string',
           format: 'binary',
