@@ -194,12 +194,11 @@ export class ActController {
     },
   })
   @Get('token/:channel/:role/:tokentype')
-  @Get('token/:channel/:role/:tokentype/:uid')
   async getToken(
     @Param('channel') channel: string,
     @Param('role') role: string,
     @Param('tokentype') tokentype: string,
-    @Param('uid') uid?: string,
+    @Query('uid') uid?: string, // uid теперь в query
     @Query('expiry') expiryStr?: string,
   ) {
     console.log(
