@@ -88,7 +88,7 @@ export class ActService {
     });
 
     if (!streams || streams.length === 0) {
-      throw new NotFoundException('No broadcasts found');
+      return [];
     }
 
     const result = streams.map((stream) => ({
