@@ -24,7 +24,7 @@ export class ImageController {
   @ApiParam({
     name: 'type',
     description: 'Photo type',
-    enum: ['stream', 'guild'],
+    enum: ['act', 'guild'],
   })
   @ApiParam({ name: 'filename', description: 'Image filename', type: String })
   @ApiProduces('image/*')
@@ -34,7 +34,7 @@ export class ImageController {
     @Param('filename') filename: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    if (!['stream', 'guild'].includes(type)) {
+    if (!['act', 'guild'].includes(type)) {
       throw new BadRequestException('Invalid file type. Valid values: stream');
     }
 
