@@ -37,14 +37,6 @@ export class ActService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    // // Проверка существования категории
-    // const category = await this.prisma.category.findUnique({
-    //   where: { id: +categoryId },
-    // });
-    // if (!category) {
-    //   throw new NotFoundException(`Category with ID ${categoryId} not found`);
-    // }
-
     try {
       const newStream = await this.prisma.act.create({
         data: {
@@ -136,12 +128,8 @@ export class ActService {
     }
 
     try {
-      await this.prisma.act.update({
+      await this.prisma.act.delete({
         where: { id },
-        data: {
-          status: 'OFFLINE',
-          endedAt: new Date(),
-        },
       });
 
       if (currentAdmin.id !== currentStream.userId) {

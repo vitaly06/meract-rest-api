@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
--- \restrict 0xza5KA3rZdAqdVmwGMRR1fLCJR7MzbKdDugVb0hxayfm3ztj7pZGP8XlTzTQD5
+\restrict QjE6JD47fJfTGyzHdxARg1QYlhgZveXBN3FhA00F26F8ojGeKS9plmguk7LlTTT
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -10,7 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
--- SET transaction_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -427,7 +427,7 @@ COPY public."Role" (id, name) FROM stdin;
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
-2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-09-10 11:34:50.591	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NTc1MDQwOTAsImV4cCI6MTc1ODEwODg5MH0.1uvyAb6oXh_kag5jgAg-qYD04rfCaX4qgiEwpv-TY18	\N
+2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-09-17 18:46:15.091	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NTgxMzQ3NzUsImV4cCI6MTc1ODczOTU3NX0.hbVp_l2LliA2UHwy3o6KU5pBFQeoE28_j4QS_48Svjg	\N
 \.
 
 
@@ -687,5 +687,5 @@ ALTER TABLE ONLY public."_UserFollows"
 -- PostgreSQL database dump complete
 --
 
--- \unrestrict 0xza5KA3rZdAqdVmwGMRR1fLCJR7MzbKdDugVb0hxayfm3ztj7pZGP8XlTzTQD5
+\unrestrict QjE6JD47fJfTGyzHdxARg1QYlhgZveXBN3FhA00F26F8ojGeKS9plmguk7LlTTT
 
