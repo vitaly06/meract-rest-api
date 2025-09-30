@@ -96,7 +96,7 @@ export class ActService {
       name: stream.title || '',
       previewFileName: stream.previewFileName,
       user: stream.user.login || stream.user.email,
-      category: stream.category.name || '',
+      category: stream.category?.name || '',
       categoryId: stream.category?.id,
       status: stream.status || '',
       spectators: 'Not implemented', // Замените, если есть реализация
