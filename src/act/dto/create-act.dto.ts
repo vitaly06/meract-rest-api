@@ -60,7 +60,7 @@ export class CreateActRequest {
   })
   @IsEnum(SelectionMethods, { message: 'Invalid navigator selection methods' })
   navigatorMethods: SelectionMethods;
-
+  @ApiProperty({})
   @IsString({ message: 'bidding time must be a string' })
   @IsNotEmpty({ message: 'bidding time must be not empty' })
   biddingTime: string;

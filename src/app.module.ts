@@ -5,7 +5,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { ImageModule } from './image/image.module';
 import { GuildModule } from './guild/guild.module';
 import { UtilsModule } from './common/utils/utils.module';
 import { AdminModule } from './admin/admin.module';
@@ -25,7 +24,6 @@ import { ActModule } from './act/act.module';
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
     }),
-    ImageModule,
     GuildModule,
     UtilsModule,
     AdminModule,

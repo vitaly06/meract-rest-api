@@ -9,13 +9,21 @@ import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { RtcRole, RtcTokenBuilder } from 'agora-access-token';
 import { CreateActRequest } from './dto/create-act.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ActService {
+  private readonly baseUrl: string;
   constructor(
     private readonly prisma: PrismaService,
     private readonly utilsService: UtilsService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.baseUrl = this.configService.get<string>(
+      'BASE_URL',
+      'http://localhost:3000',
+    );
+  }
 
   async createAct(dto: CreateActRequest, filename?: string) {
     const {
@@ -48,8 +56,7 @@ export class ActService {
           navigatorMethods,
           biddingTime,
           userId: +userId,
-          // categoryId: +categoryId,
-          previewFileName: filename || null,
+          previewFileName: `/uploads/acts/${filename}` || null,
           status: 'ONLINE', // Устанавливаем статус по умолчанию
           startedAt: new Date(),
         },
@@ -86,7 +93,7 @@ export class ActService {
     const result = streams.map((stream) => ({
       id: stream.id,
       name: stream.title || '',
-      previewFileName: stream.previewFileName,
+      previewFileName: `${this.baseUrl}${stream.previewFileName}`,
       user: stream.user.login || stream.user.email,
       category: stream.category?.name || '',
       categoryId: stream.category?.id,
