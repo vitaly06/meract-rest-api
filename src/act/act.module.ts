@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ActService } from './act.service';
 import { ActController } from './act.controller';
+import { ActGateway } from './act.gateway';
 import { ConfigModule } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -22,6 +23,6 @@ import * as path from 'path';
     }),
   ],
   controllers: [ActController],
-  providers: [ActService],
+  providers: [ActService, ActGateway],
 })
 export class ActModule {}
