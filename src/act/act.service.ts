@@ -103,6 +103,10 @@ export class ActService {
         stream.startedAt,
         stream.endedAt || new Date(),
       ),
+      // Дата старта в формате "21 Jan. 15:30"
+      startDate: this.formatStartDate(stream.startedAt),
+      // Время до начала трансляции в формате "Live in 2h 15m"
+      liveIn: this.formatLiveIn(stream.startedAt),
     }));
 
     return result.sort((a, b) => (a.id > b.id ? 1 : -1));
@@ -277,5 +281,159 @@ export class ActService {
       duration.minutes().toString().padStart(2, '0'),
       duration.seconds().toString().padStart(2, '0'),
     ].join(':');
+  }
+
+  /**
+   * Форматирует дату старта трансляции в формат "21 Jan. 15:30"
+   * @param startedAt дата начала стрима
+   * @returns отформатированная дата
+   */
+  private formatStartDate(startedAt: Date | string): string {
+    try {
+      // Если передана дата как объект Date, используем её напрямую
+      if (startedAt instanceof Date) {
+        return moment(startedAt).format('D MMM. HH:mm');
+      }
+
+      // Если строка пустая или некорректная
+      if (!startedAt || startedAt === 'string' || startedAt.length < 8) {
+        return moment().format('D MMM. HH:mm');
+      }
+
+      // Пробуем различные форматы парсинга для строки
+      let date = moment(startedAt, moment.ISO_8601, true);
+
+      if (!date.isValid()) {
+        date = moment(startedAt);
+      }
+
+      if (!date.isValid()) {
+        const formats = [
+          'YYYY-MM-DD HH:mm:ss',
+          'YYYY-MM-DDTHH:mm:ss',
+          'DD/MM/YYYY HH:mm',
+          'MM/DD/YYYY HH:mm',
+          'YYYY-MM-DD',
+        ];
+
+        for (const format of formats) {
+          date = moment(startedAt, format, true);
+          if (date.isValid()) break;
+        }
+      }
+
+      if (!date.isValid()) {
+        console.warn('Could not parse startedAt:', startedAt);
+        return moment().format('D MMM. HH:mm');
+      }
+
+      // Формат: "21 Jan. 15:30"
+      return date.format('D MMM. HH:mm');
+    } catch (error) {
+      console.error('Error formatting start date:', error);
+      return moment().format('D MMM. HH:mm');
+    }
+  }
+
+  /**
+   * Форматирует время до начала трансляции в формат "Live in 2h 15m"
+   * @param startedAt дата начала стрима
+   * @returns отформатированное время
+   */
+  private formatLiveIn(startedAt: Date | string): string {
+    try {
+      let streamStartTime: moment.Moment;
+
+      // Если передана дата как объект Date, используем её напрямую
+      if (startedAt instanceof Date) {
+        streamStartTime = moment(startedAt);
+      } else {
+        // Если строка пустая или некорректная
+        if (!startedAt || startedAt === 'string' || startedAt.length < 8) {
+          return 'Just started';
+        }
+
+        // Пробуем различные форматы парсинга для строки
+        streamStartTime = moment(startedAt, moment.ISO_8601, true);
+
+        if (!streamStartTime.isValid()) {
+          streamStartTime = moment(startedAt);
+        }
+
+        if (!streamStartTime.isValid()) {
+          const formats = [
+            'YYYY-MM-DD HH:mm:ss',
+            'YYYY-MM-DDTHH:mm:ss',
+            'DD/MM/YYYY HH:mm',
+            'MM/DD/YYYY HH:mm',
+            'YYYY-MM-DD',
+          ];
+
+          for (const format of formats) {
+            streamStartTime = moment(startedAt, format, true);
+            if (streamStartTime.isValid()) break;
+          }
+        }
+
+        if (!streamStartTime.isValid()) {
+          console.warn('Could not parse startedAt for liveIn:', startedAt);
+          return 'Just started';
+        }
+      }
+
+      const now = moment();
+      const diff = now.diff(streamStartTime);
+
+      // Если стрим уже начался, показываем сколько времени он идет
+      if (diff >= 0) {
+        return this.formatDuration(diff);
+      }
+
+      // Если время ещё не пришло (что маловероятно для startedAt)
+      return `Starts in ${this.formatDuration(-diff)}`;
+    } catch (error) {
+      console.error('Error formatting liveIn:', error);
+      return 'Just started';
+    }
+  }
+
+  /**
+   * Форматирует продолжительность в читаемый формат с неделями, днями, часами и минутами
+   * @param milliseconds продолжительность в миллисекундах
+   * @returns отформатированная строка
+   */
+  private formatDuration(milliseconds: number): string {
+    const duration = moment.duration(Math.abs(milliseconds));
+
+    const weeks = Math.floor(duration.asDays() / 7);
+    const days = Math.floor(duration.asDays()) % 7;
+    const hours = duration.hours();
+    const minutes = duration.minutes();
+
+    const parts: string[] = [];
+
+    if (weeks > 0) {
+      parts.push(`${weeks}w`);
+    }
+
+    if (days > 0) {
+      parts.push(`${days}d`);
+    }
+
+    if (hours > 0) {
+      parts.push(`${hours}h`);
+    }
+
+    if (minutes > 0) {
+      parts.push(`${minutes}m`);
+    }
+
+    // Если ничего нет, значит только что начался
+    if (parts.length === 0) {
+      return 'Just started';
+    }
+
+    // Показываем максимум 2 единицы времени для краткости
+    return parts.slice(0, 2).join(' ');
   }
 }

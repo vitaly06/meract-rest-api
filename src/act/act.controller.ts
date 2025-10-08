@@ -128,6 +128,13 @@ export class ActController {
           status: { type: 'string' },
           spectators: { type: 'string' },
           duration: { type: 'string' },
+          startDate: { type: 'string', example: '21 Jan. 15:30' },
+          liveIn: {
+            type: 'string',
+            example: '2h 15m',
+            description:
+              'Stream duration in format: weeks(w), days(d), hours(h), minutes(m). Examples: "2h 15m", "1w 3d", "5d 12h"',
+          },
         },
       },
     },
