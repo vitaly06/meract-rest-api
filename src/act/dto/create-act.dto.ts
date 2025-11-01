@@ -22,12 +22,26 @@ export class CreateActRequest {
   title: string;
 
   @ApiProperty({
-    description: 'sequel',
-    required: false,
+    type: Number,
+    description: 'SequelId',
+    example: 1,
   })
-  @IsOptional()
-  @IsString({ message: 'sequel must be a string' })
-  sequel?: string;
+  @IsNumber({}, { message: 'Sequel id must be a number' })
+  @IsPositive({ message: 'Sequel id must be a positive number' })
+  @IsInt({ message: 'Sequel id must be an int' })
+  @Type(() => Number)
+  sequelId: number;
+
+  @ApiProperty({
+    type: Number,
+    description: 'SequelId',
+    example: 1,
+  })
+  @IsNumber({}, { message: 'Intro id must be a number' })
+  @IsPositive({ message: 'Intro id must be a positive number' })
+  @IsInt({ message: 'Intro id must be an int' })
+  @Type(() => Number)
+  introId: number;
 
   @ApiProperty({
     description: 'Act type',
@@ -65,16 +79,16 @@ export class CreateActRequest {
   @IsNotEmpty({ message: 'bidding time must be not empty' })
   biddingTime: string;
 
-  @ApiProperty({
-    description: 'userId',
-    example: 2,
-    type: Number,
-  })
-  @Type(() => Number)
-  @IsNumber({}, { message: 'userId must be a number' })
-  @IsInt({ message: 'userId must be an integer' })
-  @IsPositive({ message: 'userId must be a positive number' })
-  userId: number;
+  // @ApiProperty({
+  //   description: 'userId',
+  //   example: 2,
+  //   type: Number,
+  // })
+  // @Type(() => Number)
+  // @IsNumber({}, { message: 'userId must be a number' })
+  // @IsInt({ message: 'userId must be an integer' })
+  // @IsPositive({ message: 'userId must be a positive number' })
+  // userId: number;
   // @ApiProperty({
   //   description: 'categoryId',
   //   example: 2,

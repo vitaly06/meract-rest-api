@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import * as moment from 'moment';
+import moment from 'moment';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { RtcRole, RtcTokenBuilder } from 'agora-access-token';
 import { CreateActRequest } from './dto/create-act.dto';
@@ -25,17 +25,17 @@ export class ActService {
     );
   }
 
-  async createAct(dto: CreateActRequest, filename?: string) {
+  async createAct(dto: CreateActRequest, userId: number, filename?: string) {
     const {
       title,
-      sequel,
+      sequelId,
+      introId,
       type,
       format,
       heroMethods,
       navigatorMethods,
       biddingTime,
-      userId,
-    } = dto;
+    } = { ...dto };
 
     // Проверка существования пользователя
     const user = await this.prisma.user.findUnique({
@@ -49,8 +49,8 @@ export class ActService {
       const newStream = await this.prisma.act.create({
         data: {
           title,
-          sequel: sequel || null,
-          type,
+          sequelId: +sequelId,
+          introId: +introId,
           format,
           heroMethods,
           navigatorMethods,

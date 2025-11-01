@@ -44,8 +44,9 @@ export class ActController {
       type: 'object',
       required: [
         'title',
+        'sequelId',
+        'introId',
         'userId',
-        // 'categoryId',
         'type',
         'format',
         'heroMethods',
@@ -54,7 +55,8 @@ export class ActController {
       ],
       properties: {
         title: { type: 'string', example: 'CS 2 Faceit Stream' },
-        sequel: { type: 'string', example: 'Season 1', nullable: true },
+        sequelId: { type: 'number', example: 1 },
+        introId: { type: 'number', example: 1 },
         type: {
           type: 'string',
           enum: Object.values(ActType),
@@ -77,7 +79,6 @@ export class ActController {
         },
         biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
         userId: { type: 'number', example: 2 },
-        // categoryId: { type: 'number', example: 2 },
         photo: {
           type: 'string',
           format: 'binary',
@@ -98,13 +99,15 @@ export class ActController {
     description: 'Invalid input data',
   })
   @ApiConsumes('multipart/form-data')
+  @UseGuards(JwtAuthGuard)
   @Post('create-act')
   @UseInterceptors(FileInterceptor('photo'))
   async createAct(
+    @Req() req: RequestWithUser,
     @Body() dto: CreateActRequest,
     @UploadedFile() photo?: Multer.File,
   ) {
-    return await this.actService.createAct(dto, photo?.filename);
+    return await this.actService.createAct(dto, req.user.sub, photo?.filename);
   }
 
   @ApiOperation({
