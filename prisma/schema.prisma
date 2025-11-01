@@ -53,6 +53,7 @@ model User {
 
   refreshToken             String?
   Act                   Act[]
+  sequels Sequel[]
   UserActivity             UserActivity[]
   UserActivityParticipants UserActivityParticipants[]
   Guild                    Guild?                     @relation(fields: [guildId], references: [id])
@@ -83,12 +84,16 @@ model Act {
   id              Int            @id @default(autoincrement())
   title            String
   previewFileName String?
-  sequel String?
+  sequelId Int
+  sequel Sequel @relation(fields: [sequelId], references: [id], onDelete: Cascade)
   type ActType @default(SINGLE)
   format ActFormat @default(SINGLE)
   heroMethods SelectionMethods @default(VOTING)
   navigatorMethods SelectionMethods @default(VOTING)
   biddingTime String
+
+  introId Int
+  intro Intro @relation(fields: [introId], references: [id], onDelete: Cascade)
 
   status          ActStatus   @default(ONLINE)
   startedAt       DateTime       @default(now())
@@ -107,6 +112,22 @@ model Category {
   id     Int      @id @default(autoincrement())
   name   String   @unique
   Act Act[]
+}
+
+model Sequel{
+  id Int @id @default(autoincrement())
+  title String
+  episodes Int
+  coverFileName String?
+  userId Int
+  acts Act[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Intro {
+  id Int @id @default(autoincrement())
+  fileName String?
+  acts Act[]
 }
 
 model UserActivity {
