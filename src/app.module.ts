@@ -13,6 +13,7 @@ import { SequelModule } from './sequel/sequel.module';
 import { IntroModule } from './intro/intro.module';
 import { MusicModule } from './music/music.module';
 import { ChatModule } from './chat/chat.module';
+import { OutroModule } from './outro/outro.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ChatModule } from './chat/chat.module';
     IntroModule,
     MusicModule,
     ChatModule,
+    OutroModule,
   ],
 })
 export class AppModule {}

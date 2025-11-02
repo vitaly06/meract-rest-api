@@ -103,7 +103,8 @@ CREATE TABLE public."Act" (
     "navigatorMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
     "sequelId" integer NOT NULL,
     "introId" integer NOT NULL,
-    "musicId" integer NOT NULL
+    "musicId" integer NOT NULL,
+    "outroId" integer NOT NULL
 );
 
 
@@ -308,6 +309,40 @@ ALTER SEQUENCE public."Music_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."Music_id_seq" OWNED BY public."Music".id;
+
+
+--
+-- Name: Outro; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Outro" (
+    id integer NOT NULL,
+    "fileName" text NOT NULL
+);
+
+
+ALTER TABLE public."Outro" OWNER TO postgres;
+
+--
+-- Name: Outro_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Outro_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Outro_id_seq" OWNER TO postgres;
+
+--
+-- Name: Outro_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Outro_id_seq" OWNED BY public."Outro".id;
 
 
 --
@@ -531,6 +566,13 @@ ALTER TABLE ONLY public."Music" ALTER COLUMN id SET DEFAULT nextval('public."Mus
 
 
 --
+-- Name: Outro id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Outro" ALTER COLUMN id SET DEFAULT nextval('public."Outro_id_seq"'::regclass);
+
+
+--
 -- Name: Role id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -562,8 +604,8 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, title, type, "biddingTime", "heroMethods", "navigatorMethods", "sequelId", "introId", "musicId") FROM stdin;
-15	/uploads/acts/1762098370398-282122015.jpg	2025-11-02 15:46:10.478	\N	\N	2	ONLINE	SINGLE	CS 2 Faceit Stream	SINGLE	5 mins	VOTING	VOTING	1	1	3
+COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, title, type, "biddingTime", "heroMethods", "navigatorMethods", "sequelId", "introId", "musicId", "outroId") FROM stdin;
+16	/uploads/acts/1762112277061-459958808.jpg	2025-11-02 19:37:57.077	\N	\N	2	ONLINE	SINGLE	CS 2 Faceit Stream	SINGLE	5 mins	VOTING	VOTING	1	1	3	1
 \.
 
 
@@ -580,7 +622,6 @@ COPY public."Category" (id, name) FROM stdin;
 --
 
 COPY public."ChatMessage" (id, message, "createdAt", "userId", "actId") FROM stdin;
-1	Hello everyone!	2025-11-02 15:46:20.981	2	15
 \.
 
 
@@ -611,6 +652,15 @@ COPY public."Music" (id, "fileName", length) FROM stdin;
 
 
 --
+-- Data for Name: Outro; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Outro" (id, "fileName") FROM stdin;
+1	uploads/outros/1762112224389-388684587.mp4
+\.
+
+
+--
 -- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -635,7 +685,7 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
-2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-11-02 15:43:25.86	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NjIwOTgyMDUsImV4cCI6MTc2MjcwMzAwNX0.BEq4b_e7Q3M4Bav_JHGo1YEu2b97jgcGrhZB3z2Oth4	\N
+2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-11-02 19:36:57.749	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NjIxMTIyMTcsImV4cCI6MTc2MjcxNzAxN30.1mlpj-9BctH53v49rYLB_n7PnyOqZ60-93UMO4r4EU4	\N
 \.
 
 
@@ -657,6 +707,7 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 11	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:30:42.981	\N	\N
 12	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:38:40.564	\N	\N
 13	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 15:46:10.527	\N	\N
+14	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 19:37:57.09	\N	\N
 \.
 
 
@@ -678,6 +729,7 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 2	11	initiator
 2	12	initiator
 2	13	initiator
+2	14	initiator
 \.
 
 
@@ -693,7 +745,7 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Act_id_seq"', 15, true);
+SELECT pg_catalog.setval('public."Act_id_seq"', 16, true);
 
 
 --
@@ -732,6 +784,13 @@ SELECT pg_catalog.setval('public."Music_id_seq"', 3, true);
 
 
 --
+-- Name: Outro_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Outro_id_seq"', 1, true);
+
+
+--
 -- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -749,7 +808,7 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, true);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 13, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 14, true);
 
 
 --
@@ -805,6 +864,14 @@ ALTER TABLE ONLY public."Intro"
 
 ALTER TABLE ONLY public."Music"
     ADD CONSTRAINT "Music_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Outro Outro_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Outro"
+    ADD CONSTRAINT "Outro_pkey" PRIMARY KEY (id);
 
 
 --
@@ -926,6 +993,14 @@ ALTER TABLE ONLY public."Act"
 
 ALTER TABLE ONLY public."Act"
     ADD CONSTRAINT "Act_musicId_fkey" FOREIGN KEY ("musicId") REFERENCES public."Music"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Act Act_outroId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Act"
+    ADD CONSTRAINT "Act_outroId_fkey" FOREIGN KEY ("outroId") REFERENCES public."Outro"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
