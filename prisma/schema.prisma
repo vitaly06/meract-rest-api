@@ -97,6 +97,9 @@ model Act {
   introId Int
   intro Intro @relation(fields: [introId], references: [id], onDelete: Cascade)
 
+  outroId Int
+  outro Outro @relation(fields: [outroId], references: [id], onDelete: Cascade)
+
   musicId Int
   music Music @relation(fields: [musicId], references: [id], onDelete: Cascade)
 
@@ -131,6 +134,12 @@ model Sequel{
 }
 
 model Intro {
+  id Int @id @default(autoincrement())
+  fileName String
+  acts Act[]
+}
+
+model Outro {
   id Int @id @default(autoincrement())
   fileName String
   acts Act[]

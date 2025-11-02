@@ -30,6 +30,7 @@ export class ActService {
       title,
       sequelId,
       introId,
+      outroId,
       musicId,
       type,
       format,
@@ -52,6 +53,7 @@ export class ActService {
           title,
           sequelId: +sequelId,
           introId: +introId,
+          outroId: +outroId,
           musicId: +musicId,
           format,
           heroMethods,
@@ -78,6 +80,8 @@ export class ActService {
         omit: {
           sequelId: true,
           introId: true,
+          outroId: true,
+          musicId: true,
         },
         include: {
           sequel: {
@@ -93,6 +97,19 @@ export class ActService {
               fileName: true,
             },
           },
+          outro: {
+            select: {
+              id: true,
+              fileName: true,
+            },
+          },
+          music: {
+            select: {
+              id: true,
+              fileName: true,
+              length: true,
+            },
+          },
         },
       });
 
@@ -102,6 +119,14 @@ export class ActService {
         intro: {
           ...resultStream.intro,
           fileName: `${this.baseUrl}/${resultStream.intro.fileName}`,
+        },
+        outro: {
+          ...resultStream.outro,
+          fileName: `${this.baseUrl}/${resultStream.outro.fileName}`,
+        },
+        music: {
+          ...resultStream.music,
+          fileName: `${this.baseUrl}/${resultStream.music.fileName}`,
         },
         sequel: {
           ...resultStream.sequel,
@@ -302,22 +327,31 @@ export class ActService {
     start: Date | string,
     end: Date | string,
   ): string {
-    const startStr = start instanceof Date ? start.toISOString() : start;
-    const endStr = end instanceof Date ? end.toISOString() : end;
+    try {
+      const startDate = start instanceof Date ? start : new Date(start);
+      const endDate = end instanceof Date ? end : new Date(end);
 
-    const startMoment = moment(startStr);
-    const endMoment = moment(endStr);
+      // Проверяем валидность дат
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return '00:00:00';
+      }
 
-    if (!startMoment.isValid() || !endMoment.isValid()) {
+      const diffMs = endDate.getTime() - startDate.getTime();
+      const diffSeconds = Math.floor(Math.abs(diffMs) / 1000);
+
+      const hours = Math.floor(diffSeconds / 3600);
+      const minutes = Math.floor((diffSeconds % 3600) / 60);
+      const seconds = diffSeconds % 60;
+
+      return [
+        hours.toString().padStart(2, '0'),
+        minutes.toString().padStart(2, '0'),
+        seconds.toString().padStart(2, '0'),
+      ].join(':');
+    } catch (error) {
+      console.error('Error formatting time difference:', error);
       return '00:00:00';
     }
-
-    const duration = moment.duration(endMoment.diff(startMoment));
-    return [
-      duration.hours().toString().padStart(2, '0'),
-      duration.minutes().toString().padStart(2, '0'),
-      duration.seconds().toString().padStart(2, '0'),
-    ].join(':');
   }
 
   /**
@@ -327,45 +361,72 @@ export class ActService {
    */
   private formatStartDate(startedAt: Date | string): string {
     try {
+      let date: Date;
+
       // Если передана дата как объект Date, используем её напрямую
       if (startedAt instanceof Date) {
-        return moment(startedAt).format('D MMM. HH:mm');
-      }
-
-      // Если строка пустая или некорректная
-      if (!startedAt || startedAt === 'string' || startedAt.length < 8) {
-        return moment().format('D MMM. HH:mm');
-      }
-
-      // Пробуем различные форматы парсинга для строки
-      let date = moment(startedAt);
-
-      if (!date.isValid()) {
-        // Если стандартный парсинг не работает, пробуем другие форматы
-        const formats = [
-          'YYYY-MM-DD HH:mm:ss',
-          'YYYY-MM-DDTHH:mm:ss',
-          'DD/MM/YYYY HH:mm',
-          'MM/DD/YYYY HH:mm',
-          'YYYY-MM-DD',
-        ];
-
-        for (const format of formats) {
-          date = moment(startedAt, format, true);
-          if (date.isValid()) break;
+        date = startedAt;
+      } else {
+        // Если строка пустая или некорректная
+        if (!startedAt || startedAt === 'string' || startedAt.length < 8) {
+          date = new Date();
+        } else {
+          date = new Date(startedAt);
         }
       }
 
-      if (!date.isValid()) {
+      // Проверяем валидность даты
+      if (isNaN(date.getTime())) {
         console.warn('Could not parse startedAt:', startedAt);
-        return moment().format('D MMM. HH:mm');
+        date = new Date();
       }
 
       // Формат: "21 Jan. 15:30"
-      return date.format('D MMM. HH:mm');
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+
+      const day = date.getDate();
+      const month = months[date.getMonth()];
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+
+      return `${day} ${month}. ${hours}:${minutes}`;
     } catch (error) {
       console.error('Error formatting start date:', error);
-      return moment().format('D MMM. HH:mm');
+      const now = new Date();
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+
+      const day = now.getDate();
+      const month = months[now.getMonth()];
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+
+      return `${day} ${month}. ${hours}:${minutes}`;
     }
   }
 
@@ -376,44 +437,28 @@ export class ActService {
    */
   private formatLiveIn(startedAt: Date | string): string {
     try {
-      let streamStartTime: moment.Moment;
+      let streamStartTime: Date;
 
       // Если передана дата как объект Date, используем её напрямую
       if (startedAt instanceof Date) {
-        streamStartTime = moment(startedAt);
+        streamStartTime = startedAt;
       } else {
         // Если строка пустая или некорректная
         if (!startedAt || startedAt === 'string' || startedAt.length < 8) {
           return 'Just started';
         }
 
-        // Пробуем различные форматы парсинга для строки
-        streamStartTime = moment(startedAt);
+        // Пробуем распарсить строку
+        streamStartTime = new Date(startedAt);
 
-        if (!streamStartTime.isValid()) {
-          // Если стандартный парсинг не работает, пробуем другие форматы
-          const formats = [
-            'YYYY-MM-DD HH:mm:ss',
-            'YYYY-MM-DDTHH:mm:ss',
-            'DD/MM/YYYY HH:mm',
-            'MM/DD/YYYY HH:mm',
-            'YYYY-MM-DD',
-          ];
-
-          for (const format of formats) {
-            streamStartTime = moment(startedAt, format, true);
-            if (streamStartTime.isValid()) break;
-          }
-        }
-
-        if (!streamStartTime.isValid()) {
+        if (isNaN(streamStartTime.getTime())) {
           console.warn('Could not parse startedAt for liveIn:', startedAt);
           return 'Just started';
         }
       }
 
-      const now = moment();
-      const diff = now.diff(streamStartTime);
+      const now = new Date();
+      const diff = now.getTime() - streamStartTime.getTime();
 
       // Если стрим уже начался, показываем сколько времени он идет
       if (diff >= 0) {
@@ -434,12 +479,15 @@ export class ActService {
    * @returns отформатированная строка
    */
   private formatDuration(milliseconds: number): string {
-    const duration = moment.duration(Math.abs(milliseconds));
+    const totalSeconds = Math.floor(Math.abs(milliseconds) / 1000);
+    const totalMinutes = Math.floor(totalSeconds / 60);
+    const totalHours = Math.floor(totalMinutes / 60);
+    const totalDays = Math.floor(totalHours / 24);
+    const weeks = Math.floor(totalDays / 7);
 
-    const weeks = Math.floor(duration.asDays() / 7);
-    const days = Math.floor(duration.asDays()) % 7;
-    const hours = duration.hours();
-    const minutes = duration.minutes();
+    const days = totalDays % 7;
+    const hours = totalHours % 24;
+    const minutes = totalMinutes % 60;
 
     const parts: string[] = [];
 

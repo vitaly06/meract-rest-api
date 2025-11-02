@@ -45,6 +45,7 @@ export class ActController {
         'title',
         'sequelId',
         'introId',
+        'outroId',
         'userId',
         'type',
         'format',
@@ -58,6 +59,7 @@ export class ActController {
         title: { type: 'string', example: 'CS 2 Faceit Stream' },
         sequelId: { type: 'number', example: 1 },
         introId: { type: 'number', example: 1 },
+        outroId: { type: 'number', example: 1 },
         musicId: { type: 'number', example: 1 },
         type: {
           type: 'string',

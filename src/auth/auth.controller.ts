@@ -14,6 +14,7 @@ import { SignUpRequest } from './dto/sign-up.dto';
 import { SignInRequest } from './dto/sign-in.dto';
 import { Response } from 'express';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
+import { JwtRefreshGuard } from 'src/common/guards/jwt-refresh.guard';
 import {
   RequestWithGoogleUser,
   RequestWithUser,
@@ -121,7 +122,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Update tokens',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   async refresh(
     @Res({ passthrough: true }) res: Response,
