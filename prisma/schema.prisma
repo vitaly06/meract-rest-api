@@ -86,6 +86,7 @@ model Act {
   previewFileName String?
   sequelId Int
   sequel Sequel @relation(fields: [sequelId], references: [id], onDelete: Cascade)
+
   type ActType @default(SINGLE)
   format ActFormat @default(SINGLE)
   heroMethods SelectionMethods @default(VOTING)
@@ -94,6 +95,9 @@ model Act {
 
   introId Int
   intro Intro @relation(fields: [introId], references: [id], onDelete: Cascade)
+
+  musicId Int
+  music Music @relation(fields: [musicId], references: [id], onDelete: Cascade)
 
   status          ActStatus   @default(ONLINE)
   startedAt       DateTime       @default(now())
@@ -126,7 +130,14 @@ model Sequel{
 
 model Intro {
   id Int @id @default(autoincrement())
-  fileName String?
+  fileName String
+  acts Act[]
+}
+
+model Music {
+  id Int @id @default(autoincrement())
+  fileName String
+  length String
   acts Act[]
 }
 

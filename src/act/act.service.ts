@@ -30,6 +30,7 @@ export class ActService {
       title,
       sequelId,
       introId,
+      musicId,
       type,
       format,
       heroMethods,
@@ -51,6 +52,7 @@ export class ActService {
           title,
           sequelId: +sequelId,
           introId: +introId,
+          musicId: +musicId,
           format,
           heroMethods,
           navigatorMethods,
@@ -71,7 +73,42 @@ export class ActService {
         [+userId],
       );
 
-      return { message: 'Stream launched successfully', actId: newStream.id };
+      const resultStream = await this.prisma.act.findUnique({
+        where: { id: newStream.id },
+        omit: {
+          sequelId: true,
+          introId: true,
+        },
+        include: {
+          sequel: {
+            select: {
+              id: true,
+              title: true,
+              coverFileName: true,
+            },
+          },
+          intro: {
+            select: {
+              id: true,
+              fileName: true,
+            },
+          },
+        },
+      });
+
+      return {
+        // message: 'Stream launched successfully',
+        ...resultStream,
+        intro: {
+          ...resultStream.intro,
+          fileName: `${this.baseUrl}/${resultStream.intro.fileName}`,
+        },
+        sequel: {
+          ...resultStream.sequel,
+          coverFileName: `${this.baseUrl}/${resultStream.sequel.coverFileName}`,
+        },
+        previewFileName: `${this.baseUrl}${resultStream.previewFileName}`,
+      };
     } catch (error) {
       console.error(`Error creating act: ${error.message}`);
       throw new NotFoundException(`Failed to create act: ${error.message}`);

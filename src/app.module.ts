@@ -11,6 +11,7 @@ import { AdminModule } from './admin/admin.module';
 import { ActModule } from './act/act.module';
 import { SequelModule } from './sequel/sequel.module';
 import { IntroModule } from './intro/intro.module';
+import { MusicModule } from './music/music.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { IntroModule } from './intro/intro.module';
     ActModule,
     SequelModule,
     IntroModule,
+    MusicModule,
   ],
 })
 export class AppModule {}
