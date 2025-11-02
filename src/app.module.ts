@@ -10,6 +10,7 @@ import { UtilsModule } from './common/utils/utils.module';
 import { AdminModule } from './admin/admin.module';
 import { ActModule } from './act/act.module';
 import { SequelModule } from './sequel/sequel.module';
+import { IntroModule } from './intro/intro.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { SequelModule } from './sequel/sequel.module';
     AdminModule,
     ActModule,
     SequelModule,
+    IntroModule,
   ],
 })
 export class AppModule {}

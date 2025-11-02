@@ -476,6 +476,7 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 --
 
 COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, title, type, "biddingTime", "heroMethods", "navigatorMethods", "sequelId", "introId") FROM stdin;
+6	/uploads/acts/undefined	2025-11-02 07:54:42.949	\N	\N	2	ONLINE	SINGLE	CS 2 Faceit Stream	SINGLE	05:00	VOTING	VOTING	1	1
 \.
 
 
@@ -500,6 +501,7 @@ COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdA
 --
 
 COPY public."Intro" (id, "fileName") FROM stdin;
+1	uploads/intros/1762005707043-565867057.mp4
 \.
 
 
@@ -528,7 +530,7 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
-2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-10-31 07:56:12.152	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NjE4OTczNzIsImV4cCI6MTc2MjUwMjE3Mn0.P6nC-PJ8EXTpx91fgzuiRQDMSiCsXOIoZoWO3A_HwCU	\N
+2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-11-02 07:54:19.691	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NjIwNzAwNTksImV4cCI6MTc2MjY3NDg1OX0.XJcNuM3yejSJCbMJ1ez-FuEU4leu4ma4mSdVpUrDeQ4	\N
 \.
 
 
@@ -540,6 +542,7 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 1	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-09-30 12:02:01.72	\N	\N
 2	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-09-30 12:02:44.879	\N	\N
 3	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-10-31 08:06:21.794	\N	\N
+4	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 07:54:42.995	\N	\N
 \.
 
 
@@ -551,6 +554,7 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 2	1	initiator
 2	2	initiator
 2	3	initiator
+2	4	initiator
 \.
 
 
@@ -566,7 +570,7 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Act_id_seq"', 5, true);
+SELECT pg_catalog.setval('public."Act_id_seq"', 6, true);
 
 
 --
@@ -587,7 +591,7 @@ SELECT pg_catalog.setval('public."Guild_id_seq"', 1, false);
 -- Name: Intro_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Intro_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Intro_id_seq"', 1, true);
 
 
 --
@@ -608,7 +612,7 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, true);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 4, true);
 
 
 --

@@ -10,11 +10,11 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { ActService } from './act.service';
-import * as moment from 'moment';
+import moment from 'moment';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: true,
     credentials: true,
   },
   namespace: 'acts',
