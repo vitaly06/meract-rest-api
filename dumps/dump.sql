@@ -9,6 +9,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -102,7 +103,8 @@ CREATE TABLE public."Act" (
     "heroMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
     "navigatorMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
     "sequelId" integer NOT NULL,
-    "introId" integer NOT NULL
+    "introId" integer NOT NULL,
+    "musicId" integer NOT NULL
 );
 
 
@@ -209,7 +211,7 @@ ALTER SEQUENCE public."Guild_id_seq" OWNED BY public."Guild".id;
 
 CREATE TABLE public."Intro" (
     id integer NOT NULL,
-    "fileName" text
+    "fileName" text NOT NULL
 );
 
 
@@ -235,6 +237,41 @@ ALTER SEQUENCE public."Intro_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."Intro_id_seq" OWNED BY public."Intro".id;
+
+
+--
+-- Name: Music; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Music" (
+    id integer NOT NULL,
+    "fileName" text NOT NULL,
+    length text NOT NULL
+);
+
+
+ALTER TABLE public."Music" OWNER TO postgres;
+
+--
+-- Name: Music_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Music_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Music_id_seq" OWNER TO postgres;
+
+--
+-- Name: Music_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Music_id_seq" OWNED BY public."Music".id;
 
 
 --
@@ -444,6 +481,13 @@ ALTER TABLE ONLY public."Intro" ALTER COLUMN id SET DEFAULT nextval('public."Int
 
 
 --
+-- Name: Music id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Music" ALTER COLUMN id SET DEFAULT nextval('public."Music_id_seq"'::regclass);
+
+
+--
 -- Name: Role id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -475,8 +519,7 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, title, type, "biddingTime", "heroMethods", "navigatorMethods", "sequelId", "introId") FROM stdin;
-6	/uploads/acts/undefined	2025-11-02 07:54:42.949	\N	\N	2	ONLINE	SINGLE	CS 2 Faceit Stream	SINGLE	05:00	VOTING	VOTING	1	1
+COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, title, type, "biddingTime", "heroMethods", "navigatorMethods", "sequelId", "introId", "musicId") FROM stdin;
 \.
 
 
@@ -506,6 +549,15 @@ COPY public."Intro" (id, "fileName") FROM stdin;
 
 
 --
+-- Data for Name: Music; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Music" (id, "fileName", length) FROM stdin;
+3	uploads/musics/1762087771198-774269634.mp3	02:59
+\.
+
+
+--
 -- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -530,7 +582,7 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
-2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-11-02 07:54:19.691	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NjIwNzAwNTksImV4cCI6MTc2MjY3NDg1OX0.XJcNuM3yejSJCbMJ1ez-FuEU4leu4ma4mSdVpUrDeQ4	\N
+2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-11-02 12:43:41.155	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NjIwODc0MjEsImV4cCI6MTc2MjY5MjIyMX0.RMNugOg5gIbKmxnG3kQ9s-JFgcWWyvL1PAfmv5y7wQc	\N
 \.
 
 
@@ -543,6 +595,14 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 2	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-09-30 12:02:44.879	\N	\N
 3	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-10-31 08:06:21.794	\N	\N
 4	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 07:54:42.995	\N	\N
+5	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:17:39.483	\N	\N
+6	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:19:45.783	\N	\N
+7	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:20:37.14	\N	\N
+8	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:20:53.678	\N	\N
+9	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:23:08.312	\N	\N
+10	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:24:47.843	\N	\N
+11	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:30:42.981	\N	\N
+12	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:38:40.564	\N	\N
 \.
 
 
@@ -555,6 +615,14 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 2	2	initiator
 2	3	initiator
 2	4	initiator
+2	5	initiator
+2	6	initiator
+2	7	initiator
+2	8	initiator
+2	9	initiator
+2	10	initiator
+2	11	initiator
+2	12	initiator
 \.
 
 
@@ -570,7 +638,7 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Act_id_seq"', 6, true);
+SELECT pg_catalog.setval('public."Act_id_seq"', 14, true);
 
 
 --
@@ -595,6 +663,13 @@ SELECT pg_catalog.setval('public."Intro_id_seq"', 1, true);
 
 
 --
+-- Name: Music_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Music_id_seq"', 3, true);
+
+
+--
 -- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -612,7 +687,7 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, true);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 4, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 12, true);
 
 
 --
@@ -652,6 +727,14 @@ ALTER TABLE ONLY public."Guild"
 
 ALTER TABLE ONLY public."Intro"
     ADD CONSTRAINT "Intro_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Music Music_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Music"
+    ADD CONSTRAINT "Music_pkey" PRIMARY KEY (id);
 
 
 --
@@ -758,6 +841,14 @@ ALTER TABLE ONLY public."Act"
 
 ALTER TABLE ONLY public."Act"
     ADD CONSTRAINT "Act_introId_fkey" FOREIGN KEY ("introId") REFERENCES public."Intro"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Act Act_musicId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Act"
+    ADD CONSTRAINT "Act_musicId_fkey" FOREIGN KEY ("musicId") REFERENCES public."Music"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

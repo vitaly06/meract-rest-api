@@ -44,6 +44,17 @@ export class CreateActRequest {
   introId: number;
 
   @ApiProperty({
+    type: Number,
+    description: 'MusicId',
+    example: 1,
+  })
+  @IsNumber({}, { message: 'Music id must be a number' })
+  @IsPositive({ message: 'Music id must be a positive number' })
+  @IsInt({ message: 'Music id must be an int' })
+  @Type(() => Number)
+  musicId: number;
+
+  @ApiProperty({
     description: 'Act type',
     example: ActType.SINGLE,
     enum: ActType,
