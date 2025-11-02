@@ -268,8 +268,8 @@ export class ActService {
     const startStr = start instanceof Date ? start.toISOString() : start;
     const endStr = end instanceof Date ? end.toISOString() : end;
 
-    const startMoment = moment(startStr, moment.ISO_8601);
-    const endMoment = moment(endStr, moment.ISO_8601);
+    const startMoment = moment(startStr);
+    const endMoment = moment(endStr);
 
     if (!startMoment.isValid() || !endMoment.isValid()) {
       return '00:00:00';
@@ -301,13 +301,10 @@ export class ActService {
       }
 
       // Пробуем различные форматы парсинга для строки
-      let date = moment(startedAt, moment.ISO_8601, true);
+      let date = moment(startedAt);
 
       if (!date.isValid()) {
-        date = moment(startedAt);
-      }
-
-      if (!date.isValid()) {
+        // Если стандартный парсинг не работает, пробуем другие форматы
         const formats = [
           'YYYY-MM-DD HH:mm:ss',
           'YYYY-MM-DDTHH:mm:ss',
@@ -354,13 +351,10 @@ export class ActService {
         }
 
         // Пробуем различные форматы парсинга для строки
-        streamStartTime = moment(startedAt, moment.ISO_8601, true);
+        streamStartTime = moment(startedAt);
 
         if (!streamStartTime.isValid()) {
-          streamStartTime = moment(startedAt);
-        }
-
-        if (!streamStartTime.isValid()) {
+          // Если стандартный парсинг не работает, пробуем другие форматы
           const formats = [
             'YYYY-MM-DD HH:mm:ss',
             'YYYY-MM-DDTHH:mm:ss',
