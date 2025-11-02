@@ -9,7 +9,6 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -164,6 +163,43 @@ ALTER SEQUENCE public."Category_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."Category_id_seq" OWNED BY public."Category".id;
+
+
+--
+-- Name: ChatMessage; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ChatMessage" (
+    id integer NOT NULL,
+    message text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "userId" integer NOT NULL,
+    "actId" integer NOT NULL
+);
+
+
+ALTER TABLE public."ChatMessage" OWNER TO postgres;
+
+--
+-- Name: ChatMessage_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ChatMessage_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ChatMessage_id_seq" OWNER TO postgres;
+
+--
+-- Name: ChatMessage_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ChatMessage_id_seq" OWNED BY public."ChatMessage".id;
 
 
 --
@@ -467,6 +503,13 @@ ALTER TABLE ONLY public."Category" ALTER COLUMN id SET DEFAULT nextval('public."
 
 
 --
+-- Name: ChatMessage id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ChatMessage" ALTER COLUMN id SET DEFAULT nextval('public."ChatMessage_id_seq"'::regclass);
+
+
+--
 -- Name: Guild id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -520,6 +563,7 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 --
 
 COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, title, type, "biddingTime", "heroMethods", "navigatorMethods", "sequelId", "introId", "musicId") FROM stdin;
+15	/uploads/acts/1762098370398-282122015.jpg	2025-11-02 15:46:10.478	\N	\N	2	ONLINE	SINGLE	CS 2 Faceit Stream	SINGLE	5 mins	VOTING	VOTING	1	1	3
 \.
 
 
@@ -528,6 +572,15 @@ COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", 
 --
 
 COPY public."Category" (id, name) FROM stdin;
+\.
+
+
+--
+-- Data for Name: ChatMessage; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ChatMessage" (id, message, "createdAt", "userId", "actId") FROM stdin;
+1	Hello everyone!	2025-11-02 15:46:20.981	2	15
 \.
 
 
@@ -582,7 +635,7 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
-2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-11-02 12:43:41.155	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NjIwODc0MjEsImV4cCI6MTc2MjY5MjIyMX0.RMNugOg5gIbKmxnG3kQ9s-JFgcWWyvL1PAfmv5y7wQc	\N
+2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-11-02 15:43:25.86	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NjIwOTgyMDUsImV4cCI6MTc2MjcwMzAwNX0.BEq4b_e7Q3M4Bav_JHGo1YEu2b97jgcGrhZB3z2Oth4	\N
 \.
 
 
@@ -603,6 +656,7 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 10	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:24:47.843	\N	\N
 11	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:30:42.981	\N	\N
 12	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:38:40.564	\N	\N
+13	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 15:46:10.527	\N	\N
 \.
 
 
@@ -623,6 +677,7 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 2	10	initiator
 2	11	initiator
 2	12	initiator
+2	13	initiator
 \.
 
 
@@ -638,7 +693,7 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Act_id_seq"', 14, true);
+SELECT pg_catalog.setval('public."Act_id_seq"', 15, true);
 
 
 --
@@ -646,6 +701,13 @@ SELECT pg_catalog.setval('public."Act_id_seq"', 14, true);
 --
 
 SELECT pg_catalog.setval('public."Category_id_seq"', 1, false);
+
+
+--
+-- Name: ChatMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ChatMessage_id_seq"', 1, true);
 
 
 --
@@ -687,7 +749,7 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, true);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 12, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 13, true);
 
 
 --
@@ -711,6 +773,14 @@ ALTER TABLE ONLY public."Act"
 
 ALTER TABLE ONLY public."Category"
     ADD CONSTRAINT "Category_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ChatMessage ChatMessage_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ChatMessage"
+    ADD CONSTRAINT "ChatMessage_pkey" PRIMARY KEY (id);
 
 
 --
@@ -793,6 +863,13 @@ CREATE UNIQUE INDEX "Category_name_key" ON public."Category" USING btree (name);
 
 
 --
+-- Name: ChatMessage_actId_createdAt_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ChatMessage_actId_createdAt_idx" ON public."ChatMessage" USING btree ("actId", "createdAt");
+
+
+--
 -- Name: Guild_name_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -865,6 +942,22 @@ ALTER TABLE ONLY public."Act"
 
 ALTER TABLE ONLY public."Act"
     ADD CONSTRAINT "Act_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ChatMessage ChatMessage_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ChatMessage"
+    ADD CONSTRAINT "ChatMessage_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ChatMessage ChatMessage_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ChatMessage"
+    ADD CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

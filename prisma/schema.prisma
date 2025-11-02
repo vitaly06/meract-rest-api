@@ -56,6 +56,7 @@ model User {
   sequels Sequel[]
   UserActivity             UserActivity[]
   UserActivityParticipants UserActivityParticipants[]
+  ChatMessage              ChatMessage[]
   Guild                    Guild?                     @relation(fields: [guildId], references: [id])
   guildId                  Int?
 }
@@ -109,6 +110,7 @@ model Act {
   userId          Int
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   UserActivity    UserActivity[]
+  ChatMessage     ChatMessage[]
 }
 
 // Stream Categories
@@ -166,4 +168,20 @@ model UserActivityParticipants {
   role String?
 
   @@id([userId, activityId])
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  message   String
+  createdAt DateTime @default(now())
+  
+  // Связь с пользователем
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Связь со стримом
+  actId     Int
+  act       Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
+  
+  @@index([actId, createdAt])
 }
