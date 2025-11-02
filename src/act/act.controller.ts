@@ -38,7 +38,6 @@ export class ActController {
       'Creates a new act with the provided details and optional preview image.',
   })
   @ApiBody({
-    type: CreateActRequest,
     description: 'Act creation data with optional preview image',
     schema: {
       type: 'object',
@@ -52,11 +51,14 @@ export class ActController {
         'heroMethods',
         'navigatorMethods',
         'biddingTime',
+        'photo',
+        'musicId',
       ],
       properties: {
         title: { type: 'string', example: 'CS 2 Faceit Stream' },
         sequelId: { type: 'number', example: 1 },
         introId: { type: 'number', example: 1 },
+        musicId: { type: 'number', example: 1 },
         type: {
           type: 'string',
           enum: Object.values(ActType),
@@ -82,7 +84,6 @@ export class ActController {
         photo: {
           type: 'string',
           format: 'binary',
-          description: 'Optional preview image',
         },
       },
     },
@@ -105,9 +106,9 @@ export class ActController {
   async createAct(
     @Req() req: RequestWithUser,
     @Body() dto: CreateActRequest,
-    @UploadedFile() photo?: Multer.File,
+    @UploadedFile() photo: Multer.File,
   ) {
-    return await this.actService.createAct(dto, req.user.sub, photo?.filename);
+    return await this.actService.createAct(dto, req.user.sub, photo.filename);
   }
 
   @ApiOperation({
