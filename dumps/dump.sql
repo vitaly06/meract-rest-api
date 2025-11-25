@@ -103,12 +103,24 @@ CREATE TABLE public."Act" (
     "navigatorMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
     "sequelId" integer NOT NULL,
     "introId" integer NOT NULL,
-    "musicId" integer NOT NULL,
     "outroId" integer NOT NULL
 );
 
 
 ALTER TABLE public."Act" OWNER TO postgres;
+
+--
+-- Name: ActMusic; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActMusic" (
+    "actId" integer NOT NULL,
+    "musicId" integer NOT NULL,
+    "order" integer DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public."ActMusic" OWNER TO postgres;
 
 --
 -- Name: Act_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -604,8 +616,15 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, title, type, "biddingTime", "heroMethods", "navigatorMethods", "sequelId", "introId", "musicId", "outroId") FROM stdin;
-16	/uploads/acts/1762112277061-459958808.jpg	2025-11-02 19:37:57.077	\N	\N	2	ONLINE	SINGLE	CS 2 Faceit Stream	SINGLE	5 mins	VOTING	VOTING	1	1	3	1
+COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, title, type, "biddingTime", "heroMethods", "navigatorMethods", "sequelId", "introId", "outroId") FROM stdin;
+\.
+
+
+--
+-- Data for Name: ActMusic; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActMusic" ("actId", "musicId", "order") FROM stdin;
 \.
 
 
@@ -676,7 +695,6 @@ COPY public."Role" (id, name) FROM stdin;
 --
 
 COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin;
-1	My sequel 1	5	uploads/sequels/1761893203427-790042568.jpg	2
 \.
 
 
@@ -685,7 +703,9 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
-2	\N	$2b$10$7LZ1dTJVrDkZCzfXXwmaze66L8.1tOuGeKXg7HXeqbiFYKgJw80cm	vitaly.sadikov1@yandex.ru	ACTIVE	0	1	\N	2025-09-10 11:34:46.968	2025-11-02 19:36:57.749	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjpudWxsLCJpYXQiOjE3NjIxMTIyMTcsImV4cCI6MTc2MjcxNzAxN30.1mlpj-9BctH53v49rYLB_n7PnyOqZ60-93UMO4r4EU4	\N
+5	\N	$2b$10$rIguiyleQwx4u3bOzAXBUu2ZtZlT8uyM0dS8qN4vUnst9JGWtSQ6e	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-25 07:48:53.638	2025-11-25 07:49:08.677	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQwNTY5NDgsImV4cCI6MTc2NDY2MTc0OH0.ZKCvV_8rgIS1YBzAppZh8XgYdXuoRBe68rSaLUk3JF0	\N
+3	vitalysadikov9@gmail.com	$2b$10$Nfsl0e/WORHWJ2XHtGKSOO7Uhc06YUv6xozUBnoJFMVsoi1Q.7tCq	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-23 09:57:22.655	2025-11-25 07:54:20.041	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzYzODkxOTAzLCJleHAiOjE3NjQ0OTY3MDN9.hIEI5tu_oLPE8xJ_z2cQx0QhbaU3Whp6nBItn5M_RuE	\N
+6	test	$2b$10$F/FRY9bT3UkyEAbz6mHlneKuo9jKFpK5CywHvblKJwQU.HzhKA5iu	test@test.com	ACTIVE	0	2	\N	2025-11-25 07:55:56.463	2025-11-25 07:55:56.463	\N	\N
 \.
 
 
@@ -708,6 +728,7 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 12	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:38:40.564	\N	\N
 13	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 15:46:10.527	\N	\N
 14	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 19:37:57.09	\N	\N
+15	The main administrator vitaly.sadikov1@yandex.ru created the administrator test	\N	2025-11-25 07:55:56.473	\N	\N
 \.
 
 
@@ -716,20 +737,8 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 --
 
 COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin;
-2	1	initiator
-2	2	initiator
-2	3	initiator
-2	4	initiator
-2	5	initiator
-2	6	initiator
-2	7	initiator
-2	8	initiator
-2	9	initiator
-2	10	initiator
-2	11	initiator
-2	12	initiator
-2	13	initiator
-2	14	initiator
+5	15	initiator
+6	15	target
 \.
 
 
@@ -808,14 +817,22 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, true);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 14, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 15, true);
 
 
 --
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 6, true);
+
+
+--
+-- Name: ActMusic ActMusic_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActMusic"
+    ADD CONSTRAINT "ActMusic_pkey" PRIMARY KEY ("actId", "musicId");
 
 
 --
@@ -923,6 +940,13 @@ ALTER TABLE ONLY public."_UserFollows"
 
 
 --
+-- Name: ActMusic_actId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ActMusic_actId_idx" ON public."ActMusic" USING btree ("actId");
+
+
+--
 -- Name: Category_name_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -972,6 +996,22 @@ CREATE INDEX "_UserFollows_B_index" ON public."_UserFollows" USING btree ("B");
 
 
 --
+-- Name: ActMusic ActMusic_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActMusic"
+    ADD CONSTRAINT "ActMusic_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActMusic ActMusic_musicId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActMusic"
+    ADD CONSTRAINT "ActMusic_musicId_fkey" FOREIGN KEY ("musicId") REFERENCES public."Music"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: Act Act_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -985,14 +1025,6 @@ ALTER TABLE ONLY public."Act"
 
 ALTER TABLE ONLY public."Act"
     ADD CONSTRAINT "Act_introId_fkey" FOREIGN KEY ("introId") REFERENCES public."Intro"(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: Act Act_musicId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."Act"
-    ADD CONSTRAINT "Act_musicId_fkey" FOREIGN KEY ("musicId") REFERENCES public."Music"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
