@@ -100,8 +100,7 @@ model Act {
   outroId Int
   outro Outro @relation(fields: [outroId], references: [id], onDelete: Cascade)
 
-  musicId Int
-  music Music @relation(fields: [musicId], references: [id], onDelete: Cascade)
+  musics ActMusic[]
 
   status          ActStatus   @default(ONLINE)
   startedAt       DateTime       @default(now())
@@ -149,7 +148,20 @@ model Music {
   id Int @id @default(autoincrement())
   fileName String
   length String
-  acts Act[]
+  acts ActMusic[]
+}
+
+model ActMusic {
+  act      Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
+  actId    Int
+  
+  music    Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
+  musicId  Int
+  
+  order    Int      @default(0) // Порядок воспроизведения музыки
+  
+  @@id([actId, musicId])
+  @@index([actId])
 }
 
 model UserActivity {

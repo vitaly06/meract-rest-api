@@ -50,15 +50,17 @@ export class CreateActRequest {
   outroId: number;
 
   // @ApiProperty({
-  //   type: Number,
-  //   description: 'MusicId',
-  //   example: 1,
+  //   type: [Number],
+  //   description: 'Music IDs',
+  //   example: [1, 2, 3],
   // })
-  @IsNumber({}, { message: 'Music id must be a number' })
-  @IsPositive({ message: 'Music id must be a positive number' })
-  @IsInt({ message: 'Music id must be an int' })
+  @IsInt({ each: true, message: 'Each music id must be an integer' })
+  @IsPositive({
+    each: true,
+    message: 'Each music id must be a positive number',
+  })
   @Type(() => Number)
-  musicId: number;
+  musicIds: number[];
 
   // @ApiProperty({
   //   description: 'Act type',

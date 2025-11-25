@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -53,14 +54,20 @@ export class ActController {
         'navigatorMethods',
         'biddingTime',
         'photo',
-        'musicId',
+        'musicIds',
       ],
       properties: {
         title: { type: 'string', example: 'CS 2 Faceit Stream' },
         sequelId: { type: 'number', example: 1 },
         introId: { type: 'number', example: 1 },
         outroId: { type: 'number', example: 1 },
-        musicId: { type: 'number', example: 1 },
+        musicIds: {
+          type: 'array',
+          items: { type: 'number' },
+          example: [1, 2, 3],
+          description:
+            'Array of music track IDs to be played during the stream',
+        },
         type: {
           type: 'string',
           enum: Object.values(ActType),
@@ -110,7 +117,18 @@ export class ActController {
     @Body() dto: CreateActRequest,
     @UploadedFile() photo: Multer.File,
   ) {
+    if (!photo) {
+      throw new BadRequestException('Photo has been is not empty');
+    }
     return await this.actService.createAct(dto, req.user.sub, photo.filename);
+  }
+
+  @ApiOperation({
+    summary: 'Получение данных об акте по id',
+  })
+  @Get('find-by-id/:id')
+  async getActById(@Param('id') id: string) {
+    return await this.actService.getActById(+id);
   }
 
   @ApiOperation({

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import moment from 'moment';
@@ -31,7 +32,7 @@ export class ActService {
       sequelId,
       introId,
       outroId,
-      musicId,
+      musicIds,
       type,
       format,
       heroMethods,
@@ -54,7 +55,6 @@ export class ActService {
           sequelId: +sequelId,
           introId: +introId,
           outroId: +outroId,
-          musicId: +musicId,
           format,
           heroMethods,
           navigatorMethods,
@@ -63,6 +63,12 @@ export class ActService {
           previewFileName: `/uploads/acts/${filename}` || null,
           status: 'ONLINE', // Устанавливаем статус по умолчанию
           startedAt: new Date(),
+          musics: {
+            create: musicIds.map((musicId, index) => ({
+              musicId: +musicId,
+              order: index,
+            })),
+          },
         },
         include: {
           user: true,
@@ -81,7 +87,6 @@ export class ActService {
           sequelId: true,
           introId: true,
           outroId: true,
-          musicId: true,
         },
         include: {
           sequel: {
@@ -103,11 +108,18 @@ export class ActService {
               fileName: true,
             },
           },
-          music: {
-            select: {
-              id: true,
-              fileName: true,
-              length: true,
+          musics: {
+            include: {
+              music: {
+                select: {
+                  id: true,
+                  fileName: true,
+                  length: true,
+                },
+              },
+            },
+            orderBy: {
+              order: 'asc',
             },
           },
         },
@@ -124,10 +136,11 @@ export class ActService {
           ...resultStream.outro,
           fileName: `${this.baseUrl}/${resultStream.outro.fileName}`,
         },
-        music: {
-          ...resultStream.music,
-          fileName: `${this.baseUrl}/${resultStream.music.fileName}`,
-        },
+        musics: resultStream.musics.map((actMusic) => ({
+          ...actMusic.music,
+          fileName: `${this.baseUrl}/${actMusic.music.fileName}`,
+          order: actMusic.order,
+        })),
         sequel: {
           ...resultStream.sequel,
           coverFileName: `${this.baseUrl}/${resultStream.sequel.coverFileName}`,
@@ -138,6 +151,79 @@ export class ActService {
       console.error(`Error creating act: ${error.message}`);
       throw new NotFoundException(`Failed to create act: ${error.message}`);
     }
+  }
+
+  async getActById(id: number) {
+    const resultStream = await this.prisma.act.findUnique({
+      where: { id },
+      omit: {
+        sequelId: true,
+        introId: true,
+        outroId: true,
+      },
+      include: {
+        sequel: {
+          select: {
+            id: true,
+            title: true,
+            coverFileName: true,
+          },
+        },
+        intro: {
+          select: {
+            id: true,
+            fileName: true,
+          },
+        },
+        outro: {
+          select: {
+            id: true,
+            fileName: true,
+          },
+        },
+        musics: {
+          include: {
+            music: {
+              select: {
+                id: true,
+                fileName: true,
+                length: true,
+              },
+            },
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!resultStream) {
+      throw new BadRequestException('Act with this id not found');
+    }
+
+    return {
+      // message: 'Stream launched successfully',
+      ...resultStream,
+      intro: {
+        ...resultStream.intro,
+        fileName: `${this.baseUrl}/${resultStream.intro.fileName}`,
+      },
+      outro: {
+        ...resultStream.outro,
+        fileName: `${this.baseUrl}/${resultStream.outro.fileName}`,
+      },
+      musics: resultStream.musics.map((actMusic) => ({
+        ...actMusic.music,
+        fileName: `${this.baseUrl}/${actMusic.music.fileName}`,
+        order: actMusic.order,
+      })),
+      sequel: {
+        ...resultStream.sequel,
+        coverFileName: `${this.baseUrl}/${resultStream.sequel.coverFileName}`,
+      },
+      previewFileName: `${this.baseUrl}${resultStream.previewFileName}`,
+    };
   }
 
   async getActs() {
