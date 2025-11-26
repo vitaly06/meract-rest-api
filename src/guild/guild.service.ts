@@ -8,13 +8,21 @@ import { CreateGuildRequest } from './dto/create-guild.dto';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { UpdateGuildRequest } from './dto/update-guild.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class GuildService {
+  baseUrl: string;
   constructor(
     private readonly prisma: PrismaService,
     private readonly utilsSerivce: UtilsService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.baseUrl = configService.get<string>(
+      'BASE_URL',
+      'http://localhost:3000',
+    );
+  }
 
   async createGuild(
     dto: CreateGuildRequest,
@@ -53,16 +61,28 @@ export class GuildService {
   }
 
   async findAll() {
-    return await this.prisma.guild.findMany();
+    const guilds = await this.prisma.guild.findMany();
+
+    return guilds.map((guild) => {
+      return {
+        ...guild,
+        logoFileName: `${this.baseUrl}/uploads/guilds/${guild.logoFileName}`,
+      };
+    });
   }
 
   async findById(guildId: number) {
-    return await this.prisma.guild.findUnique({
+    const guild = await this.prisma.guild.findUnique({
       where: { id: guildId },
       include: {
         members: true,
       },
     });
+
+    return {
+      ...guild,
+      logoFileName: `${this.baseUrl}/uploads/guilds/${guild.logoFileName}`,
+    };
   }
 
   async updateGuild(id: number, dto: UpdateGuildRequest, fileName?: string) {
