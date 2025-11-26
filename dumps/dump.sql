@@ -412,6 +412,41 @@ ALTER SEQUENCE public."Outro_id_seq" OWNED BY public."Outro".id;
 
 
 --
+-- Name: Rank; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Rank" (
+    id integer NOT NULL,
+    name text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."Rank" OWNER TO postgres;
+
+--
+-- Name: Rank_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Rank_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Rank_id_seq" OWNER TO postgres;
+
+--
+-- Name: Rank_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Rank_id_seq" OWNED BY public."Rank".id;
+
+
+--
 -- Name: Role; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -569,6 +604,18 @@ ALTER SEQUENCE public."UserActivity_id_seq" OWNED BY public."UserActivity".id;
 
 
 --
+-- Name: UserRank; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."UserRank" (
+    "userId" integer NOT NULL,
+    "rankId" integer NOT NULL
+);
+
+
+ALTER TABLE public."UserRank" OWNER TO postgres;
+
+--
 -- Name: User_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -659,6 +706,13 @@ ALTER TABLE ONLY public."Outro" ALTER COLUMN id SET DEFAULT nextval('public."Out
 
 
 --
+-- Name: Rank id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Rank" ALTER COLUMN id SET DEFAULT nextval('public."Rank_id_seq"'::regclass);
+
+
+--
 -- Name: Role id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -700,6 +754,7 @@ COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 --
 
 COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId") FROM stdin;
+2	CS 2 Faceit Stream	/uploads/acts/1764168347490-953015327.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-11-26 14:45:47.52	\N	\N	1
 \.
 
 
@@ -708,6 +763,9 @@ COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "hero
 --
 
 COPY public."ActMusic" ("actId", "musicId", "order") FROM stdin;
+2	1	0
+2	2	1
+2	3	2
 \.
 
 
@@ -765,6 +823,14 @@ COPY public."Outro" (id, "fileName", "userId") FROM stdin;
 
 
 --
+-- Data for Name: Rank; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Rank" (id, name, "createdAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -789,7 +855,7 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2025-11-26 13:35:49.736	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	\N
-1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 13:38:19.987	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNjQyOTksImV4cCI6MTc2NDc2OTA5OX0.UEiSGMm8PQVIRxGrsM34JG6nltj6HfhlT6g0fzFEOQ8	\N
+1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 14:38:14.121	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNjc4OTQsImV4cCI6MTc2NDc3MjY5NH0.uDK6j3mHycD9UJ8XbOQIUGovvCOYPcNG7Z7oZwygtp4	\N
 \.
 
 
@@ -806,6 +872,7 @@ COPY public."UserAchievement" ("userId", "achievementId", "awardedAt") FROM stdi
 --
 
 COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamId") FROM stdin;
+1	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-26 14:45:47.559	\N	\N
 \.
 
 
@@ -814,6 +881,15 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 --
 
 COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin;
+1	1	initiator
+\.
+
+
+--
+-- Data for Name: UserRank; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."UserRank" ("userId", "rankId") FROM stdin;
 \.
 
 
@@ -836,7 +912,7 @@ SELECT pg_catalog.setval('public."Achievement_id_seq"', 1, true);
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Act_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Act_id_seq"', 2, true);
 
 
 --
@@ -882,6 +958,13 @@ SELECT pg_catalog.setval('public."Outro_id_seq"', 1, true);
 
 
 --
+-- Name: Rank_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Rank_id_seq"', 1, false);
+
+
+--
 -- Name: Role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -899,7 +982,7 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, false);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 1, true);
 
 
 --
@@ -982,6 +1065,14 @@ ALTER TABLE ONLY public."Outro"
 
 
 --
+-- Name: Rank Rank_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Rank"
+    ADD CONSTRAINT "Rank_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: Role Role_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1019,6 +1110,14 @@ ALTER TABLE ONLY public."UserActivityParticipants"
 
 ALTER TABLE ONLY public."UserActivity"
     ADD CONSTRAINT "UserActivity_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: UserRank UserRank_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserRank"
+    ADD CONSTRAINT "UserRank_pkey" PRIMARY KEY ("userId", "rankId");
 
 
 --
@@ -1073,6 +1172,13 @@ CREATE UNIQUE INDEX "Guild_name_key" ON public."Guild" USING btree (name);
 
 
 --
+-- Name: Rank_name_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Rank_name_key" ON public."Rank" USING btree (name);
+
+
+--
 -- Name: Role_name_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1084,6 +1190,13 @@ CREATE UNIQUE INDEX "Role_name_key" ON public."Role" USING btree (name);
 --
 
 CREATE INDEX "UserAchievement_userId_idx" ON public."UserAchievement" USING btree ("userId");
+
+
+--
+-- Name: UserRank_userId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "UserRank_userId_idx" ON public."UserRank" USING btree ("userId");
 
 
 --
@@ -1257,6 +1370,22 @@ ALTER TABLE ONLY public."UserActivity"
 
 ALTER TABLE ONLY public."UserActivity"
     ADD CONSTRAINT "UserActivity_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: UserRank UserRank_rankId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserRank"
+    ADD CONSTRAINT "UserRank_rankId_fkey" FOREIGN KEY ("rankId") REFERENCES public."Rank"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: UserRank UserRank_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserRank"
+    ADD CONSTRAINT "UserRank_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
