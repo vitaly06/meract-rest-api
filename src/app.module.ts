@@ -14,6 +14,7 @@ import { IntroModule } from './intro/intro.module';
 import { MusicModule } from './music/music.module';
 import { ChatModule } from './chat/chat.module';
 import { OutroModule } from './outro/outro.module';
+import { AchievementModule } from './achievement/achievement.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { OutroModule } from './outro/outro.module';
     MusicModule,
     ChatModule,
     OutroModule,
+    AchievementModule,
   ],
 })
 export class AppModule {}
