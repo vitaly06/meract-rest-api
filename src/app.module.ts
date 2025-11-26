@@ -15,6 +15,7 @@ import { MusicModule } from './music/music.module';
 import { ChatModule } from './chat/chat.module';
 import { OutroModule } from './outro/outro.module';
 import { AchievementModule } from './achievement/achievement.module';
+import { RankModule } from './rank/rank.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AchievementModule } from './achievement/achievement.module';
     ChatModule,
     OutroModule,
     AchievementModule,
+    RankModule,
   ],
 })
 export class AppModule {}
