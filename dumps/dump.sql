@@ -142,7 +142,7 @@ CREATE TABLE public."Act" (
     id integer NOT NULL,
     title text NOT NULL,
     "previewFileName" text,
-    "sequelId" integer NOT NULL,
+    "sequelId" integer,
     type public."ActType" DEFAULT 'SINGLE'::public."ActType" NOT NULL,
     format public."ActFormat" DEFAULT 'SINGLE'::public."ActFormat" NOT NULL,
     "heroMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
