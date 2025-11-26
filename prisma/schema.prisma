@@ -59,6 +59,7 @@ model User {
   UserActivity             UserActivity[]
   UserActivityParticipants UserActivityParticipants[]
   ChatMessage              ChatMessage[]
+  achievements             UserAchievement[]
   Guild                    Guild?                     @relation(fields: [guildId], references: [id])
   guildId                  Int?
 }
@@ -211,4 +212,26 @@ model ChatMessage {
   act       Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
   
   @@index([actId, createdAt])
+}
+
+model Achievement {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  
+  users UserAchievement[]
+  
+  createdAt DateTime @default(now())
+}
+
+model UserAchievement {
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  achievementId Int
+  
+  awardedAt DateTime @default(now())
+
+  @@id([userId, achievementId])
+  @@index([userId])
 }

@@ -100,6 +100,41 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: Achievement; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Achievement" (
+    id integer NOT NULL,
+    name text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."Achievement" OWNER TO postgres;
+
+--
+-- Name: Achievement_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Achievement_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Achievement_id_seq" OWNER TO postgres;
+
+--
+-- Name: Achievement_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Achievement_id_seq" OWNED BY public."Achievement".id;
+
+
+--
 -- Name: Act; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -469,6 +504,19 @@ CREATE TABLE public."User" (
 ALTER TABLE public."User" OWNER TO postgres;
 
 --
+-- Name: UserAchievement; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."UserAchievement" (
+    "userId" integer NOT NULL,
+    "achievementId" integer NOT NULL,
+    "awardedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."UserAchievement" OWNER TO postgres;
+
+--
 -- Name: UserActivity; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -554,6 +602,13 @@ CREATE TABLE public."_UserFollows" (
 ALTER TABLE public."_UserFollows" OWNER TO postgres;
 
 --
+-- Name: Achievement id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Achievement" ALTER COLUMN id SET DEFAULT nextval('public."Achievement_id_seq"'::regclass);
+
+
+--
 -- Name: Act id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -628,6 +683,15 @@ ALTER TABLE ONLY public."User" ALTER COLUMN id SET DEFAULT nextval('public."User
 --
 
 ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('public."UserActivity_id_seq"'::regclass);
+
+
+--
+-- Data for Name: Achievement; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Achievement" (id, name, "createdAt") FROM stdin;
+1	Набрать 100 просмотров	2025-11-26 12:49:07.856
+\.
 
 
 --
@@ -718,7 +782,15 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
-1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 08:27:48.341	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNDU2NTYsImV4cCI6MTc2NDc1MDQ1Nn0.fZS6k9ebNks9I54hRVPxd3DshcQvR3VV6hSBkn8AE0Q	\N
+1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 12:48:54.917	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNjEzMzQsImV4cCI6MTc2NDc2NjEzNH0.3h4sruR8zGdJJNqRG594AX-cN12jiv-YBqQHInJyjq8	\N
+\.
+
+
+--
+-- Data for Name: UserAchievement; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."UserAchievement" ("userId", "achievementId", "awardedAt") FROM stdin;
 \.
 
 
@@ -744,6 +816,13 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 
 COPY public."_UserFollows" ("A", "B") FROM stdin;
 \.
+
+
+--
+-- Name: Achievement_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Achievement_id_seq"', 1, true);
 
 
 --
@@ -821,6 +900,14 @@ SELECT pg_catalog.setval('public."UserActivity_id_seq"', 1, false);
 --
 
 SELECT pg_catalog.setval('public."User_id_seq"', 1, true);
+
+
+--
+-- Name: Achievement Achievement_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Achievement"
+    ADD CONSTRAINT "Achievement_pkey" PRIMARY KEY (id);
 
 
 --
@@ -904,6 +991,14 @@ ALTER TABLE ONLY public."Sequel"
 
 
 --
+-- Name: UserAchievement UserAchievement_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserAchievement"
+    ADD CONSTRAINT "UserAchievement_pkey" PRIMARY KEY ("userId", "achievementId");
+
+
+--
 -- Name: UserActivityParticipants UserActivityParticipants_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -933,6 +1028,13 @@ ALTER TABLE ONLY public."User"
 
 ALTER TABLE ONLY public."_UserFollows"
     ADD CONSTRAINT "_UserFollows_AB_pkey" PRIMARY KEY ("A", "B");
+
+
+--
+-- Name: Achievement_name_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Achievement_name_key" ON public."Achievement" USING btree (name);
 
 
 --
@@ -968,6 +1070,13 @@ CREATE UNIQUE INDEX "Guild_name_key" ON public."Guild" USING btree (name);
 --
 
 CREATE UNIQUE INDEX "Role_name_key" ON public."Role" USING btree (name);
+
+
+--
+-- Name: UserAchievement_userId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "UserAchievement_userId_idx" ON public."UserAchievement" USING btree ("userId");
 
 
 --
@@ -1085,6 +1194,22 @@ ALTER TABLE ONLY public."Outro"
 
 ALTER TABLE ONLY public."Sequel"
     ADD CONSTRAINT "Sequel_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: UserAchievement UserAchievement_achievementId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserAchievement"
+    ADD CONSTRAINT "UserAchievement_achievementId_fkey" FOREIGN KEY ("achievementId") REFERENCES public."Achievement"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: UserAchievement UserAchievement_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserAchievement"
+    ADD CONSTRAINT "UserAchievement_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
