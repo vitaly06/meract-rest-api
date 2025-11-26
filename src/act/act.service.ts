@@ -29,6 +29,7 @@ export class ActService {
   async createAct(dto: CreateActRequest, userId: number, filename?: string) {
     const {
       title,
+      sequelId,
       introId,
       outroId,
       musicIds,

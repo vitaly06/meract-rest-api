@@ -89,8 +89,8 @@ model Act {
   id              Int            @id @default(autoincrement())
   title            String
   previewFileName String?
-  sequelId Int
-  sequel Sequel @relation(fields: [sequelId], references: [id], onDelete: Cascade)
+  sequelId Int?
+  sequel Sequel? @relation(fields: [sequelId], references: [id], onDelete: Cascade)
 
   type ActType @default(SINGLE)
   format ActFormat @default(SINGLE)
