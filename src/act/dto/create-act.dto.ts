@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ActFormat, ActType } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  IsArray,
 } from 'class-validator';
 import { SelectionMethods } from '../enum/act.enum';
 
@@ -54,12 +55,31 @@ export class CreateActRequest {
   //   description: 'Music IDs',
   //   example: [1, 2, 3],
   // })
+  @Transform(({ value }) => {
+    // Если это строка (например "[1,2,3]" или "1,2,3"), парсим её
+    if (typeof value === 'string') {
+      try {
+        // Пробуем распарсить как JSON массив
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed.map(Number) : [Number(value)];
+      } catch {
+        // Если не JSON, пробуем разделить по запятой
+        return value.split(',').map((id) => Number(id.trim()));
+      }
+    }
+    // Если уже массив, конвертируем каждый элемент в число
+    if (Array.isArray(value)) {
+      return value.map(Number);
+    }
+    // Если одиночное значение, делаем массив
+    return [Number(value)];
+  })
+  @IsArray({ message: 'Music IDs must be an array' })
   @IsInt({ each: true, message: 'Each music id must be an integer' })
   @IsPositive({
     each: true,
     message: 'Each music id must be a positive number',
   })
-  @Type(() => Number)
   musicIds: number[];
 
   // @ApiProperty({
