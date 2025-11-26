@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -11,6 +12,7 @@ import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Multer } from 'multer';
+import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 
 @Controller('outro')
 export class OutroController {
@@ -19,9 +21,10 @@ export class OutroController {
   @ApiOperation({
     summary: 'Получение всех аутро',
   })
+  @UseGuards(JwtAuthGuard)
   @Get('find-all')
-  async findAll() {
-    return await this.outroService.findAll();
+  async findAll(@Req() req: RequestWithUser) {
+    return await this.outroService.findAll(req.user.sub);
   }
 
   @ApiOperation({
@@ -45,7 +48,10 @@ export class OutroController {
   @UseGuards(JwtAuthGuard)
   @Post('upload-outro')
   @UseInterceptors(FileInterceptor('outro'))
-  async uploadOutro(@UploadedFile() outro: Multer.File) {
-    return await this.outroService.uploadOutro(outro.filename);
+  async uploadOutro(
+    @UploadedFile() outro: Multer.File,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.outroService.uploadOutro(outro.filename, req.user.sub);
   }
 }

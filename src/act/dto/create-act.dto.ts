@@ -30,8 +30,9 @@ export class CreateActRequest {
   @IsNumber({}, { message: 'Sequel id must be a number' })
   @IsPositive({ message: 'Sequel id must be a positive number' })
   @IsInt({ message: 'Sequel id must be an int' })
+  @IsOptional()
   @Type(() => Number)
-  sequelId: number;
+  sequelId?: number;
 
   // @ApiProperty({
   //   type: Number,

@@ -18,6 +18,22 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+ALTER SCHEMA public OWNER TO postgres;
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: postgres
+--
+
+COMMENT ON SCHEMA public IS '';
+
+
+--
 -- Name: ActFormat; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -89,21 +105,21 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public."Act" (
     id integer NOT NULL,
+    title text NOT NULL,
     "previewFileName" text,
+    "sequelId" integer NOT NULL,
+    type public."ActType" DEFAULT 'SINGLE'::public."ActType" NOT NULL,
+    format public."ActFormat" DEFAULT 'SINGLE'::public."ActFormat" NOT NULL,
+    "heroMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
+    "navigatorMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
+    "biddingTime" text NOT NULL,
+    "introId" integer NOT NULL,
+    "outroId" integer NOT NULL,
+    status public."ActStatus" DEFAULT 'ONLINE'::public."ActStatus" NOT NULL,
     "startedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "endedAt" timestamp(3) without time zone,
     "categoryId" integer,
-    "userId" integer NOT NULL,
-    status public."ActStatus" DEFAULT 'ONLINE'::public."ActStatus" NOT NULL,
-    format public."ActFormat" DEFAULT 'SINGLE'::public."ActFormat" NOT NULL,
-    title text NOT NULL,
-    type public."ActType" DEFAULT 'SINGLE'::public."ActType" NOT NULL,
-    "biddingTime" text NOT NULL,
-    "heroMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
-    "navigatorMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
-    "sequelId" integer NOT NULL,
-    "introId" integer NOT NULL,
-    "outroId" integer NOT NULL
+    "userId" integer NOT NULL
 );
 
 
@@ -260,7 +276,8 @@ ALTER SEQUENCE public."Guild_id_seq" OWNED BY public."Guild".id;
 
 CREATE TABLE public."Intro" (
     id integer NOT NULL,
-    "fileName" text NOT NULL
+    "fileName" text NOT NULL,
+    "userId" integer NOT NULL
 );
 
 
@@ -329,7 +346,8 @@ ALTER SEQUENCE public."Music_id_seq" OWNED BY public."Music".id;
 
 CREATE TABLE public."Outro" (
     id integer NOT NULL,
-    "fileName" text NOT NULL
+    "fileName" text NOT NULL,
+    "userId" integer NOT NULL
 );
 
 
@@ -616,7 +634,7 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, "previewFileName", "startedAt", "endedAt", "categoryId", "userId", status, format, title, type, "biddingTime", "heroMethods", "navigatorMethods", "sequelId", "introId", "outroId") FROM stdin;
+COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId") FROM stdin;
 \.
 
 
@@ -656,8 +674,7 @@ COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdA
 -- Data for Name: Intro; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Intro" (id, "fileName") FROM stdin;
-1	uploads/intros/1762005707043-565867057.mp4
+COPY public."Intro" (id, "fileName", "userId") FROM stdin;
 \.
 
 
@@ -666,7 +683,6 @@ COPY public."Intro" (id, "fileName") FROM stdin;
 --
 
 COPY public."Music" (id, "fileName", length) FROM stdin;
-3	uploads/musics/1762087771198-774269634.mp3	02:59
 \.
 
 
@@ -674,8 +690,7 @@ COPY public."Music" (id, "fileName", length) FROM stdin;
 -- Data for Name: Outro; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Outro" (id, "fileName") FROM stdin;
-1	uploads/outros/1762112224389-388684587.mp4
+COPY public."Outro" (id, "fileName", "userId") FROM stdin;
 \.
 
 
@@ -703,9 +718,7 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
-5	\N	$2b$10$rIguiyleQwx4u3bOzAXBUu2ZtZlT8uyM0dS8qN4vUnst9JGWtSQ6e	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-25 07:48:53.638	2025-11-25 07:49:08.677	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQwNTY5NDgsImV4cCI6MTc2NDY2MTc0OH0.ZKCvV_8rgIS1YBzAppZh8XgYdXuoRBe68rSaLUk3JF0	\N
-3	vitalysadikov9@gmail.com	$2b$10$Nfsl0e/WORHWJ2XHtGKSOO7Uhc06YUv6xozUBnoJFMVsoi1Q.7tCq	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-23 09:57:22.655	2025-11-25 07:54:20.041	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzYzODkxOTAzLCJleHAiOjE3NjQ0OTY3MDN9.hIEI5tu_oLPE8xJ_z2cQx0QhbaU3Whp6nBItn5M_RuE	\N
-6	test	$2b$10$F/FRY9bT3UkyEAbz6mHlneKuo9jKFpK5CywHvblKJwQU.HzhKA5iu	test@test.com	ACTIVE	0	2	\N	2025-11-25 07:55:56.463	2025-11-25 07:55:56.463	\N	\N
+1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 08:27:48.341	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNDU2NTYsImV4cCI6MTc2NDc1MDQ1Nn0.fZS6k9ebNks9I54hRVPxd3DshcQvR3VV6hSBkn8AE0Q	\N
 \.
 
 
@@ -714,21 +727,6 @@ COPY public."User" (id, login, password, email, status, "warningCount", "roleId"
 --
 
 COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamId") FROM stdin;
-1	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-09-30 12:02:01.72	\N	\N
-2	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-09-30 12:02:44.879	\N	\N
-3	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-10-31 08:06:21.794	\N	\N
-4	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 07:54:42.995	\N	\N
-5	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:17:39.483	\N	\N
-6	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:19:45.783	\N	\N
-7	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:20:37.14	\N	\N
-8	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:20:53.678	\N	\N
-9	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:23:08.312	\N	\N
-10	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:24:47.843	\N	\N
-11	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:30:42.981	\N	\N
-12	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 09:38:40.564	\N	\N
-13	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 15:46:10.527	\N	\N
-14	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-02 19:37:57.09	\N	\N
-15	The main administrator vitaly.sadikov1@yandex.ru created the administrator test	\N	2025-11-25 07:55:56.473	\N	\N
 \.
 
 
@@ -737,8 +735,6 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 --
 
 COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin;
-5	15	initiator
-6	15	target
 \.
 
 
@@ -754,7 +750,7 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Act_id_seq"', 16, true);
+SELECT pg_catalog.setval('public."Act_id_seq"', 1, false);
 
 
 --
@@ -768,7 +764,7 @@ SELECT pg_catalog.setval('public."Category_id_seq"', 1, false);
 -- Name: ChatMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."ChatMessage_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."ChatMessage_id_seq"', 1, false);
 
 
 --
@@ -782,21 +778,21 @@ SELECT pg_catalog.setval('public."Guild_id_seq"', 1, false);
 -- Name: Intro_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Intro_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."Intro_id_seq"', 1, false);
 
 
 --
 -- Name: Music_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Music_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."Music_id_seq"', 1, false);
 
 
 --
 -- Name: Outro_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Outro_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."Outro_id_seq"', 1, false);
 
 
 --
@@ -810,21 +806,21 @@ SELECT pg_catalog.setval('public."Role_id_seq"', 3, true);
 -- Name: Sequel_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, false);
 
 
 --
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 15, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 1, false);
 
 
 --
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 6, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 1, true);
 
 
 --
@@ -1068,6 +1064,22 @@ ALTER TABLE ONLY public."ChatMessage"
 
 
 --
+-- Name: Intro Intro_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Intro"
+    ADD CONSTRAINT "Intro_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Outro Outro_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Outro"
+    ADD CONSTRAINT "Outro_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: Sequel Sequel_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1137,6 +1149,13 @@ ALTER TABLE ONLY public."_UserFollows"
 
 ALTER TABLE ONLY public."_UserFollows"
     ADD CONSTRAINT "_UserFollows_B_fkey" FOREIGN KEY ("B") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 
 
 --

@@ -12,6 +12,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Multer } from 'multer';
 import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
+import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 
 @Controller('intro')
 export class IntroController {
@@ -20,9 +21,10 @@ export class IntroController {
   @ApiOperation({
     summary: 'Получение всех интро',
   })
+  @UseGuards(JwtAuthGuard)
   @Get('find-all')
-  async findAll() {
-    return await this.introService.findAll();
+  async findAll(@Req() req: RequestWithUser) {
+    return await this.introService.findAll(req.user.sub);
   }
 
   @ApiOperation({
@@ -46,7 +48,10 @@ export class IntroController {
   @UseGuards(JwtAuthGuard)
   @Post('upload-intro')
   @UseInterceptors(FileInterceptor('intro'))
-  async uploadIntro(@UploadedFile() intro: Multer.File) {
-    return await this.introService.uploadIntro(intro.filename);
+  async uploadIntro(
+    @UploadedFile() intro: Multer.File,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.introService.uploadIntro(intro.filename, req.user.sub);
   }
 }

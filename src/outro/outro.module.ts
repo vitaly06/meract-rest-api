@@ -4,6 +4,7 @@ import { OutroController } from './outro.controller';
 import { diskStorage } from 'multer';
 import * as path from 'path';
 import { MulterModule } from '@nestjs/platform-express';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { MulterModule } from '@nestjs/platform-express';
         },
       }),
     }),
+    AuthModule,
   ],
   controllers: [OutroController],
   providers: [OutroService],
