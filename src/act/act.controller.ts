@@ -44,7 +44,6 @@ export class ActController {
       type: 'object',
       required: [
         'title',
-        'sequelId',
         'introId',
         'outroId',
         'userId',
