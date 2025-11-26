@@ -4,6 +4,7 @@ import { IntroController } from './intro.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import * as path from 'path';
         },
       }),
     }),
+    AuthModule,
   ],
   controllers: [IntroController],
   providers: [IntroService],

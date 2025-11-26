@@ -16,15 +16,18 @@ export class OutroService {
     );
   }
 
-  async findAll() {
-    const outros = await this.prisma.outro.findMany({});
+  async findAll(userId: number) {
+    const outros = await this.prisma.outro.findMany({
+      where: { userId },
+    });
     return this.outrosResponseToMap(outros);
   }
 
-  async uploadOutro(filename: string) {
+  async uploadOutro(filename: string, userId: number) {
     await this.prisma.outro.create({
       data: {
         fileName: `uploads/outros/${filename}`,
+        userId,
       },
     });
 

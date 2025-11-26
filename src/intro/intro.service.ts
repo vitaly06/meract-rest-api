@@ -16,15 +16,18 @@ export class IntroService {
     );
   }
 
-  async findAll() {
-    const intros = await this.prisma.intro.findMany({});
+  async findAll(userId: number) {
+    const intros = await this.prisma.intro.findMany({
+      where: { userId },
+    });
     return this.introsResponseToMap(intros);
   }
 
-  async uploadIntro(filename: string) {
+  async uploadIntro(filename: string, userId: number) {
     await this.prisma.intro.create({
       data: {
         fileName: `uploads/intros/${filename}`,
+        userId,
       },
     });
 

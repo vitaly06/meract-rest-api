@@ -29,7 +29,6 @@ export class ActService {
   async createAct(dto: CreateActRequest, userId: number, filename?: string) {
     const {
       title,
-      sequelId,
       introId,
       outroId,
       musicIds,
@@ -52,7 +51,7 @@ export class ActService {
       const newStream = await this.prisma.act.create({
         data: {
           title,
-          sequelId: +sequelId,
+          sequelId: +dto.sequelId || null,
           introId: +introId,
           outroId: +outroId,
           format,
