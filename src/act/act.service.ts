@@ -263,10 +263,12 @@ export class ActService {
         fileName: `${this.baseUrl}/${actMusic.music.fileName}`,
         order: actMusic.order,
       })),
-      sequel: {
-        ...resultStream.sequel,
-        coverFileName: `${this.baseUrl}/${resultStream.sequel.coverFileName}`,
-      },
+      sequel: resultStream.sequel
+        ? {
+            ...resultStream.sequel,
+            coverFileName: `${this.baseUrl}/${resultStream.sequel.coverFileName}`,
+          }
+        : null,
       previewFileName: `${this.baseUrl}${resultStream.previewFileName}`,
     };
   }
