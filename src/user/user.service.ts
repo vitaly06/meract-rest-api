@@ -21,6 +21,17 @@ export class UserService {
     return user;
   }
 
+  async findByIdWithRole(id: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: { role: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User with this id not found');
+    }
+    return user;
+  }
+
   async findByLogin(login: string): Promise<User> {
     const user = await this.prisma.user.findUnique({
       where: { login },

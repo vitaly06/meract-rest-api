@@ -18,7 +18,9 @@ export class IntroService {
 
   async findAll(userId: number) {
     const intros = await this.prisma.intro.findMany({
-      where: { userId },
+      where: {
+        OR: [{ userId }, { userId: null }],
+      },
     });
     return this.introsResponseToMap(intros);
   }

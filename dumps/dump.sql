@@ -312,7 +312,7 @@ ALTER SEQUENCE public."Guild_id_seq" OWNED BY public."Guild".id;
 CREATE TABLE public."Intro" (
     id integer NOT NULL,
     "fileName" text NOT NULL,
-    "userId" integer NOT NULL
+    "userId" integer
 );
 
 
@@ -347,7 +347,8 @@ ALTER SEQUENCE public."Intro_id_seq" OWNED BY public."Intro".id;
 CREATE TABLE public."Music" (
     id integer NOT NULL,
     "fileName" text NOT NULL,
-    length text NOT NULL
+    length text NOT NULL,
+    "userId" integer
 );
 
 
@@ -382,7 +383,7 @@ ALTER SEQUENCE public."Music_id_seq" OWNED BY public."Music".id;
 CREATE TABLE public."Outro" (
     id integer NOT NULL,
     "fileName" text NOT NULL,
-    "userId" integer NOT NULL
+    "userId" integer
 );
 
 
@@ -739,6 +740,7 @@ COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdA
 --
 
 COPY public."Intro" (id, "fileName", "userId") FROM stdin;
+1	uploads/intros/1764162877115-75180112.mp4	\N
 \.
 
 
@@ -746,7 +748,10 @@ COPY public."Intro" (id, "fileName", "userId") FROM stdin;
 -- Data for Name: Music; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Music" (id, "fileName", length) FROM stdin;
+COPY public."Music" (id, "fileName", length, "userId") FROM stdin;
+2	uploads/musics/1764163138794-489981590.mp3	03:37	\N
+3	uploads/musics/1764163174564-188746375.mp3	03:36	\N
+1	uploads/musics/1764162991178-85189419.mp3	02:59	\N
 \.
 
 
@@ -755,6 +760,7 @@ COPY public."Music" (id, "fileName", length) FROM stdin;
 --
 
 COPY public."Outro" (id, "fileName", "userId") FROM stdin;
+1	uploads/outros/1764162796083-644659628.mp4	\N
 \.
 
 
@@ -782,7 +788,8 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
-1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 12:48:54.917	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNjEzMzQsImV4cCI6MTc2NDc2NjEzNH0.3h4sruR8zGdJJNqRG594AX-cN12jiv-YBqQHInJyjq8	\N
+2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2025-11-26 13:35:49.736	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	\N
+1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 13:38:19.987	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNjQyOTksImV4cCI6MTc2NDc2OTA5OX0.UEiSGMm8PQVIRxGrsM34JG6nltj6HfhlT6g0fzFEOQ8	\N
 \.
 
 
@@ -857,21 +864,21 @@ SELECT pg_catalog.setval('public."Guild_id_seq"', 1, false);
 -- Name: Intro_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Intro_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Intro_id_seq"', 1, true);
 
 
 --
 -- Name: Music_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Music_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Music_id_seq"', 3, true);
 
 
 --
 -- Name: Outro_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Outro_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Outro_id_seq"', 1, true);
 
 
 --
@@ -899,7 +906,7 @@ SELECT pg_catalog.setval('public."UserActivity_id_seq"', 1, false);
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 2, true);
 
 
 --
@@ -1178,6 +1185,14 @@ ALTER TABLE ONLY public."ChatMessage"
 
 ALTER TABLE ONLY public."Intro"
     ADD CONSTRAINT "Intro_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Music Music_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Music"
+    ADD CONSTRAINT "Music_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
