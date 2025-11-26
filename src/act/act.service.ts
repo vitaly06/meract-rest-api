@@ -48,6 +48,49 @@ export class ActService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
+    // Проверка существования sequel если указан
+    if (sequelId) {
+      const sequel = await this.prisma.sequel.findUnique({
+        where: { id: +sequelId },
+      });
+      if (!sequel) {
+        throw new NotFoundException(`Sequel with ID ${sequelId} not found`);
+      }
+    }
+
+    // Проверка существования intro
+    const intro = await this.prisma.intro.findUnique({
+      where: { id: +introId },
+    });
+    if (!intro) {
+      throw new NotFoundException(`Intro with ID ${introId} not found`);
+    }
+
+    // Проверка существования outro
+    const outro = await this.prisma.outro.findUnique({
+      where: { id: +outroId },
+    });
+    if (!outro) {
+      throw new NotFoundException(`Outro with ID ${outroId} not found`);
+    }
+
+    // Проверка и нормализация musicIds
+    let normalizedMusicIds: number[] = musicIds;
+    if (!Array.isArray(musicIds)) {
+      const musicIdsAny = musicIds as any;
+      if (typeof musicIdsAny === 'string') {
+        try {
+          normalizedMusicIds = JSON.parse(musicIdsAny);
+        } catch {
+          normalizedMusicIds = musicIdsAny
+            .split(',')
+            .map((id: string) => Number(id.trim()));
+        }
+      } else {
+        normalizedMusicIds = [Number(musicIdsAny)];
+      }
+    }
+
     try {
       const newStream = await this.prisma.act.create({
         data: {
@@ -64,7 +107,7 @@ export class ActService {
           status: 'ONLINE', // Устанавливаем статус по умолчанию
           startedAt: new Date(),
           musics: {
-            create: musicIds.map((musicId, index) => ({
+            create: normalizedMusicIds.map((musicId, index) => ({
               musicId: +musicId,
               order: index,
             })),
@@ -141,10 +184,12 @@ export class ActService {
           fileName: `${this.baseUrl}/${actMusic.music.fileName}`,
           order: actMusic.order,
         })),
-        sequel: {
-          ...resultStream.sequel,
-          coverFileName: `${this.baseUrl}/${resultStream.sequel.coverFileName}`,
-        },
+        sequel: resultStream.sequel
+          ? {
+              ...resultStream.sequel,
+              coverFileName: `${this.baseUrl}/${resultStream.sequel.coverFileName}`,
+            }
+          : null,
         previewFileName: `${this.baseUrl}${resultStream.previewFileName}`,
       };
     } catch (error) {
