@@ -20,8 +20,12 @@ export class MusicService {
     );
   }
 
-  async findAll() {
-    const musics = await this.prisma.music.findMany();
+  async findAll(userId: number) {
+    const musics = await this.prisma.music.findMany({
+      where: {
+        OR: [{ userId }, { userId: null }],
+      },
+    });
 
     return musics.map((music) => {
       return {

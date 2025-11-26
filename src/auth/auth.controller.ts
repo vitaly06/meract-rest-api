@@ -97,12 +97,18 @@ export class AuthController {
       });
     }
 
+    // Получаем полные данные пользователя с ролью
+    const fullUser = await this.userService.findByIdWithRole(user.id);
+
     const tokens = await this.authService.getTokens(user.id, user.login);
     await this.authService.updateRefreshToken(user.id, tokens.refreshToken);
 
     this.setCookies(res, tokens);
 
-    res.redirect(`${this.configService.get('FRONTEND_URL')}/`);
+    // Передаем полные данные пользователя через query параметры
+    const userData = encodeURIComponent(JSON.stringify(fullUser));
+
+    res.redirect(`${this.configService.get('FRONTEND_URL')}/?user=${userData}`);
   }
 
   @ApiOperation({

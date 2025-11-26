@@ -54,6 +54,7 @@ model User {
   refreshToken             String?
   intros Intro[]
   outros Outro[]
+  musics Music[]
   Act                   Act[]
   sequels Sequel[]
   UserActivity             UserActivity[]
@@ -139,16 +140,16 @@ model Intro {
   id Int @id @default(autoincrement())
   fileName String
   acts Act[]
-  userId          Int
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          Int?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Outro {
   id Int @id @default(autoincrement())
   fileName String
   acts Act[]
-    userId          Int
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId          Int?
+  user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Music {
@@ -156,6 +157,8 @@ model Music {
   fileName String
   length String
   acts ActMusic[]
+  userId Int?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ActMusic {

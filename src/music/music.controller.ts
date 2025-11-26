@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -11,6 +12,7 @@ import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Multer } from 'multer';
+import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 
 @Controller('music')
 export class MusicController {
@@ -19,9 +21,10 @@ export class MusicController {
   @ApiOperation({
     summary: 'Список всей музыки',
   })
+  @UseGuards(JwtAuthGuard)
   @Get('find-all')
-  async findAll() {
-    return await this.musicService.findAll();
+  async findAll(@Req() req: RequestWithUser) {
+    return await this.musicService.findAll(req.user.sub);
   }
 
   @ApiOperation({

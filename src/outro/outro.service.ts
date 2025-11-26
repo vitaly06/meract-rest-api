@@ -18,7 +18,9 @@ export class OutroService {
 
   async findAll(userId: number) {
     const outros = await this.prisma.outro.findMany({
-      where: { userId },
+      where: {
+        OR: [{ userId }, { userId: null }],
+      },
     });
     return this.outrosResponseToMap(outros);
   }
