@@ -22,7 +22,7 @@ export class AdminService {
     return await this.prisma.user.findMany({
       where: {
         role: {
-          name: 'admin',
+          OR: [{ name: 'admin' }, { name: 'main admin' }],
         },
       },
       include: {
@@ -90,7 +90,7 @@ export class AdminService {
     );
   }
 
-  async update(dto: UpdateAdminRequest, id: number, req: RequestWithUser) {
+  async update(dto: UpdateAdminRequest, id: number, userId: number) {
     const checkAdmin = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -131,7 +131,7 @@ export class AdminService {
       });
 
       // Current admin
-      const admin = await this.findById(req.user.sub);
+      const admin = await this.findById(userId);
 
       await this.utilsService.addRecordToActivityJournal(
         `The main admin ${admin.login || admin.email} updated admin data for ${checkAdmin.login || checkAdmin.email}`,
@@ -144,14 +144,14 @@ export class AdminService {
     return { message: 'No changes detected' };
   }
 
-  async delete(id: number, req: RequestWithUser) {
+  async delete(id: number, userId: number) {
     const checkAdmin = await this.findById(id);
 
     await this.prisma.user.delete({
       where: { id },
     });
 
-    const admin = await this.findById(req.user.sub);
+    const admin = await this.findById(userId);
 
     await this.utilsService.addRecordToActivityJournal(
       `The main administrator ${admin.login || admin.email} has deleted the administrator ${checkAdmin.login || checkAdmin.email}`,

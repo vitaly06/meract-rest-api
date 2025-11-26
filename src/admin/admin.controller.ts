@@ -38,17 +38,19 @@ export class AdminController {
     return await this.adminService.createAdmin(dto, req);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   async updateAdmin(
     @Body() dto: UpdateAdminRequest,
     @Param('id') id: string,
     @Req() req: RequestWithUser,
   ) {
-    return await this.adminService.update(dto, +id, req);
+    return await this.adminService.update(dto, +id, req.user.sub);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deleteAdmin(@Param('id') id: string, @Req() req: RequestWithUser) {
-    return await this.adminService.delete(+id, req);
+    return await this.adminService.delete(+id, req.user.sub);
   }
 }
