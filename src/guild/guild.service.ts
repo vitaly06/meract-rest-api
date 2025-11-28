@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateGuildRequest } from './dto/create-guild.dto';
@@ -9,6 +10,7 @@ import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { UpdateGuildRequest } from './dto/update-guild.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
 import { ConfigService } from '@nestjs/config';
+import { SendGuildMessageDto } from './dto/send-guild-message.dto';
 
 @Injectable()
 export class GuildService {
@@ -169,5 +171,102 @@ export class GuildService {
     );
 
     return { message: 'Guild successfully deleted' };
+  }
+
+  async isUserMemberOfGuild(userId: number, guildId: number): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { guildId: true },
+    });
+
+    return user?.guildId === guildId;
+  }
+
+  async getGuildMessages(
+    guildId: number,
+    limit: number = 50,
+    offset: number = 0,
+  ) {
+    const messages = await this.prisma.guildChatMessage.findMany({
+      where: { guildId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: limit,
+      skip: offset,
+    });
+
+    return messages.reverse();
+  }
+
+  async sendGuildMessage(
+    guildId: number,
+    userId: number,
+    dto: SendGuildMessageDto,
+  ) {
+    // Проверяем существование гильдии
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+    });
+
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
+    // Проверяем, что пользователь является членом гильдии
+    const isMember = await this.isUserMemberOfGuild(userId, guildId);
+    if (!isMember) {
+      throw new ForbiddenException('You are not a member of this guild');
+    }
+
+    // Создаем сообщение
+    const message = await this.prisma.guildChatMessage.create({
+      data: {
+        message: dto.message,
+        userId,
+        guildId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return message;
+  }
+
+  async deleteGuildMessage(messageId: number, userId: number) {
+    const message = await this.prisma.guildChatMessage.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    // Проверяем, что пользователь является автором сообщения
+    if (message.userId !== userId) {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+
+    await this.prisma.guildChatMessage.delete({
+      where: { id: messageId },
+    });
+
+    return { message: 'Message successfully deleted' };
   }
 }

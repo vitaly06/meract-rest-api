@@ -4,6 +4,8 @@ import { GuildController } from './guild.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
+import { GuildChatGateway } from './guild.gateway';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -18,8 +20,10 @@ import * as path from 'path';
         },
       }),
     }),
+    JwtModule.register({}),
   ],
   controllers: [GuildController],
-  providers: [GuildService],
+  providers: [GuildService, GuildChatGateway],
+  exports: [GuildChatGateway],
 })
 export class GuildModule {}
