@@ -60,6 +60,7 @@ model User {
   UserActivity             UserActivity[]
   UserActivityParticipants UserActivityParticipants[]
   ChatMessage              ChatMessage[]
+  GuildChatMessage         GuildChatMessage[]
   achievements             UserAchievement[]
   ranks                    UserRank[]
   Guild                    Guild?                     @relation(fields: [guildId], references: [id])
@@ -81,6 +82,7 @@ model Guild {
   ownerId Int
 
   members User[]
+  messages GuildChatMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -260,4 +262,20 @@ model UserRank {
 
   @@id([userId, rankId])
   @@index([userId])
+}
+
+model GuildChatMessage {
+  id        Int      @id @default(autoincrement())
+  message   String
+  createdAt DateTime @default(now())
+  
+  // Связь с пользователем
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Связь с гильдией
+  guildId   Int
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  
+  @@index([guildId, createdAt])
 }

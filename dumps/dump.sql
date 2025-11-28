@@ -284,6 +284,43 @@ CREATE TABLE public."Guild" (
 ALTER TABLE public."Guild" OWNER TO postgres;
 
 --
+-- Name: GuildChatMessage; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."GuildChatMessage" (
+    id integer NOT NULL,
+    message text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "userId" integer NOT NULL,
+    "guildId" integer NOT NULL
+);
+
+
+ALTER TABLE public."GuildChatMessage" OWNER TO postgres;
+
+--
+-- Name: GuildChatMessage_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."GuildChatMessage_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."GuildChatMessage_id_seq" OWNER TO postgres;
+
+--
+-- Name: GuildChatMessage_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."GuildChatMessage_id_seq" OWNED BY public."GuildChatMessage".id;
+
+
+--
 -- Name: Guild_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -685,6 +722,13 @@ ALTER TABLE ONLY public."Guild" ALTER COLUMN id SET DEFAULT nextval('public."Gui
 
 
 --
+-- Name: GuildChatMessage id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildChatMessage" ALTER COLUMN id SET DEFAULT nextval('public."GuildChatMessage_id_seq"'::regclass);
+
+
+--
 -- Name: Intro id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -746,6 +790,7 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 
 COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 1	Набрать 100 просмотров	2025-11-26 12:49:07.856
+2	Набрать 500 просмотров	2025-11-26 15:27:21.906
 \.
 
 
@@ -790,6 +835,15 @@ COPY public."ChatMessage" (id, message, "createdAt", "userId", "actId") FROM std
 --
 
 COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdAt", "updatedAt") FROM stdin;
+1	pvp	main guild	1764170902115-277023800.jpg	1	2025-11-26 15:28:22.134	2025-11-26 15:28:22.134
+\.
+
+
+--
+-- Data for Name: GuildChatMessage; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."GuildChatMessage" (id, message, "createdAt", "userId", "guildId") FROM stdin;
 \.
 
 
@@ -855,7 +909,7 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2025-11-26 13:35:49.736	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	\N
-1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 14:38:14.121	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNjc4OTQsImV4cCI6MTc2NDc3MjY5NH0.uDK6j3mHycD9UJ8XbOQIUGovvCOYPcNG7Z7oZwygtp4	\N
+1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 15:18:16.321	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNzAyOTYsImV4cCI6MTc2NDc3NTA5Nn0.0Bx46YCyDA-G2JMvZygXZzcUA1OugAHhfqWP8SyMMRo	\N
 \.
 
 
@@ -873,6 +927,10 @@ COPY public."UserAchievement" ("userId", "achievementId", "awardedAt") FROM stdi
 
 COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamId") FROM stdin;
 1	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-11-26 14:45:47.559	\N	\N
+2	The main administrator vitaly.sadikov1@yandex.ru created the administrator default.admin	\N	2025-11-26 15:20:08.657	\N	\N
+3	The main admin vitaly.sadikov1@yandex.ru updated admin data for default.admin2	\N	2025-11-26 15:23:23.681	\N	\N
+4	The main administrator vitaly.sadikov1@yandex.ru has deleted the administrator default.admin2	\N	2025-11-26 15:23:34.687	\N	\N
+5	Admin vitaly.sadikov1@yandex.ru created guild: 'pvp'	\N	2025-11-26 15:28:22.141	\N	\N
 \.
 
 
@@ -882,6 +940,10 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 
 COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin;
 1	1	initiator
+1	2	initiator
+1	3	initiator
+1	4	initiator
+1	5	initiator
 \.
 
 
@@ -905,7 +967,7 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 -- Name: Achievement_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Achievement_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."Achievement_id_seq"', 2, true);
 
 
 --
@@ -930,10 +992,17 @@ SELECT pg_catalog.setval('public."ChatMessage_id_seq"', 1, false);
 
 
 --
+-- Name: GuildChatMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."GuildChatMessage_id_seq"', 1, false);
+
+
+--
 -- Name: Guild_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Guild_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Guild_id_seq"', 1, true);
 
 
 --
@@ -982,14 +1051,14 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, false);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 5, true);
 
 
 --
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 3, true);
 
 
 --
@@ -1030,6 +1099,14 @@ ALTER TABLE ONLY public."Category"
 
 ALTER TABLE ONLY public."ChatMessage"
     ADD CONSTRAINT "ChatMessage_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: GuildChatMessage GuildChatMessage_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildChatMessage"
+    ADD CONSTRAINT "GuildChatMessage_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1165,6 +1242,13 @@ CREATE INDEX "ChatMessage_actId_createdAt_idx" ON public."ChatMessage" USING btr
 
 
 --
+-- Name: GuildChatMessage_guildId_createdAt_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "GuildChatMessage_guildId_createdAt_idx" ON public."GuildChatMessage" USING btree ("guildId", "createdAt");
+
+
+--
 -- Name: Guild_name_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1290,6 +1374,22 @@ ALTER TABLE ONLY public."ChatMessage"
 
 ALTER TABLE ONLY public."ChatMessage"
     ADD CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: GuildChatMessage GuildChatMessage_guildId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildChatMessage"
+    ADD CONSTRAINT "GuildChatMessage_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES public."Guild"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: GuildChatMessage GuildChatMessage_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildChatMessage"
+    ADD CONSTRAINT "GuildChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
