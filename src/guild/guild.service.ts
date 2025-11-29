@@ -113,9 +113,25 @@ export class GuildService {
   async inviteUser(userId: number, guildId: number) {
     const checkUser = await this.prisma.user.findUnique({
       where: { id: userId },
+      include: {
+        Guild: true,
+      },
     });
     if (!checkUser) {
       throw new NotFoundException('User with this id not found');
+    }
+
+    // Проверяем, что пользователь не состоит в другой гильдии
+    if (checkUser.guildId && checkUser.guildId !== guildId) {
+      const currentGuild = checkUser.Guild;
+      if (currentGuild.ownerId === userId) {
+        throw new BadRequestException(
+          'User is the owner of another guild and cannot be invited',
+        );
+      }
+      throw new BadRequestException(
+        `User is already a member of guild "${currentGuild.name}"`,
+      );
     }
 
     await this.prisma.guild.update({
