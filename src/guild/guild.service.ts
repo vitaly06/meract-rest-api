@@ -81,9 +81,15 @@ export class GuildService {
       },
     });
 
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
     return {
       ...guild,
-      logoFileName: `${this.baseUrl}/uploads/guilds/${guild.logoFileName}`,
+      logoFileName: guild.logoFileName
+        ? `${this.baseUrl}/uploads/guilds/${guild.logoFileName}`
+        : null,
     };
   }
 
