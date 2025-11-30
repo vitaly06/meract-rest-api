@@ -10,8 +10,17 @@ import {
   IsPositive,
   IsString,
   IsArray,
+  ValidateNested,
+  MaxLength,
 } from 'class-validator';
 import { SelectionMethods } from '../enum/act.enum';
+
+class TaskDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  title: string;
+}
 
 export class CreateActRequest {
   // @ApiProperty({
@@ -118,6 +127,13 @@ export class CreateActRequest {
   @IsString({ message: 'bidding time must be a string' })
   @IsNotEmpty({ message: 'bidding time must be not empty' })
   biddingTime: string;
+
+  // Список задач для акта
+  @IsArray({ message: 'Tasks must be an array' })
+  @ValidateNested({ each: true })
+  @Type(() => TaskDto)
+  @IsOptional()
+  tasks?: TaskDto[];
 
   // @ApiProperty({
   //   description: 'userId',
