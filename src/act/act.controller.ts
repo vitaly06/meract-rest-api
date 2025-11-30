@@ -42,14 +42,13 @@ export class ActController {
       'Creates a new act with the provided details and optional preview image.',
   })
   @ApiBody({
-    description: 'Act creation data with optional preview image',
+    description: 'Act creation data with optional preview image and tasks',
     schema: {
       type: 'object',
       required: [
         'title',
         'introId',
         'outroId',
-        'userId',
         'type',
         'format',
         'heroMethods',
@@ -91,10 +90,25 @@ export class ActController {
           example: SelectionMethods.VOTING,
         },
         biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
-        userId: { type: 'number', example: 2 },
         photo: {
           type: 'string',
           format: 'binary',
+        },
+        tasks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', example: 'Reach Global Elite' },
+            },
+          },
+          example: [
+            { title: 'Reach Global Elite' },
+            { title: 'Win 10 games' },
+            { title: 'Do 100 headshots' },
+          ],
+          description:
+            'Array of tasks for the act (all tasks start as not completed)',
         },
       },
     },
@@ -250,6 +264,24 @@ export class ActController {
 
   @Get(':actId/tasks')
   @ApiOperation({ summary: 'Get all tasks for an act' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of tasks for the act',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'number' },
+          title: { type: 'string' },
+          isCompleted: { type: 'boolean' },
+          createdAt: { type: 'string', format: 'date-time' },
+          completedAt: { type: 'string', format: 'date-time', nullable: true },
+          actId: { type: 'number' },
+        },
+      },
+    },
+  })
   async getActTasks(@Param('actId') actId: string) {
     return this.actService.getActTasks(+actId);
   }
@@ -257,6 +289,25 @@ export class ActController {
   @Post(':actId/tasks')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Add a new task to an act' })
+  @ApiBody({
+    description: 'Task data',
+    type: CreateTaskDto,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Task successfully created',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number' },
+        title: { type: 'string' },
+        isCompleted: { type: 'boolean' },
+        createdAt: { type: 'string', format: 'date-time' },
+        completedAt: { type: 'string', format: 'date-time', nullable: true },
+        actId: { type: 'number' },
+      },
+    },
+  })
   async addTask(
     @Param('actId') actId: string,
     @Body() dto: CreateTaskDto,
@@ -268,6 +319,21 @@ export class ActController {
   @Patch(':actId/tasks/:taskId/toggle')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Toggle task completion status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task status toggled',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number' },
+        title: { type: 'string' },
+        isCompleted: { type: 'boolean' },
+        createdAt: { type: 'string', format: 'date-time' },
+        completedAt: { type: 'string', format: 'date-time', nullable: true },
+        actId: { type: 'number' },
+      },
+    },
+  })
   async toggleTask(
     @Param('actId') actId: string,
     @Param('taskId') taskId: string,
@@ -279,6 +345,13 @@ export class ActController {
   @Delete(':actId/tasks/:taskId')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Delete a task from an act' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task successfully deleted',
+    schema: {
+      example: { message: 'Task successfully deleted' },
+    },
+  })
   async deleteTask(
     @Param('actId') actId: string,
     @Param('taskId') taskId: string,

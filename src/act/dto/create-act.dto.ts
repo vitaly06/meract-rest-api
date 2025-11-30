@@ -16,6 +16,7 @@ import {
 import { SelectionMethods } from '../enum/act.enum';
 
 class TaskDto {
+  @ApiProperty({ example: 'Reach Global Elite', description: 'Task title' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
@@ -27,6 +28,7 @@ export class CreateActRequest {
   //   description: 'title',
   //   example: 'CS 2 Faceit Stream',
   // })
+  @ApiProperty({ example: 'CS 2 Faceit Stream', description: 'Stream title' })
   @IsString({ message: 'Stream name must be a string' })
   @IsNotEmpty({ message: 'Stream title is required' })
   title: string;
@@ -36,6 +38,11 @@ export class CreateActRequest {
   //   description: 'SequelId',
   //   example: 1,
   // })
+  @ApiProperty({
+    example: 1,
+    required: false,
+    description: 'Sequel ID (optional)',
+  })
   @IsNumber({}, { message: 'Sequel id must be a number' })
   @IsPositive({ message: 'Sequel id must be a positive number' })
   @IsInt({ message: 'Sequel id must be an int' })
@@ -48,12 +55,14 @@ export class CreateActRequest {
   //   description: 'SequelId',
   //   example: 1,
   // })
+  @ApiProperty({ example: 1, description: 'Intro ID' })
   @IsNumber({}, { message: 'Intro id must be a number' })
   @IsPositive({ message: 'Intro id must be a positive number' })
   @IsInt({ message: 'Intro id must be an int' })
   @Type(() => Number)
   introId: number;
 
+  @ApiProperty({ example: 1, description: 'Outro ID' })
   @IsNumber({}, { message: 'Outro id must be a number' })
   @IsPositive({ message: 'Outro id must be a positive number' })
   @IsInt({ message: 'Outro id must be an int' })
@@ -65,24 +74,9 @@ export class CreateActRequest {
   //   description: 'Music IDs',
   //   example: [1, 2, 3],
   // })
+  @ApiProperty({ example: [1, 2, 3], description: 'Array of music track IDs' })
   @Transform(({ value }) => {
-    // Если это строка (например "[1,2,3]" или "1,2,3"), парсим её
-    if (typeof value === 'string') {
-      try {
-        // Пробуем распарсить как JSON массив
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed.map(Number) : [Number(value)];
-      } catch {
-        // Если не JSON, пробуем разделить по запятой
-        return value.split(',').map((id) => Number(id.trim()));
-      }
-    }
-    // Если уже массив, конвертируем каждый элемент в число
-    if (Array.isArray(value)) {
-      return value.map(Number);
-    }
-    // Если одиночное значение, делаем массив
-    return [Number(value)];
+    // ...existing code...
   })
   @IsArray({ message: 'Music IDs must be an array' })
   @IsInt({ each: true, message: 'Each music id must be an integer' })
@@ -97,6 +91,7 @@ export class CreateActRequest {
   //   example: ActType.SINGLE,
   //   enum: ActType,
   // })
+  @ApiProperty({ example: 'SINGLE', enum: ActType, description: 'Act type' })
   @IsEnum(ActType, { message: 'Invalid Act Type' })
   type: ActType;
 
@@ -105,6 +100,11 @@ export class CreateActRequest {
   //   example: ActFormat.SINGLE,
   //   enum: ActFormat,
   // })
+  @ApiProperty({
+    example: 'SINGLE',
+    enum: ActFormat,
+    description: 'Act format',
+  })
   @IsEnum(ActFormat, { message: 'Invalid act format' })
   format: ActFormat;
 
@@ -113,6 +113,11 @@ export class CreateActRequest {
   //   example: SelectionMethods.VOTING,
   //   enum: SelectionMethods,
   // })
+  @ApiProperty({
+    example: 'VOTING',
+    enum: SelectionMethods,
+    description: 'Hero selection method',
+  })
   @IsEnum(SelectionMethods, { message: 'Invalid hero selection methods' })
   heroMethods: SelectionMethods;
 
@@ -121,14 +126,30 @@ export class CreateActRequest {
   //   example: SelectionMethods.VOTING,
   //   enum: SelectionMethods,
   // })
+  @ApiProperty({
+    example: 'VOTING',
+    enum: SelectionMethods,
+    description: 'Navigator selection method',
+  })
   @IsEnum(SelectionMethods, { message: 'Invalid navigator selection methods' })
   navigatorMethods: SelectionMethods;
   // @ApiProperty({})
+  @ApiProperty({ example: '2025-09-15T12:00:00Z', description: 'Bidding time' })
   @IsString({ message: 'bidding time must be a string' })
   @IsNotEmpty({ message: 'bidding time must be not empty' })
   biddingTime: string;
 
   // Список задач для акта
+  @ApiProperty({
+    type: [TaskDto],
+    required: false,
+    description: 'Array of tasks for the act',
+    example: [
+      { title: 'Reach Global Elite' },
+      { title: 'Win 10 games' },
+      { title: 'Do 100 headshots' },
+    ],
+  })
   @IsArray({ message: 'Tasks must be an array' })
   @ValidateNested({ each: true })
   @Type(() => TaskDto)
