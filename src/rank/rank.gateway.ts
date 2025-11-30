@@ -11,7 +11,8 @@ import { Logger } from '@nestjs/common';
 @WebSocketGateway({
   namespace: '/ranks',
   cors: {
-    origin: '*',
+    origin: true,
+    credentials: true,
   },
 })
 export class RankGateway
