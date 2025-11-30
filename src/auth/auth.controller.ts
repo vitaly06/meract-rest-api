@@ -147,18 +147,19 @@ export class AuthController {
     res: Response,
     tokens: { accessToken: string; refreshToken: string },
   ) {
+    const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
     res.cookie('access_token', tokens.accessToken, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
+      maxAge: THIRTY_DAYS,
     });
 
     res.cookie('refresh_token', tokens.refreshToken, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: THIRTY_DAYS,
     });
   }
 

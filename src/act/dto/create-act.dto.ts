@@ -76,7 +76,22 @@ export class CreateActRequest {
   // })
   @ApiProperty({ example: [1, 2, 3], description: 'Array of music track IDs' })
   @Transform(({ value }) => {
-    // ...existing code...
+    // Если это строка (например "[1,2,3]" или "1,2,3"), парсим её
+    let arr: any[] = [];
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        arr = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        arr = value.split(',').map((id) => id.trim());
+      }
+    } else if (Array.isArray(value)) {
+      arr = value;
+    } else if (value !== undefined && value !== null) {
+      arr = [value];
+    }
+    // Преобразуем к числам, фильтруем невалидные
+    return arr.map(Number).filter((id) => Number.isInteger(id) && id > 0);
   })
   @IsArray({ message: 'Music IDs must be an array' })
   @IsInt({ each: true, message: 'Each music id must be an integer' })
