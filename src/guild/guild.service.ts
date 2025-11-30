@@ -219,6 +219,17 @@ export class GuildService {
   }
 
   async isUserMemberOfGuild(userId: number, guildId: number): Promise<boolean> {
+    // Проверяем, является ли пользователь владельцем гильдии
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+      select: { ownerId: true },
+    });
+
+    if (guild?.ownerId === userId) {
+      return true;
+    }
+
+    // Проверяем, является ли пользователь участником гильдии
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { guildId: true },
