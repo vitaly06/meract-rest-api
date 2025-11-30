@@ -60,6 +60,12 @@ export class GuildController {
     return await this.guildService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('get-my-guild')
+  async getMyGuild(@Req() req: RequestWithUser) {
+    return await this.guildService.getMyGuild(req.user.sub);
+  }
+
   @ApiOperation({
     summary: 'Find guild by id',
   })
