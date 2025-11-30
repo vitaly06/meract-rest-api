@@ -44,14 +44,50 @@ export class ChatGateway
     this.logger.log('Chat WebSocket Gateway initialized');
   }
 
+  /**
+   * Извлекает токен из cookies
+   */
+  private extractTokenFromCookies(cookieHeader: string): string | null {
+    if (!cookieHeader) return null;
+
+    const cookies = cookieHeader.split(';').reduce(
+      (acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+
+    // Пробуем разные названия токена
+    return (
+      cookies['accessToken'] ||
+      cookies['token'] ||
+      cookies['access_token'] ||
+      null
+    );
+  }
+
   async handleConnection(client: AuthenticatedSocket) {
     try {
-      // Получаем токен из query параметров или headers
-      const token =
-        client.handshake.auth?.token || client.handshake.query?.token;
+      // Попытка 1: Получаем токен из auth объекта
+      let token = client.handshake.auth?.token;
+
+      // Попытка 2: Получаем токен из query параметров
+      if (!token) {
+        token = client.handshake.query?.token as string;
+      }
+
+      // Попытка 3: Извлекаем токен из httpOnly cookies
+      if (!token) {
+        const cookieHeader = client.handshake.headers.cookie;
+        token = this.extractTokenFromCookies(cookieHeader);
+      }
 
       if (!token) {
-        this.logger.warn(`Client ${client.id} connected without token`);
+        this.logger.warn(
+          `Client ${client.id} connected without token (checked auth, query, and cookies)`,
+        );
         client.disconnect();
         return;
       }

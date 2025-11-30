@@ -11,7 +11,8 @@ import { Logger } from '@nestjs/common';
 @WebSocketGateway({
   namespace: '/achievements',
   cors: {
-    origin: '*',
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
   },
 })
 export class AchievementGateway
