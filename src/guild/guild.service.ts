@@ -195,6 +195,29 @@ export class GuildService {
     return { message: 'Guild successfully deleted' };
   }
 
+  async getMyGuild(userId: number) {
+    const guild = await this.prisma.guild.findFirst({
+      where: {
+        members: {
+          some: {
+            id: userId,
+          },
+        },
+      },
+    });
+
+    if (!guild) {
+      throw new NotFoundException('Пользователь не состоит в гильдии');
+    }
+
+    return {
+      ...guild,
+      logoFileName: guild.logoFileName
+        ? `${this.baseUrl}/uploads/guilds/${guild.logoFileName}`
+        : null,
+    };
+  }
+
   async isUserMemberOfGuild(userId: number, guildId: number): Promise<boolean> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
