@@ -11,6 +11,8 @@ import {
   UseInterceptors,
   HttpStatus,
   BadRequestException,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -25,6 +27,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { ActService } from './act.service';
 import { CreateActRequest } from './dto/create-act.dto';
+import { CreateTaskDto } from './dto/create-task.dto';
 import { ActType, ActFormat } from '@prisma/client';
 import { SelectionMethods } from './enum/act.enum';
 
@@ -243,5 +246,44 @@ export class ActController {
       expiry,
     );
     return { token };
+  }
+
+  @Get(':actId/tasks')
+  @ApiOperation({ summary: 'Get all tasks for an act' })
+  async getActTasks(@Param('actId') actId: string) {
+    return this.actService.getActTasks(+actId);
+  }
+
+  @Post(':actId/tasks')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Add a new task to an act' })
+  async addTask(
+    @Param('actId') actId: string,
+    @Body() dto: CreateTaskDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.addTaskToAct(+actId, dto.title, req.user.sub);
+  }
+
+  @Patch(':actId/tasks/:taskId/toggle')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Toggle task completion status' })
+  async toggleTask(
+    @Param('actId') actId: string,
+    @Param('taskId') taskId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.toggleTaskStatus(+actId, +taskId, req.user.sub);
+  }
+
+  @Delete(':actId/tasks/:taskId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete a task from an act' })
+  async deleteTask(
+    @Param('actId') actId: string,
+    @Param('taskId') taskId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.deleteTask(+actId, +taskId, req.user.sub);
   }
 }

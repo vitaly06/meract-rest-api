@@ -174,6 +174,44 @@ CREATE TABLE public."ActMusic" (
 ALTER TABLE public."ActMusic" OWNER TO postgres;
 
 --
+-- Name: ActTask; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActTask" (
+    id integer NOT NULL,
+    title text NOT NULL,
+    "isCompleted" boolean DEFAULT false NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "completedAt" timestamp(3) without time zone,
+    "actId" integer NOT NULL
+);
+
+
+ALTER TABLE public."ActTask" OWNER TO postgres;
+
+--
+-- Name: ActTask_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ActTask_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ActTask_id_seq" OWNER TO postgres;
+
+--
+-- Name: ActTask_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ActTask_id_seq" OWNED BY public."ActTask".id;
+
+
+--
 -- Name: Act_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -701,6 +739,13 @@ ALTER TABLE ONLY public."Act" ALTER COLUMN id SET DEFAULT nextval('public."Act_i
 
 
 --
+-- Name: ActTask id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTask" ALTER COLUMN id SET DEFAULT nextval('public."ActTask_id_seq"'::regclass);
+
+
+--
 -- Name: Category id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -815,6 +860,14 @@ COPY public."ActMusic" ("actId", "musicId", "order") FROM stdin;
 
 
 --
+-- Data for Name: ActTask; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActTask" (id, title, "isCompleted", "createdAt", "completedAt", "actId") FROM stdin;
+\.
+
+
+--
 -- Data for Name: Category; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -909,7 +962,8 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2025-11-26 13:35:49.736	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	\N
-1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-26 15:18:16.321	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQxNzAyOTYsImV4cCI6MTc2NDc3NTA5Nn0.0Bx46YCyDA-G2JMvZygXZzcUA1OugAHhfqWP8SyMMRo	\N
+1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-29 10:17:29.463	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0MTE0NDksImV4cCI6MTc2NTAxNjI0OX0.PuHePE3aOY6gfCgPrDR8mnmCIVkUpGyBD-G7L_0a3io	\N
+4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2025-11-30 08:15:38.322	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	1
 \.
 
 
@@ -968,6 +1022,13 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 --
 
 SELECT pg_catalog.setval('public."Achievement_id_seq"', 2, true);
+
+
+--
+-- Name: ActTask_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ActTask_id_seq"', 1, false);
 
 
 --
@@ -1058,7 +1119,7 @@ SELECT pg_catalog.setval('public."UserActivity_id_seq"', 5, true);
 -- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."User_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."User_id_seq"', 4, true);
 
 
 --
@@ -1075,6 +1136,14 @@ ALTER TABLE ONLY public."Achievement"
 
 ALTER TABLE ONLY public."ActMusic"
     ADD CONSTRAINT "ActMusic_pkey" PRIMARY KEY ("actId", "musicId");
+
+
+--
+-- Name: ActTask ActTask_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTask"
+    ADD CONSTRAINT "ActTask_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1228,6 +1297,13 @@ CREATE INDEX "ActMusic_actId_idx" ON public."ActMusic" USING btree ("actId");
 
 
 --
+-- Name: ActTask_actId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ActTask_actId_idx" ON public."ActTask" USING btree ("actId");
+
+
+--
 -- Name: Category_name_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1318,6 +1394,14 @@ ALTER TABLE ONLY public."ActMusic"
 
 ALTER TABLE ONLY public."ActMusic"
     ADD CONSTRAINT "ActMusic_musicId_fkey" FOREIGN KEY ("musicId") REFERENCES public."Music"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActTask ActTask_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTask"
+    ADD CONSTRAINT "ActTask_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

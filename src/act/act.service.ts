@@ -38,6 +38,7 @@ export class ActService {
       heroMethods,
       navigatorMethods,
       biddingTime,
+      tasks,
     } = { ...dto };
 
     // Проверка существования пользователя
@@ -112,6 +113,14 @@ export class ActService {
               order: index,
             })),
           },
+          tasks: tasks
+            ? {
+                create: tasks.map((task) => ({
+                  title: task.title,
+                  isCompleted: false,
+                })),
+              }
+            : undefined,
         },
         include: {
           user: true,
@@ -163,6 +172,11 @@ export class ActService {
             },
             orderBy: {
               order: 'asc',
+            },
+          },
+          tasks: {
+            orderBy: {
+              createdAt: 'asc',
             },
           },
         },
@@ -240,6 +254,11 @@ export class ActService {
             order: 'asc',
           },
         },
+        tasks: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     });
 
@@ -278,6 +297,11 @@ export class ActService {
       include: {
         user: true,
         category: true,
+        tasks: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     });
 
@@ -647,5 +671,135 @@ export class ActService {
 
     // Показываем максимум 2 единицы времени для краткости
     return parts.slice(0, 2).join(' ');
+  }
+
+  /**
+   * Получить все задачи акта
+   */
+  async getActTasks(actId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: { id: true },
+    });
+
+    if (!act) {
+      throw new NotFoundException('Act not found');
+    }
+
+    return this.prisma.actTask.findMany({
+      where: { actId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Переключить статус задачи (выполнена/не выполнена)
+   */
+  async toggleTaskStatus(actId: number, taskId: number, userId: number) {
+    // Проверяем, что акт существует и принадлежит пользователю
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+    });
+
+    if (!act) {
+      throw new NotFoundException('Act not found');
+    }
+
+    if (act.userId !== userId) {
+      throw new ForbiddenException(
+        'You can only toggle tasks in your own acts',
+      );
+    }
+
+    // Проверяем, что задача существует и принадлежит этому акту
+    const task = await this.prisma.actTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    if (task.actId !== actId) {
+      throw new BadRequestException('Task does not belong to this act');
+    }
+
+    // Переключаем статус
+    const updatedTask = await this.prisma.actTask.update({
+      where: { id: taskId },
+      data: {
+        isCompleted: !task.isCompleted,
+        completedAt: !task.isCompleted ? new Date() : null,
+      },
+    });
+
+    return updatedTask;
+  }
+
+  /**
+   * Добавить новую задачу к акту
+   */
+  async addTaskToAct(actId: number, title: string, userId: number) {
+    // Проверяем, что акт существует и принадлежит пользователю
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+    });
+
+    if (!act) {
+      throw new NotFoundException('Act not found');
+    }
+
+    if (act.userId !== userId) {
+      throw new ForbiddenException('You can only add tasks to your own acts');
+    }
+
+    const newTask = await this.prisma.actTask.create({
+      data: {
+        title,
+        actId,
+        isCompleted: false,
+      },
+    });
+
+    return newTask;
+  }
+
+  /**
+   * Удалить задачу
+   */
+  async deleteTask(actId: number, taskId: number, userId: number) {
+    // Проверяем, что акт существует и принадлежит пользователю
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+    });
+
+    if (!act) {
+      throw new NotFoundException('Act not found');
+    }
+
+    if (act.userId !== userId) {
+      throw new ForbiddenException(
+        'You can only delete tasks from your own acts',
+      );
+    }
+
+    // Проверяем, что задача существует
+    const task = await this.prisma.actTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    if (task.actId !== actId) {
+      throw new BadRequestException('Task does not belong to this act');
+    }
+
+    await this.prisma.actTask.delete({
+      where: { id: taskId },
+    });
+
+    return { message: 'Task successfully deleted' };
   }
 }

@@ -120,6 +120,7 @@ model Act {
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   UserActivity    UserActivity[]
   ChatMessage     ChatMessage[]
+  tasks           ActTask[]
 }
 
 // Stream Categories
@@ -278,4 +279,18 @@ model GuildChatMessage {
   guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
   
   @@index([guildId, createdAt])
+}
+
+model ActTask {
+  id          Int      @id @default(autoincrement())
+  title       String
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  
+  // Связь с актом
+  actId       Int
+  act         Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
+  
+  @@index([actId])
 }
