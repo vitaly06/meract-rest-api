@@ -25,6 +25,8 @@ services:
       - CACHE_TTL=3600
       - AGORA_APP_ID=67f58d2ce54b46ddb2e73f2cadaa6899
       - AGORA_APP_CERTIFICATE=e086b7ae19ae4b05b83d3fda3fade947
+      - AGORA_CUSTOMER_ID=YOUR_CUSTOMER_ID_HERE
+      - AGORA_CUSTOMER_SECRET=YOUR_CUSTOMER_SECRET_HERE
     depends_on:
       - db
     volumes:

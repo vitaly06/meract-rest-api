@@ -112,6 +112,13 @@ model Act {
   status          ActStatus   @default(ONLINE)
   startedAt       DateTime       @default(now())
   endedAt         DateTime?
+  
+  // Agora Cloud Recording
+  recordingResourceId String?
+  recordingSid        String?
+  recordingUrl        String?
+  recordingStatus     String? // recording, processing, completed, failed
+  
   // Act Category
   categoryId      Int?
   category        Category?      @relation(fields: [categoryId], references: [id])

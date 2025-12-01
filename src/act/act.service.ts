@@ -11,6 +11,7 @@ import { RtcRole, RtcTokenBuilder } from 'agora-access-token';
 import { CreateActRequest } from './dto/create-act.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
 import { ConfigService } from '@nestjs/config';
+import { AgoraRecordingService } from 'src/agora-recording/agora-recording.service';
 
 @Injectable()
 export class ActService {
@@ -19,6 +20,7 @@ export class ActService {
     private readonly prisma: PrismaService,
     private readonly utilsService: UtilsService,
     private readonly configService: ConfigService,
+    private readonly agoraRecordingService: AgoraRecordingService,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
@@ -131,6 +133,11 @@ export class ActService {
       await this.utilsService.addRecordToActivityJournal(
         `User ${user.login || user.email} started stream: '${newStream.title}'`,
         [+userId],
+      );
+
+      // Запускаем запись асинхронно
+      this.startRecordingForAct(newStream.id, newStream.title, +userId).catch(
+        (err) => console.error(`Failed to start recording: ${err.message}`),
       );
 
       const resultStream = await this.prisma.act.findUnique({
@@ -378,6 +385,11 @@ export class ActService {
           [currentAdmin.id, currentStream.user.id],
         );
       }
+
+      // Останавливаем запись асинхронно
+      this.stopRecordingForAct(id).catch((err) =>
+        console.error(`Failed to stop recording: ${err.message}`),
+      );
 
       return { message: 'Stream successfully stopped' };
     } catch (error) {
@@ -801,5 +813,107 @@ export class ActService {
     });
 
     return { message: 'Task successfully deleted' };
+  }
+
+  /**
+   * Начать запись акта через Agora Cloud Recording
+   */
+  private async startRecordingForAct(
+    actId: number,
+    actTitle: string,
+    userId: number,
+  ): Promise<void> {
+    try {
+      const channelName = `act_${actId}`;
+      const uid = `${userId}`;
+
+      // Генерируем токен для бота-рекордера
+      const token = this.generateToken(
+        channelName,
+        'PUBLISHER',
+        'uid',
+        uid,
+        86400,
+      );
+
+      // Шаг 1: Acquire
+      const resourceId = await this.agoraRecordingService.acquire(
+        channelName,
+        uid,
+      );
+
+      // Шаг 2: Start Recording
+      const { sid } = await this.agoraRecordingService.startRecording(
+        resourceId,
+        channelName,
+        uid,
+        token,
+      );
+
+      // Сохраняем данные записи в БД
+      await this.prisma.act.update({
+        where: { id: actId },
+        data: {
+          recordingResourceId: resourceId,
+          recordingSid: sid,
+          recordingStatus: 'recording',
+        },
+      });
+
+      console.log(
+        `Recording started for act ${actId}: resourceId=${resourceId}, sid=${sid}`,
+      );
+    } catch (error) {
+      console.error(
+        `Failed to start recording for act ${actId}: ${error.message}`,
+      );
+      // Не прерываем создание акта, просто логируем ошибку
+    }
+  }
+
+  /**
+   * Остановить запись при завершении акта
+   */
+  private async stopRecordingForAct(actId: number): Promise<void> {
+    try {
+      const act = await this.prisma.act.findUnique({
+        where: { id: actId },
+        select: {
+          recordingResourceId: true,
+          recordingSid: true,
+          userId: true,
+        },
+      });
+
+      if (!act?.recordingResourceId || !act?.recordingSid) {
+        console.log(`No recording found for act ${actId}`);
+        return;
+      }
+
+      const channelName = `act_${actId}`;
+      const uid = `${act.userId}`;
+
+      // Останавливаем запись
+      await this.agoraRecordingService.stopRecording(
+        act.recordingResourceId,
+        act.recordingSid,
+        channelName,
+        uid,
+      );
+
+      // Обновляем статус
+      await this.prisma.act.update({
+        where: { id: actId },
+        data: {
+          recordingStatus: 'processing',
+        },
+      });
+
+      console.log(`Recording stopped for act ${actId}`);
+    } catch (error) {
+      console.error(
+        `Failed to stop recording for act ${actId}: ${error.message}`,
+      );
+    }
   }
 }
