@@ -165,10 +165,20 @@ export class CreateActRequest {
       { title: 'Do 100 headshots' },
     ],
   })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (
+      !value ||
+      value === '' ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
+      return undefined;
+    }
+    return value;
+  })
   @IsArray({ message: 'Tasks must be an array' })
   @ValidateNested({ each: true })
   @Type(() => TaskDto)
-  @IsOptional()
   tasks?: TaskDto[];
 
   // @ApiProperty({

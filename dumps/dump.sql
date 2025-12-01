@@ -154,7 +154,11 @@ CREATE TABLE public."Act" (
     "startedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "endedAt" timestamp(3) without time zone,
     "categoryId" integer,
-    "userId" integer NOT NULL
+    "userId" integer NOT NULL,
+    "recordingResourceId" text,
+    "recordingSid" text,
+    "recordingStatus" text,
+    "recordingUrl" text
 );
 
 
@@ -843,8 +847,13 @@ COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId") FROM stdin;
-2	CS 2 Faceit Stream	/uploads/acts/1764168347490-953015327.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-11-26 14:45:47.52	\N	\N	1
+COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl") FROM stdin;
+2	CS 2 Faceit Stream	/uploads/acts/1764168347490-953015327.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-11-26 14:45:47.52	\N	\N	1	\N	\N	\N	\N
+3	CS 2 Faceit Stream	/uploads/acts/1764609411932-886580720.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:16:51.958	\N	\N	1	\N	\N	\N	\N
+4	CS 2 Faceit Stream	/uploads/acts/1764609491220-525138070.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:18:11.326	\N	\N	1	\N	\N	\N	\N
+5	CS 2 Faceit Stream	/uploads/acts/1764609574687-143786270.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:19:34.713	\N	\N	1	\N	\N	\N	\N
+6	CS 2 Faceit Stream	/uploads/acts/1764609618041-150722085.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:20:18.103	\N	\N	1	\N	\N	\N	\N
+7	CS 2 Faceit Stream	/uploads/acts/1764609792560-638356179.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:23:12.597	\N	\N	1	D-4qTjMspp3ZieDsCO_H-JGv9wvp6eS6Q0BcMU3a7YsDahDM8NjYNRIv6BATFJ1kG90ov6jvrMTe4RGv5GuBQ1-o2paR2BPU_kL6F9vbAvlI-OaeMfGnyOjfalvfV4c0lKBp1nzAfP3lFCzuvYoC14UNtPgPmpBgXZ9kTvfJ7_X_pofDxzW5l_z8Ugz2pRbI	e90bf76cbe42426de1e45f9f72fb8596	recording	\N
 \.
 
 
@@ -856,6 +865,21 @@ COPY public."ActMusic" ("actId", "musicId", "order") FROM stdin;
 2	1	0
 2	2	1
 2	3	2
+3	1	0
+3	2	1
+3	3	2
+4	1	0
+4	2	1
+4	3	2
+5	1	0
+5	2	1
+5	3	2
+6	1	0
+6	2	1
+6	3	2
+7	1	0
+7	2	1
+7	3	2
 \.
 
 
@@ -962,8 +986,8 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2025-11-26 13:35:49.736	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	\N
-1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-11-29 10:17:29.463	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0MTE0NDksImV4cCI6MTc2NTAxNjI0OX0.PuHePE3aOY6gfCgPrDR8mnmCIVkUpGyBD-G7L_0a3io	\N
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2025-11-30 08:15:38.322	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	1
+1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-12-01 17:19:31.175	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ2MDk1NzEsImV4cCI6MTc2NTIxNDM3MX0.w_Mgb0Uvee-uJqnAk0WeR6vWHfpxYJHGbgoe431o9Z8	\N
 \.
 
 
@@ -985,6 +1009,11 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 3	The main admin vitaly.sadikov1@yandex.ru updated admin data for default.admin2	\N	2025-11-26 15:23:23.681	\N	\N
 4	The main administrator vitaly.sadikov1@yandex.ru has deleted the administrator default.admin2	\N	2025-11-26 15:23:34.687	\N	\N
 5	Admin vitaly.sadikov1@yandex.ru created guild: 'pvp'	\N	2025-11-26 15:28:22.141	\N	\N
+6	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-12-01 17:16:52.09	\N	\N
+7	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-12-01 17:18:11.366	\N	\N
+8	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-12-01 17:19:34.775	\N	\N
+9	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-12-01 17:20:18.184	\N	\N
+10	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-12-01 17:23:12.671	\N	\N
 \.
 
 
@@ -998,6 +1027,11 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 1	3	initiator
 1	4	initiator
 1	5	initiator
+1	6	initiator
+1	7	initiator
+1	8	initiator
+1	9	initiator
+1	10	initiator
 \.
 
 
@@ -1035,7 +1069,7 @@ SELECT pg_catalog.setval('public."ActTask_id_seq"', 1, false);
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Act_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."Act_id_seq"', 7, true);
 
 
 --
@@ -1112,7 +1146,7 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, false);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 5, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 10, true);
 
 
 --
@@ -1614,5 +1648,4 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
-
 

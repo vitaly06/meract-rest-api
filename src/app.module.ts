@@ -16,6 +16,7 @@ import { ChatModule } from './chat/chat.module';
 import { OutroModule } from './outro/outro.module';
 import { AchievementModule } from './achievement/achievement.module';
 import { RankModule } from './rank/rank.module';
+import { AgoraRecordingModule } from './agora-recording/agora-recording.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { RankModule } from './rank/rank.module';
     OutroModule,
     AchievementModule,
     RankModule,
+    AgoraRecordingModule,
   ],
 })
 export class AppModule {}
