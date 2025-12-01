@@ -165,7 +165,7 @@ export class ChatGateway
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { actId: number; message: string },
+    @MessageBody() data: { actId: number; message?: string; content?: string },
   ) {
     try {
       if (!client.userId) {
@@ -173,10 +173,25 @@ export class ChatGateway
         return;
       }
 
-      const { actId, message } = data;
+      const { actId, message, content } = data;
+      const messageText = message || content; // Поддержка обоих полей
+
+      if (!messageText) {
+        client.emit('messageError', { message: 'Message text is required' });
+        return;
+      }
+
+      // Автоматически присоединяем к комнате, если еще не в ней
+      if (client.actId !== actId) {
+        client.join(`stream_${actId}`);
+        client.actId = actId;
+        this.logger.debug(
+          `User ${client.userId} auto-joined stream ${actId} chat`,
+        );
+      }
 
       // Валидируем данные
-      const dto: CreateMessageDto = { message };
+      const dto: CreateMessageDto = { message: messageText };
 
       // Отправляем сообщение через сервис
       const newMessage = await this.chatService.sendMessage(
