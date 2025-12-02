@@ -29,6 +29,7 @@ interface AuthenticatedSocket extends Socket {
     credentials: true,
   },
   namespace: 'guild-chat',
+  path: '/socket.io/', // ← ЭТО ОБЯЗАТЕЛЬНО!
 })
 export class GuildChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect

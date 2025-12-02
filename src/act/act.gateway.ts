@@ -18,6 +18,7 @@ import moment from 'moment';
     credentials: true,
   },
   namespace: 'acts',
+  path: '/socket.io/', // ← ЭТО ОБЯЗАТЕЛЬНО!
 })
 export class ActGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect

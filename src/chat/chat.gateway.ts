@@ -25,6 +25,7 @@ interface AuthenticatedSocket extends Socket {
     credentials: true,
   },
   namespace: 'chat',
+  path: '/socket.io/', // ← ЭТО ОБЯЗАТЕЛЬНО!
 })
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
