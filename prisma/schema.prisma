@@ -120,8 +120,10 @@ model Act {
   recordingStatus     String? // recording, processing, completed, failed
   
   // Location
-  latitude        Float?
-  longitude       Float?
+  startLatitude        Float?
+  startLongitude       Float?
+  destinationLatitude  Float?
+  destinationLongitude Float?
   
   // Act Category
   categoryId      Int?

@@ -2,7 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict wd1rgfdXa0eD8rutKYxQIoBs0hLuvAIeH0dJdysmm3eFm3LBoNIK9B5aafCn5Pc
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -10,7 +9,6 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -161,8 +159,10 @@ CREATE TABLE public."Act" (
     "recordingSid" text,
     "recordingStatus" text,
     "recordingUrl" text,
-    latitude double precision,
-    longitude double precision
+    "destinationLatitude" double precision,
+    "destinationLongitude" double precision,
+    "startLatitude" double precision,
+    "startLongitude" double precision
 );
 
 
@@ -851,7 +851,8 @@ COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", latitude, longitude) FROM stdin;
+COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude") FROM stdin;
+8	CS 2 Faceit Stream	/uploads/acts/1764699559719-538835166.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-02 18:19:19.747	\N	\N	1	Rd0701k3jtPKwxuNxg4691mtGLg-5rRSR3QLNeSuFVGfqToQwxWUgI-yCcgYbZq1_ysvFqNbHCn95B-bYvoSQzrvV2O_d2REnPcsv-dDt77mhank_QRfdU6f_kM65gFEeYf5J0rHODG6hiJHLyl1G9g8d2-3ngqXxgeeZOGrF3s_VEZbIUIYgY035rr7pbSu	56e3fbbb4248fd693d80148605a2d278	recording	\N	52.370216	4.895168	52.3675734	4.9041389
 \.
 
 
@@ -860,6 +861,9 @@ COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "hero
 --
 
 COPY public."ActMusic" ("actId", "musicId", "order") FROM stdin;
+8	1	0
+8	2	1
+8	3	2
 \.
 
 
@@ -967,7 +971,7 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId") FROM stdin;
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2025-11-26 13:35:49.736	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	\N
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2025-11-30 08:15:38.322	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	1
-1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-12-01 17:19:31.175	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ2MDk1NzEsImV4cCI6MTc2NTIxNDM3MX0.w_Mgb0Uvee-uJqnAk0WeR6vWHfpxYJHGbgoe431o9Z8	\N
+1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2025-12-02 18:15:32.356	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ2OTkzMzIsImV4cCI6MTc2NTMwNDEzMn0.btXfFyM8Ej9c_3GYOmTR29_Q3ZTPx3IxNOXtyNWL1JY	\N
 \.
 
 
@@ -994,6 +998,7 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 8	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-12-01 17:19:34.775	\N	\N
 9	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-12-01 17:20:18.184	\N	\N
 10	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-12-01 17:23:12.671	\N	\N
+11	User vitaly.sadikov1@yandex.ru started stream: 'CS 2 Faceit Stream'	\N	2025-12-02 18:19:19.792	\N	\N
 \.
 
 
@@ -1012,6 +1017,7 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 1	8	initiator
 1	9	initiator
 1	10	initiator
+1	11	initiator
 \.
 
 
@@ -1049,7 +1055,7 @@ SELECT pg_catalog.setval('public."ActTask_id_seq"', 1, false);
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Act_id_seq"', 7, true);
+SELECT pg_catalog.setval('public."Act_id_seq"', 8, true);
 
 
 --
@@ -1126,7 +1132,7 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, false);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 10, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 11, true);
 
 
 --
@@ -1629,5 +1635,4 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict wd1rgfdXa0eD8rutKYxQIoBs0hLuvAIeH0dJdysmm3eFm3LBoNIK9B5aafCn5Pc
 

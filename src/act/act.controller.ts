@@ -90,15 +90,25 @@ export class ActController {
           example: SelectionMethods.VOTING,
         },
         biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
-        latitude: {
+        startLatitude: {
           type: 'number',
           example: 52.3675734,
-          description: 'Latitude coordinate for the stream location',
+          description: 'Streamer start position - Latitude',
         },
-        longitude: {
+        startLongitude: {
           type: 'number',
           example: 4.9041389,
-          description: 'Longitude coordinate for the stream location',
+          description: 'Streamer start position - Longitude',
+        },
+        destinationLatitude: {
+          type: 'number',
+          example: 52.370216,
+          description: 'Destination point - Latitude',
+        },
+        destinationLongitude: {
+          type: 'number',
+          example: 4.895168,
+          description: 'Destination point - Longitude',
         },
         photo: {
           type: 'string',
