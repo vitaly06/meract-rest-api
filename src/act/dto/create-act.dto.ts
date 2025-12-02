@@ -154,26 +154,47 @@ export class CreateActRequest {
   @IsNotEmpty({ message: 'bidding time must be not empty' })
   biddingTime: string;
 
-  // Координаты для карты
+  // Начальная позиция стримера
   @ApiProperty({
     example: 52.3675734,
     required: false,
-    description: 'Latitude coordinate',
+    description: 'Streamer start position - Latitude',
   })
   @IsOptional()
   @Type(() => Number)
-  @IsNumber({}, { message: 'Latitude must be a number' })
-  latitude?: number;
+  @IsNumber({}, { message: 'Start latitude must be a number' })
+  startLatitude?: number;
 
   @ApiProperty({
     example: 4.9041389,
     required: false,
-    description: 'Longitude coordinate',
+    description: 'Streamer start position - Longitude',
   })
   @IsOptional()
   @Type(() => Number)
-  @IsNumber({}, { message: 'Longitude must be a number' })
-  longitude?: number;
+  @IsNumber({}, { message: 'Start longitude must be a number' })
+  startLongitude?: number;
+
+  // Целевая точка маршрута
+  @ApiProperty({
+    example: 52.370216,
+    required: false,
+    description: 'Destination point - Latitude',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'Destination latitude must be a number' })
+  destinationLatitude?: number;
+
+  @ApiProperty({
+    example: 4.895168,
+    required: false,
+    description: 'Destination point - Longitude',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'Destination longitude must be a number' })
+  destinationLongitude?: number;
 
   // Список задач для акта
   @ApiProperty({

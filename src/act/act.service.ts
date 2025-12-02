@@ -109,8 +109,14 @@ export class ActService {
           previewFileName: `/uploads/acts/${filename}` || null,
           status: 'ONLINE', // Устанавливаем статус по умолчанию
           startedAt: new Date(),
-          latitude: dto.latitude,
-          longitude: dto.longitude,
+          startLatitude: dto.startLatitude ? +dto.startLatitude : null,
+          startLongitude: dto.startLongitude ? +dto.startLongitude : null,
+          destinationLatitude: dto.destinationLatitude
+            ? +dto.destinationLatitude
+            : null,
+          destinationLongitude: dto.destinationLongitude
+            ? +dto.destinationLongitude
+            : null,
           musics: {
             create: normalizedMusicIds.map((musicId, index) => ({
               musicId: +musicId,
