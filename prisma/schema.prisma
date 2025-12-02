@@ -119,6 +119,10 @@ model Act {
   recordingUrl        String?
   recordingStatus     String? // recording, processing, completed, failed
   
+  // Location
+  latitude        Float?
+  longitude       Float?
+  
   // Act Category
   categoryId      Int?
   category        Category?      @relation(fields: [categoryId], references: [id])
