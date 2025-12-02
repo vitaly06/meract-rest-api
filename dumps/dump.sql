@@ -2,6 +2,7 @@
 -- PostgreSQL database dump
 --
 
+\restrict wd1rgfdXa0eD8rutKYxQIoBs0hLuvAIeH0dJdysmm3eFm3LBoNIK9B5aafCn5Pc
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -9,6 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -158,7 +160,9 @@ CREATE TABLE public."Act" (
     "recordingResourceId" text,
     "recordingSid" text,
     "recordingStatus" text,
-    "recordingUrl" text
+    "recordingUrl" text,
+    latitude double precision,
+    longitude double precision
 );
 
 
@@ -847,13 +851,7 @@ COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl") FROM stdin;
-2	CS 2 Faceit Stream	/uploads/acts/1764168347490-953015327.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-11-26 14:45:47.52	\N	\N	1	\N	\N	\N	\N
-3	CS 2 Faceit Stream	/uploads/acts/1764609411932-886580720.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:16:51.958	\N	\N	1	\N	\N	\N	\N
-4	CS 2 Faceit Stream	/uploads/acts/1764609491220-525138070.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:18:11.326	\N	\N	1	\N	\N	\N	\N
-5	CS 2 Faceit Stream	/uploads/acts/1764609574687-143786270.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:19:34.713	\N	\N	1	\N	\N	\N	\N
-6	CS 2 Faceit Stream	/uploads/acts/1764609618041-150722085.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:20:18.103	\N	\N	1	\N	\N	\N	\N
-7	CS 2 Faceit Stream	/uploads/acts/1764609792560-638356179.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-01 17:23:12.597	\N	\N	1	D-4qTjMspp3ZieDsCO_H-JGv9wvp6eS6Q0BcMU3a7YsDahDM8NjYNRIv6BATFJ1kG90ov6jvrMTe4RGv5GuBQ1-o2paR2BPU_kL6F9vbAvlI-OaeMfGnyOjfalvfV4c0lKBp1nzAfP3lFCzuvYoC14UNtPgPmpBgXZ9kTvfJ7_X_pofDxzW5l_z8Ugz2pRbI	e90bf76cbe42426de1e45f9f72fb8596	recording	\N
+COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", latitude, longitude) FROM stdin;
 \.
 
 
@@ -862,24 +860,6 @@ COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "hero
 --
 
 COPY public."ActMusic" ("actId", "musicId", "order") FROM stdin;
-2	1	0
-2	2	1
-2	3	2
-3	1	0
-3	2	1
-3	3	2
-4	1	0
-4	2	1
-4	3	2
-5	1	0
-5	2	1
-5	3	2
-6	1	0
-6	2	1
-6	3	2
-7	1	0
-7	2	1
-7	3	2
 \.
 
 
@@ -1648,4 +1628,6 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict wd1rgfdXa0eD8rutKYxQIoBs0hLuvAIeH0dJdysmm3eFm3LBoNIK9B5aafCn5Pc
 

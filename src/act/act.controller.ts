@@ -90,6 +90,16 @@ export class ActController {
           example: SelectionMethods.VOTING,
         },
         biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
+        latitude: {
+          type: 'number',
+          example: 52.3675734,
+          description: 'Latitude coordinate for the stream location',
+        },
+        longitude: {
+          type: 'number',
+          example: 4.9041389,
+          description: 'Longitude coordinate for the stream location',
+        },
         photo: {
           type: 'string',
           format: 'binary',

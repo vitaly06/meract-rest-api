@@ -154,6 +154,27 @@ export class CreateActRequest {
   @IsNotEmpty({ message: 'bidding time must be not empty' })
   biddingTime: string;
 
+  // Координаты для карты
+  @ApiProperty({
+    example: 52.3675734,
+    required: false,
+    description: 'Latitude coordinate',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'Latitude must be a number' })
+  latitude?: number;
+
+  @ApiProperty({
+    example: 4.9041389,
+    required: false,
+    description: 'Longitude coordinate',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'Longitude must be a number' })
+  longitude?: number;
+
   // Список задач для акта
   @ApiProperty({
     type: [TaskDto],
