@@ -10,6 +10,7 @@ import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   namespace: '/ranks',
+  path: '/socket.io/', // ← ЭТО ОБЯЗАТЕЛЬНО!
   cors: {
     origin: true,
     credentials: true,
