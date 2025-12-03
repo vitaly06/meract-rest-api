@@ -6,14 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
-import { AchievementGateway } from './achievement.gateway';
+import { MainGateway } from '../gateway/main.gateway';
 import { AwardAchievementDto } from './dto/award-achievement.dto';
 
 @Injectable()
 export class AchievementService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly achievementGateway: AchievementGateway,
+    private readonly mainGateway: MainGateway,
   ) {}
 
   async createAchievement(dto: CreateAchievementDto, userId: number) {
@@ -158,13 +158,10 @@ export class AchievementService {
     });
 
     // Отправляем уведомление через WebSocket
-    this.achievementGateway.sendAchievementNotification(
-      dto.userId,
-      achievement,
-    );
+    this.mainGateway.sendAchievementNotification(dto.userId, achievement);
 
     // Опционально: глобальное уведомление
-    this.achievementGateway.broadcastAchievement(
+    this.mainGateway.broadcastAchievement(
       dto.userId,
       user.login || user.email,
       achievement,

@@ -17,6 +17,7 @@ import { OutroModule } from './outro/outro.module';
 import { AchievementModule } from './achievement/achievement.module';
 import { RankModule } from './rank/rank.module';
 import { AgoraRecordingModule } from './agora-recording/agora-recording.module';
+import { GatewayModule } from './gateway/gateway.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AgoraRecordingModule } from './agora-recording/agora-recording.module';
     AchievementModule,
     RankModule,
     AgoraRecordingModule,
+    GatewayModule, // Единый gateway для всех namespace
   ],
 })
 export class AppModule {}

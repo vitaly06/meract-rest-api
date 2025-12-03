@@ -24,6 +24,6 @@ import { JwtModule } from '@nestjs/jwt';
   ],
   controllers: [GuildController],
   providers: [GuildService, GuildChatGateway],
-  exports: [GuildChatGateway],
+  exports: [GuildService, GuildChatGateway],
 })
 export class GuildModule {}

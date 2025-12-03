@@ -26,5 +26,6 @@ import { AgoraRecordingModule } from 'src/agora-recording/agora-recording.module
   ],
   controllers: [ActController],
   providers: [ActService, ActGateway],
+  exports: [ActService],
 })
 export class ActModule {}

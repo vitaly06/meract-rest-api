@@ -8,14 +8,15 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
-@WebSocketGateway({
-  namespace: '/ranks',
-  path: '/socket.io/', // ← ЭТО ОБЯЗАТЕЛЬНО!
-  cors: {
-    origin: true,
-    credentials: true,
-  },
-})
+// @WebSocketGateway - УДАЛЕНО, используется MainGateway
+// @WebSocketGateway({
+//   namespace: '/ranks',
+//   path: '/socket.io/',
+//   cors: {
+//     origin: true,
+//     credentials: true,
+//   },
+// })
 export class RankGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
