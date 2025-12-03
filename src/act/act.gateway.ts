@@ -12,14 +12,15 @@ import { Logger } from '@nestjs/common';
 import { ActService } from './act.service';
 import moment from 'moment';
 
-@WebSocketGateway({
-  cors: {
-    origin: true,
-    credentials: true,
-  },
-  namespace: 'acts',
-  path: '/socket.io/', // ← ЭТО ОБЯЗАТЕЛЬНО!
-})
+// @WebSocketGateway - УДАЛЕНО, используется MainGateway
+// @WebSocketGateway({
+//   cors: {
+//     origin: true,
+//     credentials: true,
+//   },
+//   namespace: 'acts',
+//   path: '/socket.io/',
+// })
 export class ActGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {

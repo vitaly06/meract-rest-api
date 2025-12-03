@@ -8,14 +8,15 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
-@WebSocketGateway({
-  namespace: '/achievements',
-  cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true,
-    path: '/socket.io/', // ← ЭТО ОБЯЗАТЕЛЬНО!
-  },
-})
+// @WebSocketGateway - УДАЛЕНО, используется MainGateway
+// @WebSocketGateway({
+//   namespace: '/achievements',
+//   cors: {
+//     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+//     credentials: true,
+//     path: '/socket.io/',
+//   },
+// })
 export class AchievementGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {

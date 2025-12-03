@@ -19,14 +19,15 @@ interface AuthenticatedSocket extends Socket {
   actId?: number;
 }
 
-@WebSocketGateway({
-  cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true,
-  },
-  namespace: 'chat',
-  path: '/socket.io/', // ← ЭТО ОБЯЗАТЕЛЬНО!
-})
+// @WebSocketGateway - УДАЛЕНО, используется MainGateway
+// @WebSocketGateway({
+//   cors: {
+//     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+//     credentials: true,
+//   },
+//   namespace: 'chat',
+//   path: '/socket.io/',
+// })
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {

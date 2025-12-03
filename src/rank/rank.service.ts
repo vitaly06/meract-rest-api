@@ -7,13 +7,13 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRankDto } from './dto/create-rank.dto';
 import { AwardRankDto } from './dto/award-rank.dto';
-import { RankGateway } from './rank.gateway';
+import { MainGateway } from '../gateway/main.gateway';
 
 @Injectable()
 export class RankService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly rankGateway: RankGateway,
+    private readonly mainGateway: MainGateway,
   ) {}
 
   async createRank(dto: CreateRankDto, userId: number) {
@@ -148,10 +148,10 @@ export class RankService {
     });
 
     // Отправляем уведомление через WebSocket
-    this.rankGateway.sendRankNotification(dto.userId, rank);
+    this.mainGateway.sendRankNotification(dto.userId, rank);
 
     // Опционально: глобальное уведомление
-    this.rankGateway.broadcastRank(dto.userId, user.login || user.email, rank);
+    this.mainGateway.broadcastRank(dto.userId, user.login || user.email, rank);
 
     return {
       message: 'Ранг успешно выдан',
