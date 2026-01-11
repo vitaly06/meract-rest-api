@@ -2,6 +2,7 @@
 -- PostgreSQL database dump
 --
 
+\restrict 9ZgWHKbpmaEY2u2e14iA8JxWMLhGuYPzocYvwdOzW9VUjCRjPJjG9ZP46FH0dUL
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -9,6 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -162,7 +164,8 @@ CREATE TABLE public."Act" (
     "destinationLatitude" double precision,
     "destinationLongitude" double precision,
     "startLatitude" double precision,
-    "startLongitude" double precision
+    "startLongitude" double precision,
+    likes integer DEFAULT 0 NOT NULL
 );
 
 
@@ -310,6 +313,41 @@ ALTER SEQUENCE public."ChatMessage_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."ChatMessage_id_seq" OWNED BY public."ChatMessage".id;
+
+
+--
+-- Name: Effect; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Effect" (
+    id integer NOT NULL,
+    "fileName" text NOT NULL,
+    "userId" integer
+);
+
+
+ALTER TABLE public."Effect" OWNER TO postgres;
+
+--
+-- Name: Effect_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Effect_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Effect_id_seq" OWNER TO postgres;
+
+--
+-- Name: Effect_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Effect_id_seq" OWNED BY public."Effect".id;
 
 
 --
@@ -768,6 +806,13 @@ ALTER TABLE ONLY public."ChatMessage" ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
+-- Name: Effect id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Effect" ALTER COLUMN id SET DEFAULT nextval('public."Effect_id_seq"'::regclass);
+
+
+--
 -- Name: Guild id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -851,8 +896,8 @@ COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude") FROM stdin;
-8	CS 2 Faceit Stream	/uploads/acts/1764699559719-538835166.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-02 18:19:19.747	\N	\N	1	Rd0701k3jtPKwxuNxg4691mtGLg-5rRSR3QLNeSuFVGfqToQwxWUgI-yCcgYbZq1_ysvFqNbHCn95B-bYvoSQzrvV2O_d2REnPcsv-dDt77mhank_QRfdU6f_kM65gFEeYf5J0rHODG6hiJHLyl1G9g8d2-3ngqXxgeeZOGrF3s_VEZbIUIYgY035rr7pbSu	56e3fbbb4248fd693d80148605a2d278	recording	\N	52.370216	4.895168	52.3675734	4.9041389
+COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes) FROM stdin;
+8	CS 2 Faceit Stream	/uploads/acts/1764699559719-538835166.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-02 18:19:19.747	\N	\N	1	Rd0701k3jtPKwxuNxg4691mtGLg-5rRSR3QLNeSuFVGfqToQwxWUgI-yCcgYbZq1_ysvFqNbHCn95B-bYvoSQzrvV2O_d2REnPcsv-dDt77mhank_QRfdU6f_kM65gFEeYf5J0rHODG6hiJHLyl1G9g8d2-3ngqXxgeeZOGrF3s_VEZbIUIYgY035rr7pbSu	56e3fbbb4248fd693d80148605a2d278	recording	\N	52.370216	4.895168	52.3675734	4.9041389	0
 \.
 
 
@@ -888,6 +933,14 @@ COPY public."Category" (id, name) FROM stdin;
 --
 
 COPY public."ChatMessage" (id, message, "createdAt", "userId", "actId") FROM stdin;
+\.
+
+
+--
+-- Data for Name: Effect; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Effect" (id, "fileName", "userId") FROM stdin;
 \.
 
 
@@ -1073,6 +1126,13 @@ SELECT pg_catalog.setval('public."ChatMessage_id_seq"', 1, false);
 
 
 --
+-- Name: Effect_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Effect_id_seq"', 1, false);
+
+
+--
 -- Name: GuildChatMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1188,6 +1248,14 @@ ALTER TABLE ONLY public."Category"
 
 ALTER TABLE ONLY public."ChatMessage"
     ADD CONSTRAINT "ChatMessage_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Effect Effect_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Effect"
+    ADD CONSTRAINT "Effect_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1481,6 +1549,14 @@ ALTER TABLE ONLY public."ChatMessage"
 
 
 --
+-- Name: Effect Effect_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Effect"
+    ADD CONSTRAINT "Effect_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: GuildChatMessage GuildChatMessage_guildId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1635,4 +1711,5 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 -- PostgreSQL database dump complete
 --
 
+\unrestrict 9ZgWHKbpmaEY2u2e14iA8JxWMLhGuYPzocYvwdOzW9VUjCRjPJjG9ZP46FH0dUL
 

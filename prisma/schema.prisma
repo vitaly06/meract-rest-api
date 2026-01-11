@@ -55,6 +55,7 @@ model User {
   intros Intro[]
   outros Outro[]
   musics Music[]
+  effects Effect[]
   Act                   Act[]
   sequels Sequel[]
   UserActivity             UserActivity[]
@@ -112,6 +113,7 @@ model Act {
   status          ActStatus   @default(ONLINE)
   startedAt       DateTime       @default(now())
   endedAt         DateTime?
+  likes           Int         @default(0)
   
   // Agora Cloud Recording
   recordingResourceId String?
@@ -174,6 +176,13 @@ model Music {
   fileName String
   length String
   acts ActMusic[]
+  userId Int?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Effect {
+  id Int @id @default(autoincrement())
+  fileName String
   userId Int?
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

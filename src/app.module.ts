@@ -14,6 +14,7 @@ import { IntroModule } from './intro/intro.module';
 import { MusicModule } from './music/music.module';
 import { ChatModule } from './chat/chat.module';
 import { OutroModule } from './outro/outro.module';
+import { EffectModule } from './effect/effect.module';
 import { AchievementModule } from './achievement/achievement.module';
 import { RankModule } from './rank/rank.module';
 import { AgoraRecordingModule } from './agora-recording/agora-recording.module';
@@ -42,6 +43,7 @@ import { GatewayModule } from './gateway/gateway.module';
     MusicModule,
     ChatModule,
     OutroModule,
+    EffectModule,
     AchievementModule,
     RankModule,
     AgoraRecordingModule,
