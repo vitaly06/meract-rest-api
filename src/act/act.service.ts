@@ -77,6 +77,16 @@ export class ActService {
       throw new NotFoundException(`Outro with ID ${outroId} not found`);
     }
 
+    // Проверка существования effect (опционально)
+    if (dto.effectId) {
+      const effect = await this.prisma.effect.findUnique({
+        where: { id: +dto.effectId },
+      });
+      if (!effect) {
+        throw new NotFoundException(`Effect with ID ${dto.effectId} not found`);
+      }
+    }
+
     // Проверка и нормализация musicIds
     let normalizedMusicIds: number[] = musicIds;
     if (!Array.isArray(musicIds)) {
@@ -101,14 +111,16 @@ export class ActService {
           sequelId: +dto.sequelId || null,
           introId: +introId,
           outroId: +outroId,
+          effectId: dto.effectId ? +dto.effectId : null,
           format,
           heroMethods,
           navigatorMethods,
           biddingTime,
           userId: +userId,
           previewFileName: `/uploads/acts/${filename}` || null,
-          status: 'ONLINE', // Устанавливаем статус по умолчанию
+          status: 'ONLINE',
           startedAt: new Date(),
+          // Старые поля координат (для обратной совместимости)
           startLatitude: dto.startLatitude ? +dto.startLatitude : null,
           startLongitude: dto.startLongitude ? +dto.startLongitude : null,
           destinationLatitude: dto.destinationLatitude
@@ -131,10 +143,23 @@ export class ActService {
                 })),
               }
             : undefined,
+          // Точки маршрута
+          routePoints: dto.routePoints
+            ? {
+                create: dto.routePoints.map((point, index) => ({
+                  latitude: +point.latitude,
+                  longitude: +point.longitude,
+                  order: index,
+                })),
+              }
+            : undefined,
         },
         include: {
           user: true,
           category: true,
+          routePoints: {
+            orderBy: { order: 'asc' },
+          },
         },
       });
 

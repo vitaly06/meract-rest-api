@@ -12,6 +12,8 @@ import {
   IsArray,
   ValidateNested,
   MaxLength,
+  Min,
+  Max,
 } from 'class-validator';
 import { SelectionMethods } from '../enum/act.enum';
 
@@ -21,6 +23,20 @@ class TaskDto {
   @IsNotEmpty()
   @MaxLength(200)
   title: string;
+}
+
+class RoutePointDto {
+  @ApiProperty({ example: 52.3676, description: 'Point latitude' })
+  @IsNumber({}, { message: 'Latitude must be a number' })
+  @Min(-90, { message: 'Latitude must be >= -90' })
+  @Max(90, { message: 'Latitude must be <= 90' })
+  latitude: number;
+
+  @ApiProperty({ example: 4.9041, description: 'Point longitude' })
+  @IsNumber({}, { message: 'Longitude must be a number' })
+  @Min(-180, { message: 'Longitude must be >= -180' })
+  @Max(180, { message: 'Longitude must be <= 180' })
+  longitude: number;
 }
 
 export class CreateActRequest {
@@ -68,6 +84,18 @@ export class CreateActRequest {
   @IsInt({ message: 'Outro id must be an int' })
   @Type(() => Number)
   outroId: number;
+
+  @ApiProperty({
+    example: 1,
+    required: false,
+    description: 'Effect ID (optional)',
+  })
+  @IsOptional()
+  @IsNumber({}, { message: 'Effect id must be a number' })
+  @IsPositive({ message: 'Effect id must be a positive number' })
+  @IsInt({ message: 'Effect id must be an int' })
+  @Type(() => Number)
+  effectId?: number;
 
   // @ApiProperty({
   //   type: [Number],
@@ -154,7 +182,42 @@ export class CreateActRequest {
   @IsNotEmpty({ message: 'bidding time must be not empty' })
   biddingTime: string;
 
-  // Начальная позиция стримера
+  // Точки маршрута (заменяет старые поля координат)
+  @ApiProperty({
+    type: [RoutePointDto],
+    required: false,
+    description: 'Array of route points for the map',
+    example: [
+      { latitude: 52.3676, longitude: 4.9041 },
+      { latitude: 52.37, longitude: 4.895 },
+      { latitude: 52.375, longitude: 4.89 },
+    ],
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (
+      !value ||
+      value === '' ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
+      return undefined;
+    }
+    // Если пришла строка JSON, парсим
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return undefined;
+      }
+    }
+    return value;
+  })
+  @IsArray({ message: 'Route points must be an array' })
+  @ValidateNested({ each: true })
+  @Type(() => RoutePointDto)
+  routePoints?: RoutePointDto[];
+
+  // Начальная позиция стримера (deprecated - используйте routePoints)
   @ApiProperty({
     example: 52.3675734,
     required: false,
