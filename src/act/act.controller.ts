@@ -62,6 +62,11 @@ export class ActController {
         sequelId: { type: 'number', example: 1 },
         introId: { type: 'number', example: 1 },
         outroId: { type: 'number', example: 1 },
+        effectId: {
+          type: 'number',
+          example: 1,
+          description: 'Effect ID (optional)',
+        },
         musicIds: {
           type: 'array',
           items: { type: 'number' },
@@ -90,25 +95,41 @@ export class ActController {
           example: SelectionMethods.VOTING,
         },
         biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
+        routePoints: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              latitude: { type: 'number', example: 52.3676 },
+              longitude: { type: 'number', example: 4.9041 },
+            },
+          },
+          example: [
+            { latitude: 52.3676, longitude: 4.9041 },
+            { latitude: 52.37, longitude: 4.895 },
+            { latitude: 52.375, longitude: 4.89 },
+          ],
+          description: 'Array of route points for the map (multiple waypoints)',
+        },
         startLatitude: {
           type: 'number',
           example: 52.3675734,
-          description: 'Streamer start position - Latitude',
+          description: '[DEPRECATED] Use routePoints instead',
         },
         startLongitude: {
           type: 'number',
           example: 4.9041389,
-          description: 'Streamer start position - Longitude',
+          description: '[DEPRECATED] Use routePoints instead',
         },
         destinationLatitude: {
           type: 'number',
           example: 52.370216,
-          description: 'Destination point - Latitude',
+          description: '[DEPRECATED] Use routePoints instead',
         },
         destinationLongitude: {
           type: 'number',
           example: 4.895168,
-          description: 'Destination point - Longitude',
+          description: '[DEPRECATED] Use routePoints instead',
         },
         photo: {
           type: 'string',

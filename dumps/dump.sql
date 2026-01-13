@@ -600,6 +600,44 @@ ALTER SEQUENCE public."Role_id_seq" OWNED BY public."Role".id;
 
 
 --
+-- Name: RoutePoint; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."RoutePoint" (
+    id integer NOT NULL,
+    "actId" integer NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
+    "order" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."RoutePoint" OWNER TO postgres;
+
+--
+-- Name: RoutePoint_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."RoutePoint_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."RoutePoint_id_seq" OWNER TO postgres;
+
+--
+-- Name: RoutePoint_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."RoutePoint_id_seq" OWNED BY public."RoutePoint".id;
+
+
+--
 -- Name: Sequel; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -860,6 +898,13 @@ ALTER TABLE ONLY public."Role" ALTER COLUMN id SET DEFAULT nextval('public."Role
 
 
 --
+-- Name: RoutePoint id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."RoutePoint" ALTER COLUMN id SET DEFAULT nextval('public."RoutePoint_id_seq"'::regclass);
+
+
+--
 -- Name: Sequel id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1004,6 +1049,14 @@ COPY public."Role" (id, name) FROM stdin;
 1	user
 2	admin
 3	main admin
+\.
+
+
+--
+-- Data for Name: RoutePoint; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."RoutePoint" (id, "actId", latitude, longitude, "order", "createdAt") FROM stdin;
 \.
 
 
@@ -1180,6 +1233,13 @@ SELECT pg_catalog.setval('public."Role_id_seq"', 3, true);
 
 
 --
+-- Name: RoutePoint_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."RoutePoint_id_seq"', 1, false);
+
+
+--
 -- Name: Sequel_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1313,6 +1373,14 @@ ALTER TABLE ONLY public."Role"
 
 
 --
+-- Name: RoutePoint RoutePoint_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."RoutePoint"
+    ADD CONSTRAINT "RoutePoint_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: Sequel Sequel_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1429,6 +1497,13 @@ CREATE UNIQUE INDEX "Rank_name_key" ON public."Rank" USING btree (name);
 --
 
 CREATE UNIQUE INDEX "Role_name_key" ON public."Role" USING btree (name);
+
+
+--
+-- Name: RoutePoint_actId_order_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "RoutePoint_actId_order_idx" ON public."RoutePoint" USING btree ("actId", "order");
 
 
 --
@@ -1592,6 +1667,14 @@ ALTER TABLE ONLY public."Music"
 
 ALTER TABLE ONLY public."Outro"
     ADD CONSTRAINT "Outro_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: RoutePoint RoutePoint_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."RoutePoint"
+    ADD CONSTRAINT "RoutePoint_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

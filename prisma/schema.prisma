@@ -108,6 +108,9 @@ model Act {
   outroId Int
   outro Outro @relation(fields: [outroId], references: [id], onDelete: Cascade)
 
+  effectId Int?
+  effect Effect? @relation(fields: [effectId], references: [id], onDelete: Cascade)
+
   musics ActMusic[]
 
   status          ActStatus   @default(ONLINE)
@@ -136,6 +139,20 @@ model Act {
   UserActivity    UserActivity[]
   ChatMessage     ChatMessage[]
   tasks           ActTask[]
+  routePoints     RoutePoint[]
+}
+
+// Точки маршрута для стрима
+model RoutePoint {
+  id        Int   @id @default(autoincrement())
+  actId     Int
+  act       Act   @relation(fields: [actId], references: [id], onDelete: Cascade)
+  latitude  Float
+  longitude Float
+  order     Int   // Порядок точки в маршруте (0, 1, 2, ...)
+  createdAt DateTime @default(now())
+
+  @@index([actId, order])
 }
 
 // Stream Categories
@@ -183,6 +200,7 @@ model Music {
 model Effect {
   id Int @id @default(autoincrement())
   fileName String
+  acts Act[]
   userId Int?
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
