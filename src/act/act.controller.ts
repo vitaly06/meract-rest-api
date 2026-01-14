@@ -158,7 +158,101 @@ export class ActController {
     status: HttpStatus.CREATED,
     description: 'Act successfully created',
     schema: {
-      example: { message: 'Stream launched successfully', actId: 1 },
+      type: 'object',
+      properties: {
+        id: { type: 'number', example: 1 },
+        title: { type: 'string', example: 'CS 2 Faceit Stream' },
+        previewFileName: {
+          type: 'string',
+          example: '/uploads/acts/1234567890.jpg',
+        },
+        sequelId: { type: 'number', nullable: true, example: null },
+        type: { type: 'string', enum: ['SINGLE', 'MULTI'], example: 'SINGLE' },
+        format: {
+          type: 'string',
+          enum: ['SINGLE', 'MULTI'],
+          example: 'SINGLE',
+        },
+        heroMethods: {
+          type: 'string',
+          enum: ['VOTING', 'ROULETTE'],
+          example: 'VOTING',
+        },
+        navigatorMethods: {
+          type: 'string',
+          enum: ['VOTING', 'ROULETTE'],
+          example: 'VOTING',
+        },
+        biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
+        introId: { type: 'number', example: 1 },
+        outroId: { type: 'number', example: 1 },
+        effectId: { type: 'number', nullable: true, example: null },
+        status: {
+          type: 'string',
+          enum: ['ONLINE', 'OFFLINE'],
+          example: 'ONLINE',
+        },
+        startedAt: {
+          type: 'string',
+          format: 'date-time',
+          example: '2026-01-14T07:14:20.306Z',
+        },
+        endedAt: {
+          type: 'string',
+          format: 'date-time',
+          nullable: true,
+          example: null,
+        },
+        likes: { type: 'number', example: 0 },
+        recordingResourceId: { type: 'string', nullable: true, example: null },
+        recordingSid: { type: 'string', nullable: true, example: null },
+        recordingUrl: { type: 'string', nullable: true, example: null },
+        recordingStatus: {
+          type: 'string',
+          nullable: true,
+          example: 'recording',
+        },
+        startLatitude: { type: 'number', nullable: true, example: 52.3675734 },
+        startLongitude: { type: 'number', nullable: true, example: 4.9041389 },
+        destinationLatitude: {
+          type: 'number',
+          nullable: true,
+          example: 52.370216,
+        },
+        destinationLongitude: {
+          type: 'number',
+          nullable: true,
+          example: 4.895168,
+        },
+        categoryId: { type: 'number', nullable: true, example: null },
+        userId: { type: 'number', example: 5 },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'number', example: 5 },
+            login: { type: 'string', example: 'streamer123' },
+            email: { type: 'string', example: 'streamer@example.com' },
+          },
+        },
+        routePoints: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', example: 1 },
+              actId: { type: 'number', example: 1 },
+              latitude: { type: 'number', example: 52.3676 },
+              longitude: { type: 'number', example: 4.9041 },
+              order: { type: 'number', example: 0 },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                example: '2026-01-14T07:14:20.306Z',
+              },
+            },
+          },
+        },
+      },
     },
   })
   @ApiResponse({
