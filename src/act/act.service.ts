@@ -88,12 +88,17 @@ export class ActService {
     }
 
     // Проверка и нормализация musicIds
-    let normalizedMusicIds: number[] = musicIds;
-    if (!Array.isArray(musicIds)) {
+    let normalizedMusicIds: number[] = [];
+    if (Array.isArray(musicIds)) {
+      normalizedMusicIds = musicIds;
+    } else if (musicIds) {
       const musicIdsAny = musicIds as any;
       if (typeof musicIdsAny === 'string') {
         try {
-          normalizedMusicIds = JSON.parse(musicIdsAny);
+          const parsed = JSON.parse(musicIdsAny);
+          normalizedMusicIds = Array.isArray(parsed)
+            ? parsed
+            : [Number(musicIdsAny)];
         } catch {
           normalizedMusicIds = musicIdsAny
             .split(',')
@@ -101,6 +106,36 @@ export class ActService {
         }
       } else {
         normalizedMusicIds = [Number(musicIdsAny)];
+      }
+    }
+
+    // Нормализация tasks
+    let normalizedTasks = tasks;
+    if (tasks && !Array.isArray(tasks)) {
+      if (typeof tasks === 'string') {
+        try {
+          const parsed = JSON.parse(tasks);
+          normalizedTasks = Array.isArray(parsed) ? parsed : undefined;
+        } catch {
+          normalizedTasks = undefined;
+        }
+      } else {
+        normalizedTasks = undefined;
+      }
+    }
+
+    // Нормализация routePoints
+    let normalizedRoutePoints = dto.routePoints;
+    if (dto.routePoints && !Array.isArray(dto.routePoints)) {
+      if (typeof dto.routePoints === 'string') {
+        try {
+          const parsed = JSON.parse(dto.routePoints as any);
+          normalizedRoutePoints = Array.isArray(parsed) ? parsed : undefined;
+        } catch {
+          normalizedRoutePoints = undefined;
+        }
+      } else {
+        normalizedRoutePoints = undefined;
       }
     }
 
@@ -135,24 +170,44 @@ export class ActService {
               order: index,
             })),
           },
-          tasks: tasks
+          tasks: normalizedTasks
             ? {
-                create: tasks.map((task) => ({
+                create: normalizedTasks.map((task) => ({
                   title: task.title,
                   isCompleted: false,
                 })),
               }
             : undefined,
           // Точки маршрута
-          routePoints: dto.routePoints
-            ? {
-                create: dto.routePoints.map((point, index) => ({
-                  latitude: +point.latitude,
-                  longitude: +point.longitude,
-                  order: index,
-                })),
-              }
-            : undefined,
+          routePoints:
+            normalizedRoutePoints && normalizedRoutePoints.length > 0
+              ? {
+                  create: normalizedRoutePoints.map((point, index) => ({
+                    latitude: +point.latitude,
+                    longitude: +point.longitude,
+                    order: index,
+                  })),
+                }
+              : // Если routePoints не передан, но есть старые координаты - создаем из них
+                dto.startLatitude &&
+                  dto.startLongitude &&
+                  dto.destinationLatitude &&
+                  dto.destinationLongitude
+                ? {
+                    create: [
+                      {
+                        latitude: +dto.startLatitude,
+                        longitude: +dto.startLongitude,
+                        order: 0,
+                      },
+                      {
+                        latitude: +dto.destinationLatitude,
+                        longitude: +dto.destinationLongitude,
+                        order: 1,
+                      },
+                    ],
+                  }
+                : undefined,
         },
         include: {
           user: true,
