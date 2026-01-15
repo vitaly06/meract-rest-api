@@ -7,6 +7,8 @@ export class PrismaService
   implements OnModuleDestroy, OnModuleInit
 {
   async onModuleInit() {
+    console.log('Ждём 30 секунд перед подключением Prisma...');
+    await new Promise((resolve) => setTimeout(resolve, 30000));
     await this.$connect();
   }
 
