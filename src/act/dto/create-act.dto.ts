@@ -205,7 +205,8 @@ export class CreateActRequest {
     // Если пришла строка JSON, парсим
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value);
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : undefined;
       } catch {
         return undefined;
       }
@@ -278,6 +279,15 @@ export class CreateActRequest {
       (Array.isArray(value) && value.length === 0)
     ) {
       return undefined;
+    }
+    // Если пришла строка JSON, парсим
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : undefined;
+      } catch {
+        return undefined;
+      }
     }
     return value;
   })
