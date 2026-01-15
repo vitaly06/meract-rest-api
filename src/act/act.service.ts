@@ -219,6 +219,11 @@ export class ActService {
               createdAt: 'asc',
             },
           },
+          routePoints: {
+            orderBy: {
+              order: 'asc',
+            },
+          },
         },
       });
 
@@ -299,6 +304,11 @@ export class ActService {
             createdAt: 'asc',
           },
         },
+        routePoints: {
+          orderBy: {
+            order: 'asc',
+          },
+        },
       },
     });
 
@@ -340,6 +350,11 @@ export class ActService {
         tasks: {
           orderBy: {
             createdAt: 'asc',
+          },
+        },
+        routePoints: {
+          orderBy: {
+            order: 'asc',
           },
         },
       },
