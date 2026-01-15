@@ -163,7 +163,8 @@ CREATE TABLE public."Act" (
     "destinationLongitude" double precision,
     "startLatitude" double precision,
     "startLongitude" double precision,
-    likes integer DEFAULT 0 NOT NULL
+    likes integer DEFAULT 0 NOT NULL,
+    "effectId" integer
 );
 
 
@@ -939,8 +940,8 @@ COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes) FROM stdin;
-8	CS 2 Faceit Stream	/uploads/acts/1764699559719-538835166.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-02 18:19:19.747	\N	\N	1	Rd0701k3jtPKwxuNxg4691mtGLg-5rRSR3QLNeSuFVGfqToQwxWUgI-yCcgYbZq1_ysvFqNbHCn95B-bYvoSQzrvV2O_d2REnPcsv-dDt77mhank_QRfdU6f_kM65gFEeYf5J0rHODG6hiJHLyl1G9g8d2-3ngqXxgeeZOGrF3s_VEZbIUIYgY035rr7pbSu	56e3fbbb4248fd693d80148605a2d278	recording	\N	52.370216	4.895168	52.3675734	4.9041389	0
+COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "biddingTime", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes, "effectId") FROM stdin;
+8	CS 2 Faceit Stream	/uploads/acts/1764699559719-538835166.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	2025-09-15T12:00:00Z	1	1	ONLINE	2025-12-02 18:19:19.747	\N	\N	1	Rd0701k3jtPKwxuNxg4691mtGLg-5rRSR3QLNeSuFVGfqToQwxWUgI-yCcgYbZq1_ysvFqNbHCn95B-bYvoSQzrvV2O_d2REnPcsv-dDt77mhank_QRfdU6f_kM65gFEeYf5J0rHODG6hiJHLyl1G9g8d2-3ngqXxgeeZOGrF3s_VEZbIUIYgY035rr7pbSu	56e3fbbb4248fd693d80148605a2d278	recording	\N	52.370216	4.895168	52.3675734	4.9041389	0	\N
 \.
 
 
@@ -1571,6 +1572,14 @@ ALTER TABLE ONLY public."ActTask"
 
 ALTER TABLE ONLY public."Act"
     ADD CONSTRAINT "Act_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES public."Category"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: Act Act_effectId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Act"
+    ADD CONSTRAINT "Act_effectId_fkey" FOREIGN KEY ("effectId") REFERENCES public."Effect"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
