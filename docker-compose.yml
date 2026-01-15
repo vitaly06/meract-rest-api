@@ -33,7 +33,7 @@ services:
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    command: sh -c "sleep 10 && npx prisma db push --accept-data-loss && nest start --watch"
+    command: sh -c "sleep 10 && npx prisma generate && nest start --watch" # prisma generate вместо db push
 
   db:
     image: postgres:13-alpine
