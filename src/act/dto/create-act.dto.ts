@@ -222,7 +222,8 @@ export class CreateActRequest {
   @ApiProperty({
     example: 52.3675734,
     required: false,
-    description: 'Streamer start position - Latitude',
+    description:
+      '[DEPRECATED] Streamer start latitude. Ignored if routePoints is provided. Use routePoints instead.',
   })
   @IsOptional()
   @Type(() => Number)
@@ -232,7 +233,8 @@ export class CreateActRequest {
   @ApiProperty({
     example: 4.9041389,
     required: false,
-    description: 'Streamer start position - Longitude',
+    description:
+      '[DEPRECATED] Streamer start longitude. Ignored if routePoints is provided. Use routePoints instead.',
   })
   @IsOptional()
   @Type(() => Number)
@@ -243,7 +245,8 @@ export class CreateActRequest {
   @ApiProperty({
     example: 52.370216,
     required: false,
-    description: 'Destination point - Latitude',
+    description:
+      '[DEPRECATED] Destination latitude. Ignored if routePoints is provided. Use routePoints instead.',
   })
   @IsOptional()
   @Type(() => Number)
@@ -253,7 +256,8 @@ export class CreateActRequest {
   @ApiProperty({
     example: 4.895168,
     required: false,
-    description: 'Destination point - Longitude',
+    description:
+      '[DEPRECATED] Destination longitude. Ignored if routePoints is provided. Use routePoints instead.',
   })
   @IsOptional()
   @Type(() => Number)
