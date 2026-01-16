@@ -109,27 +109,32 @@ export class ActController {
             { latitude: 52.37, longitude: 4.895 },
             { latitude: 52.375, longitude: 4.89 },
           ],
-          description: 'Array of route points for the map (multiple waypoints)',
+          description:
+            'Array of route points for the map (multiple waypoints). NOTE: If provided, startLatitude/startLongitude/destinationLatitude/destinationLongitude will be IGNORED.',
         },
         startLatitude: {
           type: 'number',
           example: 52.3675734,
-          description: '[DEPRECATED] Use routePoints instead',
+          description:
+            '[DEPRECATED] Use routePoints instead. Ignored if routePoints is provided.',
         },
         startLongitude: {
           type: 'number',
           example: 4.9041389,
-          description: '[DEPRECATED] Use routePoints instead',
+          description:
+            '[DEPRECATED] Use routePoints instead. Ignored if routePoints is provided.',
         },
         destinationLatitude: {
           type: 'number',
           example: 52.370216,
-          description: '[DEPRECATED] Use routePoints instead',
+          description:
+            '[DEPRECATED] Use routePoints instead. Ignored if routePoints is provided.',
         },
         destinationLongitude: {
           type: 'number',
           example: 4.895168,
-          description: '[DEPRECATED] Use routePoints instead',
+          description:
+            '[DEPRECATED] Use routePoints instead. Ignored if routePoints is provided.',
         },
         photo: {
           type: 'string',

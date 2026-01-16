@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import moment from 'moment';
@@ -16,6 +17,8 @@ import { AgoraRecordingService } from 'src/agora-recording/agora-recording.servi
 @Injectable()
 export class ActService {
   private readonly baseUrl: string;
+  private readonly logger = new Logger(ActService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly utilsService: UtilsService,
@@ -139,6 +142,28 @@ export class ActService {
       }
     }
 
+    // Если передан массив routePoints, НЕ добавляем старые координаты
+    // Если НЕ передан - создаем из старых координат
+    const shouldUseOldCoordinates =
+      (!normalizedRoutePoints || normalizedRoutePoints.length === 0) &&
+      dto.startLatitude &&
+      dto.startLongitude &&
+      dto.destinationLatitude &&
+      dto.destinationLongitude;
+
+    // Логирование для отладки
+    this.logger.log(
+      `Creating act with route strategy: ${normalizedRoutePoints && normalizedRoutePoints.length > 0 ? `routePoints (${normalizedRoutePoints.length} points)` : shouldUseOldCoordinates ? 'old coordinates' : 'no route'}`,
+    );
+    if (normalizedRoutePoints && normalizedRoutePoints.length > 0) {
+      this.logger.debug(
+        `Route points: ${JSON.stringify(normalizedRoutePoints)}`,
+      );
+      this.logger.debug(
+        `Old coordinates ignored: start(${dto.startLatitude}, ${dto.startLongitude}), dest(${dto.destinationLatitude}, ${dto.destinationLongitude})`,
+      );
+    }
+
     try {
       const newStream = await this.prisma.act.create({
         data: {
@@ -189,10 +214,7 @@ export class ActService {
                   })),
                 }
               : // Если routePoints не передан, но есть старые координаты - создаем из них
-                dto.startLatitude &&
-                  dto.startLongitude &&
-                  dto.destinationLatitude &&
-                  dto.destinationLongitude
+                shouldUseOldCoordinates
                 ? {
                     create: [
                       {
