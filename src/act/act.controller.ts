@@ -30,6 +30,9 @@ import { CreateActRequest } from './dto/create-act.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { ActType, ActFormat } from '@prisma/client';
 import { SelectionMethods } from './enum/act.enum';
+import { ApplySpotAgentDto } from './dto/apply-spot-agent.dto';
+import { VoteSpotAgentDto } from './dto/vote-spot-agent.dto';
+import { AssignSpotAgentDto } from './dto/assign-spot-agent.dto';
 
 @ApiTags('Acts')
 @Controller('act')
@@ -93,6 +96,16 @@ export class ActController {
           type: 'string',
           enum: Object.values(SelectionMethods),
           example: SelectionMethods.VOTING,
+        },
+        spotAgentMethods: {
+          type: 'string',
+          enum: Object.values(SelectionMethods),
+          example: SelectionMethods.VOTING,
+        },
+        spotAgentCount: {
+          type: 'number',
+          example: 3,
+          description: 'Number of spot agents required',
         },
         biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
         routePoints: {
@@ -498,5 +511,229 @@ export class ActController {
     @Req() req: RequestWithUser,
   ) {
     return this.actService.deleteTask(+actId, +taskId, req.user.sub);
+  }
+
+  // ==================== SPOT AGENT ENDPOINTS ====================
+
+  @Post('spot-agent/apply')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Apply as Spot Agent',
+    description: 'User applies to become a spot agent for an act',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Successfully applied as spot agent candidate',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number' },
+        actId: { type: 'number' },
+        userId: { type: 'number' },
+        status: { type: 'string', example: 'pending' },
+        appliedAt: { type: 'string', format: 'date-time' },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+            login: { type: 'string' },
+            email: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiBody({ type: ApplySpotAgentDto })
+  async applyAsSpotAgent(
+    @Body() dto: ApplySpotAgentDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.applyAsSpotAgent(dto.actId, req.user.sub);
+  }
+
+  @Get(':actId/spot-agent/candidates')
+  @ApiOperation({
+    summary: 'Get all spot agent candidates',
+    description:
+      'Get list of all candidates who applied to be spot agents for an act',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of spot agent candidates with vote counts',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'number' },
+          actId: { type: 'number' },
+          userId: { type: 'number' },
+          status: { type: 'string', example: 'pending' },
+          appliedAt: { type: 'string', format: 'date-time' },
+          voteCount: { type: 'number' },
+          user: {
+            type: 'object',
+            properties: {
+              id: { type: 'number' },
+              login: { type: 'string' },
+              email: { type: 'string' },
+            },
+          },
+          votes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'number' },
+                voterId: { type: 'number' },
+                votedAt: { type: 'string', format: 'date-time' },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getSpotAgentCandidates(@Param('actId') actId: string) {
+    return this.actService.getSpotAgentCandidates(+actId);
+  }
+
+  @Post('spot-agent/vote')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Vote for a spot agent candidate',
+    description:
+      'Vote for a candidate to become a spot agent (only if voting is enabled)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Vote successfully cast',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number' },
+        candidateId: { type: 'number' },
+        voterId: { type: 'number' },
+        votedAt: { type: 'string', format: 'date-time' },
+        voter: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+            login: { type: 'string' },
+            email: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiBody({ type: VoteSpotAgentDto })
+  async voteForSpotAgent(
+    @Body() dto: VoteSpotAgentDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.voteForSpotAgentCandidate(
+      dto.candidateId,
+      req.user.sub,
+    );
+  }
+
+  @Post('spot-agent/assign')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Assign a spot agent (Initiator only)',
+    description:
+      'Initiator assigns a user as spot agent with optional task description',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Spot agent successfully assigned',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number' },
+        actId: { type: 'number' },
+        userId: { type: 'number' },
+        task: { type: 'string', nullable: true },
+        status: { type: 'string', example: 'active' },
+        assignedAt: { type: 'string', format: 'date-time' },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+            login: { type: 'string' },
+            email: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiBody({ type: AssignSpotAgentDto })
+  async assignSpotAgent(
+    @Body() dto: AssignSpotAgentDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.assignSpotAgent(
+      dto.actId,
+      dto.userId,
+      req.user.sub,
+      dto.task,
+    );
+  }
+
+  @Get(':actId/spot-agent/assigned')
+  @ApiOperation({
+    summary: 'Get all assigned spot agents',
+    description: 'Get list of all users assigned as spot agents for an act',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of assigned spot agents',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'number' },
+          actId: { type: 'number' },
+          userId: { type: 'number' },
+          task: { type: 'string', nullable: true },
+          status: { type: 'string', example: 'active' },
+          assignedAt: { type: 'string', format: 'date-time' },
+          completedAt: { type: 'string', format: 'date-time', nullable: true },
+          user: {
+            type: 'object',
+            properties: {
+              id: { type: 'number' },
+              login: { type: 'string' },
+              email: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getAssignedSpotAgents(@Param('actId') actId: string) {
+    return this.actService.getAssignedSpotAgents(+actId);
+  }
+
+  @Delete(':actId/spot-agent/:spotAgentId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Remove a spot agent (Initiator only)',
+    description: 'Initiator removes an assigned spot agent from the act',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Spot agent successfully removed',
+    schema: {
+      example: { message: 'Spot agent removed successfully' },
+    },
+  })
+  async removeSpotAgent(
+    @Param('actId') actId: string,
+    @Param('spotAgentId') spotAgentId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.removeSpotAgent(+actId, +spotAgentId, req.user.sub);
   }
 }
