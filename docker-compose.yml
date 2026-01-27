@@ -7,7 +7,7 @@ services:
       - '3000:3000'
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/Meract?schema=public
+      - DATABASE_URL=postgresql://postgres:SuperSecurePassword2026!ChangeMe@db:5432/Meract?schema=public
       - JWT_ACCESS_SECRET=26bfc6eb447766315e7735c1f20639cb9e6b25924bf5abd4d582342c28e80ebb7dfe61b4a32fbbc4252133fda1610f92
       - JWT_REFRESH_SECRET=eb05d83f17e73780f1c10dac599823ea4601a2eb4131da9945c8a0fd2e583d68ab8c4b3dad45af1813fe8b09e1daa1b8
       - JWT_ACCESS_EXPIRES_IN=15m
@@ -33,16 +33,19 @@ services:
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    command: sh -c "sleep 10 && npx prisma generate && nest start --watch" # prisma generate вместо db push
+    command: sh -c "sleep 20 && npx prisma generate && nest start --watch"
 
   db:
-    image: postgres:13-alpine
+    image: postgres:15-alpine
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=SuperSecurePassword2026!ChangeMe # СРОЧНО ПОМЕНЯЙТЕ!
       - POSTGRES_DB=Meract
-    ports:
-      - '5433:5432'
+    # ПОРТ ЗАКРЫТ ОТ ВНЕШНЕГО ДОСТУПА - только через Docker network!
+    # ports:
+    #   - '5433:5432'  # ЗАКОММЕНТИРОВАНО ДЛЯ БЕЗОПАСНОСТИ
+    expose:
+      - '5432' # Доступ только внутри Docker сети
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./dumps/dump.sql:/docker-entrypoint-initdb.d/dump.sql

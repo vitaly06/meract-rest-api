@@ -572,7 +572,21 @@ export class MainGateway
         `Sent acts update to clients: ${actsWithLiveData.length} acts`,
       );
     } catch (error) {
-      this.logger.error('Error sending acts update:', error);
+      this.logger.error(`Error sending acts update: ${error.message}`);
+
+      // Если ошибка P1000 (аутентификация), логируем подробно
+      if (error.code === 'P1000') {
+        this.logger.error('❌ DATABASE AUTHENTICATION FAILED - CRITICAL ERROR');
+        this.logger.error(
+          'This usually means PostgreSQL password has changed or connection is corrupted',
+        );
+        this.logger.error('Possible solutions:');
+        this.logger.error(
+          '1. Restart both app and db containers: docker compose restart',
+        );
+        this.logger.error('2. Check DATABASE_URL in docker-compose.yml');
+        this.logger.error('3. Check PostgreSQL logs: docker compose logs db');
+      }
     }
   }
 

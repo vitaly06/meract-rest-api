@@ -176,6 +176,25 @@ export class CreateActRequest {
   })
   @IsEnum(SelectionMethods, { message: 'Invalid navigator selection methods' })
   navigatorMethods: SelectionMethods;
+
+  @ApiProperty({
+    example: 'VOTING',
+    enum: SelectionMethods,
+    description: 'Spot Agent selection method',
+  })
+  @IsEnum(SelectionMethods, { message: 'Invalid spot agent selection methods' })
+  spotAgentMethods: SelectionMethods;
+
+  @ApiProperty({
+    example: 3,
+    description: 'Number of spot agents required',
+    default: 0,
+  })
+  @IsInt({ message: 'Spot agent count must be an integer' })
+  @Min(0, { message: 'Spot agent count must be >= 0' })
+  @Type(() => Number)
+  spotAgentCount: number;
+
   // @ApiProperty({})
   @ApiProperty({ example: '2025-09-15T12:00:00Z', description: 'Bidding time' })
   @IsString({ message: 'bidding time must be a string' })

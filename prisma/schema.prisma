@@ -66,6 +66,9 @@ model User {
   ranks                    UserRank[]
   Guild                    Guild?                     @relation(fields: [guildId], references: [id])
   guildId                  Int?
+  ActSpotAgent             ActSpotAgent[]
+  ActSpotAgentCandidate    ActSpotAgentCandidate[]
+  ActSpotAgentVote         ActSpotAgentVote[]
 }
 
 model Role {
@@ -100,6 +103,8 @@ model Act {
   format ActFormat @default(SINGLE)
   heroMethods SelectionMethods @default(VOTING)
   navigatorMethods SelectionMethods @default(VOTING)
+  spotAgentMethods SelectionMethods @default(VOTING)
+  spotAgentCount Int @default(0) // Количество требуемых spot-агентов
   biddingTime String
 
   introId Int
@@ -140,6 +145,8 @@ model Act {
   ChatMessage     ChatMessage[]
   tasks           ActTask[]
   routePoints     RoutePoint[]
+  spotAgents      ActSpotAgent[]
+  spotAgentCandidates ActSpotAgentCandidate[]
 }
 
 // Точки маршрута для стрима
@@ -333,4 +340,59 @@ model ActTask {
   act         Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
   
   @@index([actId])
+}
+
+// Spot Agent - дополнительные участники, выполняющие задания по сценарию
+model ActSpotAgent {
+  id          Int      @id @default(autoincrement())
+  actId       Int
+  act         Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
+  
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  task        String?  // Описание задания для spot-агента
+  status      String   @default("pending") // pending, active, completed
+  
+  assignedAt  DateTime @default(now())
+  completedAt DateTime?
+  
+  @@unique([actId, userId])
+  @@index([actId])
+  @@index([userId])
+}
+
+// Кандидаты в Spot Agent
+model ActSpotAgentCandidate {
+  id          Int      @id @default(autoincrement())
+  actId       Int
+  act         Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
+  
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  status      String   @default("pending") // pending, approved, rejected
+  appliedAt   DateTime @default(now())
+  
+  votes       ActSpotAgentVote[]
+  
+  @@unique([actId, userId])
+  @@index([actId])
+  @@index([userId])
+}
+
+// Голосования за кандидатов в Spot Agent
+model ActSpotAgentVote {
+  id          Int      @id @default(autoincrement())
+  candidateId Int
+  candidate   ActSpotAgentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  voterId     Int
+  voter       User     @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  
+  votedAt     DateTime @default(now())
+  
+  @@unique([candidateId, voterId])
+  @@index([candidateId])
+  @@index([voterId])
 }

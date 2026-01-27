@@ -42,6 +42,8 @@ export class ActService {
       format,
       heroMethods,
       navigatorMethods,
+      spotAgentMethods,
+      spotAgentCount,
       biddingTime,
       tasks,
     } = { ...dto };
@@ -175,6 +177,8 @@ export class ActService {
           format,
           heroMethods,
           navigatorMethods,
+          spotAgentMethods,
+          spotAgentCount: +spotAgentCount || 0,
           biddingTime,
           userId: +userId,
           previewFileName: `/uploads/acts/${filename}` || null,
@@ -1040,5 +1044,373 @@ export class ActService {
         `Failed to stop recording for act ${actId}: ${error.message}`,
       );
     }
+  }
+
+  // ==================== SPOT AGENT METHODS ====================
+
+  /**
+   * Подать заявку на роль Spot Agent
+   */
+  async applyAsSpotAgent(actId: number, userId: number) {
+    // Проверяем существование акта
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: {
+        id: true,
+        userId: true,
+        spotAgentCount: true,
+        spotAgentCandidates: {
+          select: { id: true },
+        },
+        spotAgents: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    // Проверяем, что пользователь не является инициатором
+    if (act.userId === userId) {
+      throw new BadRequestException('Initiator cannot apply as spot agent');
+    }
+
+    // Проверяем, что spot-агенты нужны
+    if (act.spotAgentCount === 0) {
+      throw new BadRequestException('This act does not require spot agents');
+    }
+
+    // Проверяем, не подавал ли уже заявку
+    const existingCandidate =
+      await this.prisma.actSpotAgentCandidate.findUnique({
+        where: {
+          actId_userId: {
+            actId,
+            userId,
+          },
+        },
+      });
+
+    if (existingCandidate) {
+      throw new BadRequestException('You have already applied as spot agent');
+    }
+
+    // Проверяем, не назначен ли уже spot-агентом
+    const existingSpotAgent = await this.prisma.actSpotAgent.findUnique({
+      where: {
+        actId_userId: {
+          actId,
+          userId,
+        },
+      },
+    });
+
+    if (existingSpotAgent) {
+      throw new BadRequestException('You are already assigned as spot agent');
+    }
+
+    // Создаем заявку
+    const candidate = await this.prisma.actSpotAgentCandidate.create({
+      data: {
+        actId,
+        userId,
+        status: 'pending',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return candidate;
+  }
+
+  /**
+   * Получить всех кандидатов в Spot Agent для акта
+   */
+  async getSpotAgentCandidates(actId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+    });
+
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    const candidates = await this.prisma.actSpotAgentCandidate.findMany({
+      where: { actId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+          },
+        },
+        votes: {
+          include: {
+            voter: {
+              select: {
+                id: true,
+                login: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        appliedAt: 'asc',
+      },
+    });
+
+    // Добавляем количество голосов к каждому кандидату
+    return candidates.map((candidate) => ({
+      ...candidate,
+      voteCount: candidate.votes.length,
+    }));
+  }
+
+  /**
+   * Проголосовать за кандидата в Spot Agent
+   */
+  async voteForSpotAgentCandidate(candidateId: number, voterId: number) {
+    // Проверяем существование кандидата
+    const candidate = await this.prisma.actSpotAgentCandidate.findUnique({
+      where: { id: candidateId },
+      include: {
+        act: {
+          select: {
+            id: true,
+            userId: true,
+            spotAgentMethods: true,
+          },
+        },
+      },
+    });
+
+    if (!candidate) {
+      throw new NotFoundException(`Candidate with ID ${candidateId} not found`);
+    }
+
+    // Проверяем, что для этого акта включено голосование
+    if (candidate.act.spotAgentMethods !== 'VOTING') {
+      throw new BadRequestException('Voting is not enabled for this act');
+    }
+
+    // Проверяем, что пользователь не голосует за себя
+    if (candidate.userId === voterId) {
+      throw new BadRequestException('You cannot vote for yourself');
+    }
+
+    // Проверяем, не голосовал ли уже
+    const existingVote = await this.prisma.actSpotAgentVote.findUnique({
+      where: {
+        candidateId_voterId: {
+          candidateId,
+          voterId,
+        },
+      },
+    });
+
+    if (existingVote) {
+      throw new BadRequestException(
+        'You have already voted for this candidate',
+      );
+    }
+
+    // Создаем голос
+    const vote = await this.prisma.actSpotAgentVote.create({
+      data: {
+        candidateId,
+        voterId,
+      },
+      include: {
+        voter: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+          },
+        },
+        candidate: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                login: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return vote;
+  }
+
+  /**
+   * Назначить Spot Agent (только инициатор)
+   */
+  async assignSpotAgent(
+    actId: number,
+    userId: number,
+    initiatorId: number,
+    task?: string,
+  ) {
+    // Проверяем существование акта
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      include: {
+        spotAgents: true,
+      },
+    });
+
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    // Проверяем, что запрос от инициатора
+    if (act.userId !== initiatorId) {
+      throw new ForbiddenException('Only the initiator can assign spot agents');
+    }
+
+    // Проверяем, что не превышено количество spot-агентов
+    if (act.spotAgents.length >= act.spotAgentCount) {
+      throw new BadRequestException('Maximum number of spot agents reached');
+    }
+
+    // Проверяем, что пользователь не инициатор
+    if (userId === initiatorId) {
+      throw new BadRequestException(
+        'Initiator cannot be assigned as spot agent',
+      );
+    }
+
+    // Проверяем, не назначен ли уже
+    const existingSpotAgent = await this.prisma.actSpotAgent.findUnique({
+      where: {
+        actId_userId: {
+          actId,
+          userId,
+        },
+      },
+    });
+
+    if (existingSpotAgent) {
+      throw new BadRequestException('User is already assigned as spot agent');
+    }
+
+    // Назначаем spot-агента
+    const spotAgent = await this.prisma.actSpotAgent.create({
+      data: {
+        actId,
+        userId,
+        task: task || null,
+        status: 'active',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Обновляем статус кандидата, если он подавал заявку
+    await this.prisma.actSpotAgentCandidate.updateMany({
+      where: {
+        actId,
+        userId,
+      },
+      data: {
+        status: 'approved',
+      },
+    });
+
+    return spotAgent;
+  }
+
+  /**
+   * Получить всех назначенных Spot Agent для акта
+   */
+  async getAssignedSpotAgents(actId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+    });
+
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    const spotAgents = await this.prisma.actSpotAgent.findMany({
+      where: { actId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        assignedAt: 'asc',
+      },
+    });
+
+    return spotAgents;
+  }
+
+  /**
+   * Отозвать Spot Agent (только инициатор)
+   */
+  async removeSpotAgent(
+    actId: number,
+    spotAgentId: number,
+    initiatorId: number,
+  ) {
+    // Проверяем существование акта
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+    });
+
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    // Проверяем, что запрос от инициатора
+    if (act.userId !== initiatorId) {
+      throw new ForbiddenException('Only the initiator can remove spot agents');
+    }
+
+    // Проверяем существование spot-агента
+    const spotAgent = await this.prisma.actSpotAgent.findUnique({
+      where: { id: spotAgentId },
+    });
+
+    if (!spotAgent || spotAgent.actId !== actId) {
+      throw new NotFoundException(
+        `Spot agent with ID ${spotAgentId} not found`,
+      );
+    }
+
+    // Удаляем spot-агента
+    await this.prisma.actSpotAgent.delete({
+      where: { id: spotAgentId },
+    });
+
+    return { message: 'Spot agent removed successfully' };
   }
 }
