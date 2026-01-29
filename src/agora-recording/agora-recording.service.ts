@@ -2,6 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { PrismaService } from 'src/prisma/prisma.service';
+import * as fs from 'fs';
+import * as path from 'path';
+import { promisify } from 'util';
+
+const mkdir = promisify(fs.mkdir);
+const writeFile = promisify(fs.writeFile);
+const readdir = promisify(fs.readdir);
+const unlink = promisify(fs.unlink);
+const stat = promisify(fs.stat);
 
 interface AcquireResponse {
   resourceId: string;
@@ -19,6 +28,7 @@ export class AgoraRecordingService {
   private readonly appId: string;
   private readonly customerId: string;
   private readonly customerSecret: string;
+  private readonly recordingsPath: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -29,6 +39,24 @@ export class AgoraRecordingService {
     this.customerSecret = this.configService.get<string>(
       'AGORA_CUSTOMER_SECRET',
     );
+    this.recordingsPath = path.join(process.cwd(), 'recordings');
+    this.ensureRecordingsDirectory();
+  }
+
+  /**
+   * Создать папку для записей если не существует
+   */
+  private async ensureRecordingsDirectory(): Promise<void> {
+    try {
+      if (!fs.existsSync(this.recordingsPath)) {
+        await mkdir(this.recordingsPath, { recursive: true });
+        this.logger.log(`Created recordings directory: ${this.recordingsPath}`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to create recordings directory: ${error.message}`,
+      );
+    }
   }
 
   /**
@@ -226,5 +254,150 @@ export class AgoraRecordingService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Сохранить запись стрима локально
+   */
+  async saveRecordingLocally(
+    actId: number,
+    actTitle: string,
+    recordingData: Buffer,
+  ): Promise<string> {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `act_${actId}_${actTitle.replace(/[^a-z0-9]/gi, '_')}_${timestamp}.mp4`;
+      const filePath = path.join(this.recordingsPath, filename);
+
+      await writeFile(filePath, recordingData);
+
+      this.logger.log(`Recording saved locally: ${filename}`);
+
+      // Обновляем путь в БД
+      await this.prisma.act.update({
+        where: { id: actId },
+        data: {
+          recordingUrl: `/recordings/${filename}`,
+          recordingStatus: 'completed',
+        },
+      });
+
+      return filename;
+    } catch (error) {
+      this.logger.error(`Failed to save recording locally: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить список всех записей
+   */
+  async getAllRecordings(): Promise<any[]> {
+    try {
+      const files = await readdir(this.recordingsPath);
+      const recordings = [];
+
+      for (const file of files) {
+        if (file.endsWith('.mp4')) {
+          const filePath = path.join(this.recordingsPath, file);
+          const stats = await stat(filePath);
+
+          // Парсим actId из имени файла
+          const match = file.match(/^act_(\d+)_/);
+          const actId = match ? parseInt(match[1]) : null;
+
+          recordings.push({
+            filename: file,
+            size: stats.size,
+            created: stats.birthtime,
+            modified: stats.mtime,
+            actId,
+            url: `/recordings/${file}`,
+          });
+        }
+      }
+
+      return recordings.sort(
+        (a, b) => b.created.getTime() - a.created.getTime(),
+      );
+    } catch (error) {
+      this.logger.error(`Failed to get recordings: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить записи конкретного акта
+   */
+  async getActRecordings(actId: number): Promise<any[]> {
+    try {
+      const allRecordings = await this.getAllRecordings();
+      return allRecordings.filter((r) => r.actId === actId);
+    } catch (error) {
+      this.logger.error(`Failed to get act recordings: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Удалить запись
+   */
+  async deleteRecording(filename: string): Promise<void> {
+    try {
+      const filePath = path.join(this.recordingsPath, filename);
+
+      if (fs.existsSync(filePath)) {
+        await unlink(filePath);
+        this.logger.log(`Recording deleted: ${filename}`);
+      } else {
+        throw new Error(`Recording file not found: ${filename}`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to delete recording: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить путь к файлу записи
+   */
+  getRecordingPath(filename: string): string {
+    return path.join(this.recordingsPath, filename);
+  }
+
+  /**
+   * Получить статистику по записям
+   */
+  async getRecordingsStats(): Promise<any> {
+    try {
+      const recordings = await this.getAllRecordings();
+      const totalSize = recordings.reduce((sum, r) => sum + r.size, 0);
+      const totalCount = recordings.length;
+
+      return {
+        totalCount,
+        totalSize,
+        totalSizeFormatted: this.formatBytes(totalSize),
+        recordings: recordings.slice(0, 10), // последние 10
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get recordings stats: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Форматировать размер файла
+   */
+  private formatBytes(bytes: number, decimals = 2): string {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
 }
