@@ -7,7 +7,7 @@ services:
       - '3000:3000'
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/Meract?schema=public
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/Meract?schema=public&connection_limit=1&pool_timeout=0
       - JWT_ACCESS_SECRET=26bfc6eb447766315e7735c1f20639cb9e6b25924bf5abd4d582342c28e80ebb7dfe61b4a32fbbc4252133fda1610f92
       - JWT_REFRESH_SECRET=eb05d83f17e73780f1c10dac599823ea4601a2eb4131da9945c8a0fd2e583d68ab8c4b3dad45af1813fe8b09e1daa1b8
       - JWT_ACCESS_EXPIRES_IN=15m
@@ -27,6 +27,11 @@ services:
       - AGORA_APP_CERTIFICATE=e086b7ae19ae4b05b83d3fda3fade947
       - AGORA_CUSTOMER_ID=d8600c93282e4a028dc32f853b200b35
       - AGORA_CUSTOMER_SECRET=efd1020f8f594271a86ccdc227e79509
+      - S3_ENDPOINT=https://s3.twcstorage.ru
+      - S3_REGION=ru-1
+      - S3_BUCKET=db40905a-a32d-43ce-a541-af9428eeecda
+      - S3_ACCESS_KEY=05RHZXFCQHUP72P8AGXI
+      - S3_SECRET_KEY=AxyWgxQsTIcZM5IagIfwmnBSA9DP38Z7Bd9Qtmt2
     depends_on:
       db:
         condition: service_healthy
@@ -41,11 +46,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=Meract
-    # ПОРТ ЗАКРЫТ ОТ ВНЕШНЕГО ДОСТУПА - только через Docker network!
-    # ports:
-    #   - '5433:5432'  # ЗАКОММЕНТИРОВАНО ДЛЯ БЕЗОПАСНОСТИ
+
     expose:
-      - '5432' # Доступ только внутри Docker сети
+      - '5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./dumps/dump.sql:/docker-entrypoint-initdb.d/dump.sql

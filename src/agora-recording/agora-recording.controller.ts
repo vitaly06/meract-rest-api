@@ -185,4 +185,95 @@ export class AgoraRecordingController {
     await this.agoraRecordingService.deleteRecording(filename);
     return { message: 'Recording successfully deleted', filename };
   }
+
+  // ==================== S3 STORAGE ENDPOINTS ====================
+
+  @Get('s3/recordings')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all recordings from S3' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all S3 recordings',
+  })
+  async getAllS3Recordings() {
+    return this.agoraRecordingService.getAllRecordingsFromS3();
+  }
+
+  @Get('s3/recordings/stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get S3 recordings statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Statistics about S3 recordings',
+  })
+  async getS3RecordingsStats() {
+    return this.agoraRecordingService.getS3RecordingsStats();
+  }
+
+  @Get('s3/recordings/act/:actId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get S3 recordings for specific act' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of S3 recordings for the act',
+  })
+  async getActS3Recordings(@Param('actId') actId: string) {
+    return this.agoraRecordingService.getActRecordingsFromS3(+actId);
+  }
+
+  @Get('s3/recordings/download-url/:key')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get presigned download URL for S3 recording' })
+  @ApiResponse({
+    status: 200,
+    description: 'Presigned URL for downloading',
+    schema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string' },
+        expiresIn: { type: 'number' },
+      },
+    },
+  })
+  async getS3DownloadUrl(@Param('key') key: string) {
+    const url = await this.agoraRecordingService.getS3DownloadUrl(
+      decodeURIComponent(key),
+      3600,
+    );
+    return { url, expiresIn: 3600 };
+  }
+
+  @Get('s3/recordings/stream/:key')
+  @ApiOperation({ summary: 'Stream S3 recording (for video player)' })
+  @ApiResponse({
+    status: 200,
+    description: 'S3 recording video stream',
+  })
+  async streamS3Recording(@Param('key') key: string, @Res() res: Response) {
+    try {
+      const decodedKey = decodeURIComponent(key);
+      const stream = await this.agoraRecordingService.getS3Stream(decodedKey);
+
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Accept-Ranges', 'bytes');
+
+      stream.pipe(res);
+    } catch (error) {
+      this.logger.error(`Failed to stream S3 recording: ${error.message}`);
+      throw error;
+    }
+  }
+
+  @Delete('s3/recordings/:key')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete S3 recording' })
+  @ApiResponse({
+    status: 200,
+    description: 'S3 recording successfully deleted',
+  })
+  async deleteS3Recording(@Param('key') key: string) {
+    const decodedKey = decodeURIComponent(key);
+    await this.agoraRecordingService.deleteFromS3(decodedKey);
+    return { message: 'S3 recording successfully deleted', key: decodedKey };
+  }
 }

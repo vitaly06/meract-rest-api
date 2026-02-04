@@ -5,6 +5,16 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  HeadObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Readable } from 'stream';
 
 const mkdir = promisify(fs.mkdir);
 const writeFile = promisify(fs.writeFile);
@@ -29,6 +39,8 @@ export class AgoraRecordingService {
   private readonly customerId: string;
   private readonly customerSecret: string;
   private readonly recordingsPath: string;
+  private readonly s3Client: S3Client;
+  private readonly s3Bucket: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -40,7 +52,21 @@ export class AgoraRecordingService {
       'AGORA_CUSTOMER_SECRET',
     );
     this.recordingsPath = path.join(process.cwd(), 'recordings');
+
+    // Инициализация S3 клиента для Timeweb Cloud Storage
+    this.s3Bucket = this.configService.get<string>('S3_BUCKET');
+    this.s3Client = new S3Client({
+      region: this.configService.get<string>('S3_REGION', 'ru-1'),
+      endpoint: this.configService.get<string>('S3_ENDPOINT'),
+      credentials: {
+        accessKeyId: this.configService.get<string>('S3_ACCESS_KEY'),
+        secretAccessKey: this.configService.get<string>('S3_SECRET_KEY'),
+      },
+      forcePathStyle: true, // Для совместимости с S3-like storage
+    });
+
     this.ensureRecordingsDirectory();
+    this.logger.log('S3 Client initialized for Timeweb Cloud Storage');
   }
 
   /**
@@ -132,11 +158,12 @@ export class AgoraRecordingService {
               subscribeUidGroup: 0, // 0: subscribe to all UIDs
             },
             storageConfig: {
-              vendor: 2, // 2: Amazon S3
-              region: 0, // 0: US_EAST_1 for S3
-              bucket: 'agora-recording',
-              accessKey: 'dummy',
-              secretKey: 'dummy',
+              vendor: 2, // 2: Alibaba Cloud (для S3-compatible с кастомным endpoint)
+              region: 15, // 15: Custom region для совместимых хранилищ
+              bucket: this.s3Bucket,
+              accessKey: this.configService.get<string>('S3_ACCESS_KEY'),
+              secretKey: this.configService.get<string>('S3_SECRET_KEY'),
+              endpoint: 's3.twcstorage.ru', // Только hostname без https://
               fileNamePrefix: ['recordings', channelName.replace('act_', '')],
             },
           },
@@ -399,5 +426,212 @@ export class AgoraRecordingService {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  }
+
+  // ==================== S3 STORAGE METHODS ====================
+
+  /**
+   * Загрузить запись в S3
+   */
+  async uploadToS3(
+    actId: number,
+    actTitle: string,
+    fileBuffer: Buffer,
+  ): Promise<string> {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `act_${actId}_${actTitle.replace(/[^a-z0-9]/gi, '_')}_${timestamp}.mp4`;
+      const s3Key = `recordings/${filename}`;
+
+      const command = new PutObjectCommand({
+        Bucket: this.s3Bucket,
+        Key: s3Key,
+        Body: fileBuffer,
+        ContentType: 'video/mp4',
+        ACL: 'public-read', // Если нужен публичный доступ
+      });
+
+      await this.s3Client.send(command);
+
+      this.logger.log(`File uploaded to S3: ${s3Key}`);
+
+      // Обновляем URL в БД
+      const s3Url = `${this.configService.get('S3_ENDPOINT')}/${this.s3Bucket}/${s3Key}`;
+      await this.prisma.act.update({
+        where: { id: actId },
+        data: {
+          recordingUrl: s3Url,
+          recordingStatus: 'completed',
+        },
+      });
+
+      return s3Key;
+    } catch (error) {
+      this.logger.error(`Failed to upload to S3: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить список всех записей из S3
+   */
+  async getAllRecordingsFromS3(): Promise<any[]> {
+    try {
+      const command = new ListObjectsV2Command({
+        Bucket: this.s3Bucket,
+        Prefix: 'recordings/',
+      });
+
+      const response = await this.s3Client.send(command);
+
+      if (!response.Contents) {
+        return [];
+      }
+
+      const recordings = await Promise.all(
+        response.Contents.filter((obj) => obj.Key.endsWith('.mp4')).map(
+          async (obj) => {
+            const filename = obj.Key.split('/').pop();
+            const match = filename.match(/^act_(\d+)_/);
+            const actId = match ? parseInt(match[1]) : null;
+
+            return {
+              key: obj.Key,
+              filename,
+              size: obj.Size,
+              lastModified: obj.LastModified,
+              actId,
+              url: `${this.configService.get('S3_ENDPOINT')}/${this.s3Bucket}/${obj.Key}`,
+            };
+          },
+        ),
+      );
+
+      return recordings.sort(
+        (a, b) =>
+          new Date(b.lastModified).getTime() -
+          new Date(a.lastModified).getTime(),
+      );
+    } catch (error) {
+      this.logger.error(`Failed to list S3 recordings: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить записи конкретного акта из S3
+   */
+  async getActRecordingsFromS3(actId: number): Promise<any[]> {
+    try {
+      const allRecordings = await this.getAllRecordingsFromS3();
+      return allRecordings.filter((r) => r.actId === actId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to get act recordings from S3: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Получить presigned URL для скачивания из S3
+   */
+  async getS3DownloadUrl(
+    key: string,
+    expiresIn: number = 3600,
+  ): Promise<string> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.s3Bucket,
+        Key: key,
+      });
+
+      const url = await getSignedUrl(this.s3Client, command, { expiresIn });
+      return url;
+    } catch (error) {
+      this.logger.error(`Failed to generate presigned URL: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить стрим из S3
+   */
+  async getS3Stream(key: string): Promise<Readable> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.s3Bucket,
+        Key: key,
+      });
+
+      const response = await this.s3Client.send(command);
+      return response.Body as Readable;
+    } catch (error) {
+      this.logger.error(`Failed to get S3 stream: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Удалить запись из S3
+   */
+  async deleteFromS3(key: string): Promise<void> {
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: this.s3Bucket,
+        Key: key,
+      });
+
+      await this.s3Client.send(command);
+      this.logger.log(`File deleted from S3: ${key}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete from S3: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить статистику по S3 записям
+   */
+  async getS3RecordingsStats(): Promise<any> {
+    try {
+      const recordings = await this.getAllRecordingsFromS3();
+      const totalSize = recordings.reduce((sum, r) => sum + (r.size || 0), 0);
+      const totalCount = recordings.length;
+
+      return {
+        totalCount,
+        totalSize,
+        totalSizeFormatted: this.formatBytes(totalSize),
+        recordings: recordings.slice(0, 10), // последние 10
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get S3 stats: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Скачать файл из S3 в локальную папку
+   */
+  async downloadFromS3ToLocal(key: string): Promise<string> {
+    try {
+      const stream = await this.getS3Stream(key);
+      const filename = key.split('/').pop();
+      const localPath = path.join(this.recordingsPath, filename);
+
+      const writeStream = fs.createWriteStream(localPath);
+      await new Promise((resolve, reject) => {
+        stream.pipe(writeStream);
+        stream.on('end', resolve);
+        stream.on('error', reject);
+      });
+
+      this.logger.log(`Downloaded from S3 to local: ${filename}`);
+      return localPath;
+    } catch (error) {
+      this.logger.error(`Failed to download from S3: ${error.message}`);
+      throw error;
+    }
   }
 }
