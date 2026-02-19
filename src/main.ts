@@ -18,6 +18,9 @@ async function bootstrap() {
   });
   app.useGlobalPipes(new ValidationPipe());
 
+  // Глобальный префикс для всех маршрутов
+  app.setGlobalPrefix('api');
+
   const config = new DocumentBuilder()
     .setTitle('Meract REST API')
     .setDescription('Rest API for Meract')

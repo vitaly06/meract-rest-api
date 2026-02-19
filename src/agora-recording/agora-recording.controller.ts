@@ -25,7 +25,7 @@ export class AgoraRecordingController {
 
   @Post('webhook')
   @ApiOperation({ summary: 'Webhook for Agora Cloud Recording events' })
-  async handleWebhook(@Body() payload: any) {
+  async handleWebhook(@Body() payload: any, @Res() res: Response) {
     this.logger.log(`Received webhook: ${JSON.stringify(payload)}`);
 
     try {
@@ -47,10 +47,10 @@ export class AgoraRecordingController {
         }
       }
 
-      return { status: 'ok' };
+      res.status(200).json({ status: 'ok', received: true });
     } catch (error) {
       this.logger.error(`Webhook processing failed: ${error.message}`);
-      return { status: 'error', message: error.message };
+      res.status(200).json({ status: 'ok', received: true });
     }
   }
 

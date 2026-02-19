@@ -49,7 +49,7 @@ export class IntroController {
   @Post('upload-intro')
   @UseInterceptors(FileInterceptor('intro'))
   async uploadIntro(
-    @UploadedFile() intro: Multer.File,
+    @UploadedFile() intro: Express.Multer.File,
     @Req() req: RequestWithUser,
   ) {
     return await this.introService.uploadIntro(intro.filename, req.user.sub);

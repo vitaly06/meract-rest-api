@@ -19,6 +19,7 @@ import { AchievementModule } from './achievement/achievement.module';
 import { RankModule } from './rank/rank.module';
 import { AgoraRecordingModule } from './agora-recording/agora-recording.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { S3Module } from './s3/s3.module';
 
 @Module({
   imports: [
@@ -47,7 +48,8 @@ import { GatewayModule } from './gateway/gateway.module';
     AchievementModule,
     RankModule,
     AgoraRecordingModule,
-    GatewayModule, // Единый gateway для всех namespace
+    GatewayModule,
+    S3Module, // Единый gateway для всех namespace
   ],
 })
 export class AppModule {}

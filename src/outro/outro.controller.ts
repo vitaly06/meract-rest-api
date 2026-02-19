@@ -49,7 +49,7 @@ export class OutroController {
   @Post('upload-outro')
   @UseInterceptors(FileInterceptor('outro'))
   async uploadOutro(
-    @UploadedFile() outro: Multer.File,
+    @UploadedFile() outro: Express.Multer.File,
     @Req() req: RequestWithUser,
   ) {
     return await this.outroService.uploadOutro(outro.filename, req.user.sub);

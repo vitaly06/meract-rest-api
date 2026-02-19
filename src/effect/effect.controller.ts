@@ -84,7 +84,7 @@ export class EffectController {
   @Post('upload-effect')
   @UseInterceptors(FileInterceptor('effect'))
   async uploadEffect(
-    @UploadedFile() effect: Multer.File,
+    @UploadedFile() effect: Express.Multer.File,
     @Req() req: RequestWithUser,
   ) {
     return await this.effectService.uploadEffect(effect.filename, req.user.sub);

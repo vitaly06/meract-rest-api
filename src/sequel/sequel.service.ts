@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateSequelDto } from './dto/create-sequel.dto';
-import { Multer } from 'multer';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -18,7 +17,11 @@ export class SequelService {
     );
   }
 
-  async createSequel(dto: CreateSequelDto, photo: Multer.File, userId: number) {
+  async createSequel(
+    dto: CreateSequelDto,
+    photo: Express.Multer.File,
+    userId: number,
+  ) {
     const checkUser = await this.checkUser(userId);
 
     if (!checkUser) {

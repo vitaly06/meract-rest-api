@@ -33,6 +33,9 @@ import { SelectionMethods } from './enum/act.enum';
 import { ApplySpotAgentDto } from './dto/apply-spot-agent.dto';
 import { VoteSpotAgentDto } from './dto/vote-spot-agent.dto';
 import { AssignSpotAgentDto } from './dto/assign-spot-agent.dto';
+import { AssignRoleDto } from './dto/assign-role.dto';
+import { VoteForCandidateDto } from './dto/vote-for-candidate.dto';
+import { ApplyForRoleDto } from './dto/apply-for-role.dto';
 
 @ApiTags('Acts')
 @Controller('act')
@@ -284,7 +287,7 @@ export class ActController {
   async createAct(
     @Req() req: RequestWithUser,
     @Body() dto: CreateActRequest,
-    @UploadedFile() photo: Multer.File,
+    @UploadedFile() photo: Express.Multer.File,
   ) {
     if (!photo) {
       throw new BadRequestException('Photo has been is not empty');
@@ -735,5 +738,63 @@ export class ActController {
     @Req() req: RequestWithUser,
   ) {
     return this.actService.removeSpotAgent(+actId, +spotAgentId, req.user.sub);
+  }
+
+  // ... существующий код ActController ...
+
+  @Post(':actId/apply-role')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Подать заявку на роль Героя или Навигатора' })
+  @ApiBody({ type: ApplyForRoleDto })
+  async applyForRole(
+    @Param('actId') actId: string,
+    @Body() dto: ApplyForRoleDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.applyForRole(
+      +actId,
+      req.user.sub,
+      dto.roleType,
+      dto.bidAmount,
+      dto.bidItem,
+    );
+  }
+
+  @Post(':actId/vote-candidate')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Проголосовать за кандидата на роль' })
+  @ApiBody({ type: VoteForCandidateDto })
+  async voteForCandidate(
+    @Param('actId') actId: string,
+    @Body() dto: VoteForCandidateDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.voteForCandidate(dto.candidateId, req.user.sub);
+  }
+
+  @Post(':actId/assign-role')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Назначить роль (только инициатор)' })
+  @ApiBody({ type: AssignRoleDto })
+  async assignRole(
+    @Param('actId') actId: string,
+    @Body() dto: AssignRoleDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.assignRole(
+      +actId,
+      req.user.sub,
+      dto.roleType,
+      dto.candidateId,
+    );
+  }
+
+  @Get(':actId/candidates/:roleType')
+  @ApiOperation({ summary: 'Получить список кандидатов на роль' })
+  async getCandidates(
+    @Param('actId') actId: string,
+    @Param('roleType') roleType: 'hero' | 'navigator',
+  ) {
+    return this.actService.getCandidates(+actId, roleType);
   }
 }

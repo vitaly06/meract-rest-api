@@ -1,5 +1,5 @@
 # Development stage
-FROM node:20-alpine AS development
+FROM node:20 AS development
 
 WORKDIR /usr/src/app
 
@@ -22,7 +22,7 @@ RUN npx prisma generate
 RUN yarn build
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:20 AS production
 
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
