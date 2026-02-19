@@ -37,8 +37,12 @@ enum SelectionMethods {
 model User {
   id             Int        @id @default(autoincrement())
   login          String?    @unique
+  fullName String?
   password       String
   email          String     @unique
+  refreshToken             String?
+  avatarUrl String?
+
   status         UserStatus @default(ACTIVE)
   warningCount   Int        @default(0)
   roleId         Int        @default(1)
@@ -51,13 +55,12 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  refreshToken             String?
-  intros Intro[]
-  outros Outro[]
-  musics Music[]
-  effects Effect[]
-  Act                   Act[]
-  sequels Sequel[]
+  intros                   Intro[]
+  outros                   Outro[]
+  musics                   Music[]
+  effects                  Effect[]
+  Act                      Act[]
+  sequels                  Sequel[]
   UserActivity             UserActivity[]
   UserActivityParticipants UserActivityParticipants[]
   ChatMessage              ChatMessage[]
@@ -66,9 +69,14 @@ model User {
   ranks                    UserRank[]
   Guild                    Guild?                     @relation(fields: [guildId], references: [id])
   guildId                  Int?
-  ActSpotAgent             ActSpotAgent[]
-  ActSpotAgentCandidate    ActSpotAgentCandidate[]
-  ActSpotAgentVote         ActSpotAgentVote[]
+
+  ActSpotAgent          ActSpotAgent[]
+  ActSpotAgentCandidate ActSpotAgentCandidate[]
+  ActSpotAgentVote      ActSpotAgentVote[]
+
+  ActParticipants ActParticipant[] @relation("UserActParticipants")
+  RoleCandidates  RoleCandidate[]  @relation("UserRoleCandidates")
+  RoleVotes       RoleVote[]       @relation("UserRoleVotes")
 }
 
 model Role {
@@ -85,7 +93,7 @@ model Guild {
 
   ownerId Int
 
-  members User[]
+  members  User[]
   messages GuildChatMessage[]
 
   createdAt DateTime @default(now())
@@ -93,70 +101,130 @@ model Guild {
 }
 
 model Act {
-  id              Int            @id @default(autoincrement())
-  title            String
+  id              Int     @id @default(autoincrement())
+  title           String
   previewFileName String?
-  sequelId Int?
-  sequel Sequel? @relation(fields: [sequelId], references: [id], onDelete: Cascade)
+  sequelId        Int?
+  sequel          Sequel? @relation(fields: [sequelId], references: [id], onDelete: Cascade)
 
-  type ActType @default(SINGLE)
-  format ActFormat @default(SINGLE)
-  heroMethods SelectionMethods @default(VOTING)
+  type             ActType          @default(SINGLE)
+  format           ActFormat        @default(SINGLE)
+  heroMethods      SelectionMethods @default(VOTING)
   navigatorMethods SelectionMethods @default(VOTING)
   spotAgentMethods SelectionMethods @default(VOTING)
-  spotAgentCount Int @default(0) // Количество требуемых spot-агентов
-  biddingTime String
+  spotAgentCount   Int              @default(0)
+  biddingTime      DateTime? // ISO datetime окончания подачи заявок/торгов
 
   introId Int
-  intro Intro @relation(fields: [introId], references: [id], onDelete: Cascade)
+  intro   Intro @relation(fields: [introId], references: [id], onDelete: Cascade)
 
   outroId Int
-  outro Outro @relation(fields: [outroId], references: [id], onDelete: Cascade)
+  outro   Outro @relation(fields: [outroId], references: [id], onDelete: Cascade)
 
   effectId Int?
-  effect Effect? @relation(fields: [effectId], references: [id], onDelete: Cascade)
+  effect   Effect? @relation(fields: [effectId], references: [id], onDelete: Cascade)
 
   musics ActMusic[]
 
-  status          ActStatus   @default(ONLINE)
-  startedAt       DateTime       @default(now())
-  endedAt         DateTime?
-  likes           Int         @default(0)
-  
+  status    ActStatus @default(ONLINE)
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  likes     Int       @default(0)
+
   // Agora Cloud Recording
   recordingResourceId String?
   recordingSid        String?
   recordingUrl        String?
   recordingStatus     String? // recording, processing, completed, failed
-  
+
   // Location
   startLatitude        Float?
   startLongitude       Float?
   destinationLatitude  Float?
   destinationLongitude Float?
-  
+
   // Act Category
-  categoryId      Int?
-  category        Category?      @relation(fields: [categoryId], references: [id])
-  // Act
-  userId          Int
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  UserActivity    UserActivity[]
-  ChatMessage     ChatMessage[]
-  tasks           ActTask[]
-  routePoints     RoutePoint[]
-  spotAgents      ActSpotAgent[]
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  UserActivity        UserActivity[]
+  ChatMessage         ChatMessage[]
+  tasks               ActTask[]
+  routePoints         RoutePoint[]
+  spotAgents          ActSpotAgent[]
   spotAgentCandidates ActSpotAgentCandidate[]
+
+  // Новые связи
+  participants        ActParticipant[]
+  heroCandidates      RoleCandidate[]  @relation("HeroCandidates")
+  navigatorCandidates RoleCandidate[]  @relation("NavigatorCandidates")
+  RoleCandidate       RoleCandidate[]
+}
+
+model ActParticipant {
+  id     Int  @id @default(autoincrement())
+  actId  Int
+  act    Act  @relation(fields: [actId], references: [id], onDelete: Cascade)
+  userId Int
+  user   User @relation("UserActParticipants", fields: [userId], references: [id], onDelete: Cascade)
+
+  role     String // "hero" | "navigator" | "initiator" | "spot_agent" | "viewer"
+  status   String    @default("applied") // applied → approved → onboard → active → completed/dropped
+  joinedAt DateTime?
+  leftAt   DateTime?
+
+  @@unique([actId, userId, role])
+  @@index([actId, role])
+}
+
+model RoleCandidate {
+  id     Int  @id @default(autoincrement())
+  actId  Int
+  act    Act  @relation(fields: [actId], references: [id], onDelete: Cascade)
+  userId Int
+  user   User @relation("UserRoleCandidates", fields: [userId], references: [id], onDelete: Cascade)
+
+  roleType  String // "hero" | "navigator"
+  method    SelectionMethods
+  bidAmount Float? // для BIDDING
+  bidItem   String? // текстовое обещание / артефакт
+  appliedAt DateTime         @default(now())
+  status    String           @default("pending") // pending → approved → rejected
+
+  // Обратные связи к Act (для heroCandidates и navigatorCandidates)
+  heroAct        Act? @relation("HeroCandidates", fields: [heroActId], references: [id])
+  heroActId      Int?
+  navigatorAct   Act? @relation("NavigatorCandidates", fields: [navigatorActId], references: [id])
+  navigatorActId Int?
+
+  votes RoleVote[]
+
+  @@unique([actId, userId, roleType])
+  @@index([actId, roleType])
+}
+
+model RoleVote {
+  id          Int           @id @default(autoincrement())
+  candidateId Int
+  candidate   RoleCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  voterId     Int
+  voter       User          @relation("UserRoleVotes", fields: [voterId], references: [id], onDelete: Cascade)
+  votedAt     DateTime      @default(now())
+
+  @@unique([candidateId, voterId])
 }
 
 // Точки маршрута для стрима
 model RoutePoint {
-  id        Int   @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   actId     Int
-  act       Act   @relation(fields: [actId], references: [id], onDelete: Cascade)
+  act       Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
   latitude  Float
   longitude Float
-  order     Int   // Порядок точки в маршруте (0, 1, 2, ...)
+  order     Int // Порядок точки в маршруте (0, 1, 2, ...)
   createdAt DateTime @default(now())
 
   @@index([actId, order])
@@ -164,63 +232,63 @@ model RoutePoint {
 
 // Stream Categories
 model Category {
-  id     Int      @id @default(autoincrement())
-  name   String   @unique
-  Act Act[]
+  id   Int    @id @default(autoincrement())
+  name String @unique
+  Act  Act[]
 }
 
-model Sequel{
-  id Int @id @default(autoincrement())
-  title String
-  episodes Int
+model Sequel {
+  id            Int     @id @default(autoincrement())
+  title         String
+  episodes      Int
   coverFileName String?
-  userId Int
-  acts Act[]
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  acts          Act[]
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Intro {
-  id Int @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   fileName String
-  acts Act[]
-  userId          Int?
-  user            User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  acts     Act[]
+  userId   Int?
+  user     User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Outro {
-  id Int @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   fileName String
-  acts Act[]
-    userId          Int?
-  user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  acts     Act[]
+  userId   Int?
+  user     User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Music {
-  id Int @id @default(autoincrement())
+  id       Int        @id @default(autoincrement())
   fileName String
-  length String
-  acts ActMusic[]
-  userId Int?
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  length   String
+  acts     ActMusic[]
+  userId   Int?
+  user     User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Effect {
-  id Int @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   fileName String
-  acts Act[]
-  userId Int?
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  acts     Act[]
+  userId   Int?
+  user     User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ActMusic {
-  act      Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
-  actId    Int
-  
-  music    Music    @relation(fields: [musicId], references: [id], onDelete: Cascade)
-  musicId  Int
-  
-  order    Int      @default(0) // Порядок воспроизведения музыки
-  
+  act   Act @relation(fields: [actId], references: [id], onDelete: Cascade)
+  actId Int
+
+  music   Music @relation(fields: [musicId], references: [id], onDelete: Cascade)
+  musicId Int
+
+  order Int @default(0) // Порядок воспроизведения музыки
+
   @@id([actId, musicId])
   @@index([actId])
 }
@@ -231,11 +299,10 @@ model UserActivity {
   details   Json?
   createdAt DateTime @default(now())
 
-  // Связь с участниками действия
   participants UserActivityParticipants[]
   User         User?                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       Int?
-  Act       Act?                    @relation(fields: [streamId], references: [id])
+  Act          Act?                       @relation(fields: [streamId], references: [id])
   streamId     Int?
 }
 
@@ -246,7 +313,6 @@ model UserActivityParticipants {
   activity   UserActivity @relation(fields: [activityId], references: [id])
   activityId Int
 
-  // example: "initiator", "target"
   role String?
 
   @@id([userId, activityId])
@@ -256,33 +322,31 @@ model ChatMessage {
   id        Int      @id @default(autoincrement())
   message   String
   createdAt DateTime @default(now())
-  
-  // Связь с пользователем
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Связь со стримом
-  actId     Int
-  act       Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
-  
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  actId Int
+  act   Act @relation(fields: [actId], references: [id], onDelete: Cascade)
+
   @@index([actId, createdAt])
 }
 
 model Achievement {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
   users UserAchievement[]
-  
+
   createdAt DateTime @default(now())
 }
 
 model Rank {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
   users UserRank[]
-  
+
   createdAt DateTime @default(now())
 }
 
@@ -292,13 +356,12 @@ model UserAchievement {
 
   achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
   achievementId Int
-  
+
   awardedAt DateTime @default(now())
 
   @@id([userId, achievementId])
   @@index([userId])
 }
-
 
 model UserRank {
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -306,7 +369,6 @@ model UserRank {
 
   rank   Rank @relation(fields: [rankId], references: [id], onDelete: Cascade)
   rankId Int
-  
 
   @@id([userId, rankId])
   @@index([userId])
@@ -316,82 +378,76 @@ model GuildChatMessage {
   id        Int      @id @default(autoincrement())
   message   String
   createdAt DateTime @default(now())
-  
-  // Связь с пользователем
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Связь с гильдией
-  guildId   Int
-  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  guildId Int
+  guild   Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
   @@index([guildId, createdAt])
 }
 
 model ActTask {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   title       String
-  isCompleted Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  isCompleted Boolean   @default(false)
+  createdAt   DateTime  @default(now())
   completedAt DateTime?
-  
-  // Связь с актом
-  actId       Int
-  act         Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
-  
+
+  actId Int
+  act   Act @relation(fields: [actId], references: [id], onDelete: Cascade)
+
   @@index([actId])
 }
 
-// Spot Agent - дополнительные участники, выполняющие задания по сценарию
 model ActSpotAgent {
-  id          Int      @id @default(autoincrement())
-  actId       Int
-  act         Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
-  
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  task        String?  // Описание задания для spot-агента
-  status      String   @default("pending") // pending, active, completed
-  
-  assignedAt  DateTime @default(now())
+  id    Int @id @default(autoincrement())
+  actId Int
+  act   Act @relation(fields: [actId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  task   String?
+  status String  @default("pending") // pending, active, completed
+
+  assignedAt  DateTime  @default(now())
   completedAt DateTime?
-  
+
   @@unique([actId, userId])
   @@index([actId])
   @@index([userId])
 }
 
-// Кандидаты в Spot Agent
 model ActSpotAgentCandidate {
-  id          Int      @id @default(autoincrement())
-  actId       Int
-  act         Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
-  
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  status      String   @default("pending") // pending, approved, rejected
-  appliedAt   DateTime @default(now())
-  
-  votes       ActSpotAgentVote[]
-  
+  id    Int @id @default(autoincrement())
+  actId Int
+  act   Act @relation(fields: [actId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status    String   @default("pending") // pending, approved, rejected
+  appliedAt DateTime @default(now())
+
+  votes ActSpotAgentVote[]
+
   @@unique([actId, userId])
   @@index([actId])
   @@index([userId])
 }
 
-// Голосования за кандидатов в Spot Agent
 model ActSpotAgentVote {
-  id          Int      @id @default(autoincrement())
+  id          Int                   @id @default(autoincrement())
   candidateId Int
   candidate   ActSpotAgentCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  
-  voterId     Int
-  voter       User     @relation(fields: [voterId], references: [id], onDelete: Cascade)
-  
-  votedAt     DateTime @default(now())
-  
+
+  voterId Int
+  voter   User @relation(fields: [voterId], references: [id], onDelete: Cascade)
+
+  votedAt DateTime @default(now())
+
   @@unique([candidateId, voterId])
   @@index([candidateId])
   @@index([voterId])

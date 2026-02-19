@@ -49,7 +49,7 @@ export class GuildController {
   async createGuild(
     @Body() dto: CreateGuildRequest,
     @Req() req: RequestWithUser,
-    @UploadedFile() photo?: Multer.File,
+    @UploadedFile() photo?: Express.Multer.File,
   ) {
     console.log(photo?.filename);
     return await this.guildService.createGuild(dto, req, photo?.filename);
@@ -97,9 +97,9 @@ export class GuildController {
   async updateGuild(
     @Param('id') id: string,
     @Body() dto: UpdateGuildRequest,
-    @UploadedFile() photo?: Multer.File,
+    @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return await this.guildService.updateGuild(+id, dto, photo || null);
+    return await this.guildService.updateGuild(+id, dto, photo?.filename);
   }
 
   @ApiOperation({

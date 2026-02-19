@@ -2,12 +2,15 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   Req,
   Res,
   UnauthorizedException,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpRequest } from './dto/sign-up.dto';
@@ -24,7 +27,16 @@ import { AuthGuard } from '@nestjs/passport';
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ChangePasswordRequest } from './dto/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -36,19 +48,65 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Registration',
+    description: 'Register a new user with optional avatar upload',
   })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['login', 'email', 'password', 'repassword'],
+      properties: {
+        login: { type: 'string', example: 'vitaly.sadikov1' },
+        fullName: { type: 'string', example: 'Vitaly Sadikov' },
+        email: { type: 'string', example: 'vitaly.sadikov1@yandex.ru' },
+        password: {
+          type: 'string',
+          example: '123456',
+          minLength: 5,
+          maxLength: 20,
+        },
+        repassword: {
+          type: 'string',
+          example: '123456',
+          minLength: 5,
+          maxLength: 20,
+        },
+        avatar: {
+          type: 'string',
+          format: 'binary',
+          description: 'User avatar image (optional)',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'User successfully registered' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or user already exists',
+  })
+  @ApiTags('Registration')
+  @UseInterceptors(FileInterceptor('avatar'))
   @Post('sign-up')
   async signUp(
     @Body() dto: SignUpRequest,
     @Res({ passthrough: true }) res: Response,
+    @UploadedFile() avatar?: Express.Multer.File,
   ) {
-    const result = await this.authService.signUp(dto);
+    return await this.authService.signUp(dto, avatar || null);
+  }
+
+  @ApiTags('Registration')
+  @Get('verify-email')
+  async verifyEmail(
+    @Query('code') code: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyEmail(code);
 
     this.setCookies(res, result.tokens);
 
     return result.user;
   }
-
   @ApiOperation({
     summary: 'Authorization',
   })
@@ -67,6 +125,26 @@ export class AuthController {
     return result.checkUser;
   }
 
+  @ApiTags('Password recovery')
+  @Post('forgot-password')
+  async forgotPassword(@Query('email') email: string) {
+    return await this.authService.forgotPassword(email);
+  }
+
+  @ApiTags('Password recovery')
+  @Post('forgot-password-verify-code')
+  async forgotPasswordVerifyCode(@Query('code') code: string) {
+    return await this.authService.forgotPasswordVerifyCode(code);
+  }
+
+  @ApiTags('Password recovery')
+  @Post('change-password/:id')
+  async changePassword(
+    @Param('id') id: string,
+    @Body() dto: ChangePasswordRequest,
+  ) {
+    return await this.authService.changePassword(+id, dto);
+  }
   @ApiOperation({
     summary: 'Authorization with google',
   })

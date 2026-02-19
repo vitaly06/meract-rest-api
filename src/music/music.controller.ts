@@ -48,7 +48,7 @@ export class MusicController {
   @UseGuards(JwtAuthGuard)
   @Post('upload-music')
   @UseInterceptors(FileInterceptor('music'))
-  async uploadMusic(@UploadedFile() music: Multer.File) {
+  async uploadMusic(@UploadedFile() music: Express.Multer.File) {
     return await this.musicService.uploadMusic(music);
   }
 }

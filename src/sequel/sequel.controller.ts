@@ -45,7 +45,7 @@ export class SequelController {
   @UseInterceptors(FileInterceptor('photo'))
   async createSequel(
     @Body() dto: CreateSequelDto,
-    @UploadedFile() photo: Multer.File,
+    @UploadedFile() photo: Express.Multer.File,
     @Req() req: RequestWithUser,
   ) {
     return await this.sequelService.createSequel(dto, photo, req.user.sub);

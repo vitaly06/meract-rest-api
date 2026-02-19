@@ -13,6 +13,7 @@ import { CreateActRequest } from './dto/create-act.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
 import { ConfigService } from '@nestjs/config';
 import { AgoraRecordingService } from 'src/agora-recording/agora-recording.service';
+import { SelectionMethods } from '@prisma/client';
 
 @Injectable()
 export class ActService {
@@ -494,10 +495,14 @@ export class ActService {
     }
 
     try {
-      await this.prisma.act.delete({
+      await this.prisma.act.update({
         where: { id },
+        data: {
+          status: 'OFFLINE', // или новый enum FINISHED
+          endedAt: new Date(),
+          // recordingStatus обновится позже через webhook
+        },
       });
-
       if (currentAdmin.id !== currentStream.userId) {
         // Увеличиваем счётчик остановок для админа
         await this.prisma.user.update({
@@ -1011,6 +1016,7 @@ export class ActService {
           recordingResourceId: true,
           recordingSid: true,
           userId: true,
+          status: true,
         },
       });
 
@@ -1023,6 +1029,9 @@ export class ActService {
       const uid = `${act.userId}`;
 
       // Останавливаем запись
+      if (act.status == 'OFFLINE') {
+        return;
+      }
       await this.agoraRecordingService.stopRecording(
         act.recordingResourceId,
         act.recordingSid,
@@ -1412,5 +1421,240 @@ export class ActService {
     });
 
     return { message: 'Spot agent removed successfully' };
+  }
+
+  // ... существующий код ActService ...
+
+  async applyForRole(
+    actId: number,
+    userId: number,
+    roleType: 'hero' | 'navigator',
+    bidAmount?: number,
+    bidItem?: string,
+  ) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: {
+        heroMethods: true,
+        navigatorMethods: true,
+        biddingTime: true,
+      },
+    });
+
+    if (!act) throw new NotFoundException('Act not found');
+
+    const method = roleType === 'hero' ? act.heroMethods : act.navigatorMethods;
+
+    // Проверка времени торгов
+    if (
+      method !== SelectionMethods.MANUAL &&
+      act.biddingTime &&
+      new Date() > act.biddingTime
+    ) {
+      throw new BadRequestException('Bidding time has expired');
+    }
+
+    // Проверка, что пользователь ещё не в этой роли
+    const existingParticipant = await this.prisma.actParticipant.findFirst({
+      where: {
+        actId,
+        userId,
+        role: roleType,
+      },
+    });
+
+    if (existingParticipant) {
+      throw new BadRequestException(
+        `User already applied for role ${roleType}`,
+      );
+    }
+
+    if (method === SelectionMethods.MANUAL) {
+      // Для MANUAL сразу создаём participant с pending статусом
+      return this.prisma.actParticipant.create({
+        data: {
+          actId,
+          userId,
+          role: roleType,
+          status: 'pending',
+        },
+        include: { user: { select: { id: true, login: true, email: true } } },
+      });
+    }
+
+    // Для VOTING и BIDDING — создаём кандидатуру
+    return this.prisma.roleCandidate.create({
+      data: {
+        actId,
+        userId,
+        roleType,
+        method,
+        bidAmount: method === SelectionMethods.BIDDING ? bidAmount : null,
+        bidItem: method === SelectionMethods.BIDDING ? bidItem : null,
+        status: 'pending',
+      },
+      include: {
+        user: { select: { id: true, login: true, email: true } },
+      },
+    });
+  }
+
+  async voteForCandidate(candidateId: number, voterId: number) {
+    const candidate = await this.prisma.roleCandidate.findUnique({
+      where: { id: candidateId },
+      include: {
+        act: { select: { heroMethods: true, navigatorMethods: true } },
+      },
+    });
+
+    if (!candidate) throw new NotFoundException('Candidate not found');
+
+    const method =
+      candidate.roleType === 'hero'
+        ? candidate.act.heroMethods
+        : candidate.act.navigatorMethods;
+
+    if (method !== SelectionMethods.VOTING) {
+      throw new BadRequestException(
+        `Voting is not allowed for method ${method}`,
+      );
+    }
+
+    if (candidate.userId === voterId) {
+      throw new BadRequestException('Cannot vote for yourself');
+    }
+
+    const existingVote = await this.prisma.roleVote.findUnique({
+      where: {
+        candidateId_voterId: {
+          candidateId,
+          voterId,
+        },
+      },
+    });
+
+    if (existingVote)
+      throw new BadRequestException(
+        'You have already voted for this candidate',
+      );
+
+    return this.prisma.roleVote.create({
+      data: {
+        candidateId,
+        voterId,
+      },
+      include: {
+        voter: { select: { id: true, login: true, email: true } },
+      },
+    });
+  }
+
+  async assignRole(
+    actId: number,
+    initiatorId: number,
+    roleType: 'hero' | 'navigator',
+    candidateId?: number,
+  ) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: { userId: true, heroMethods: true, navigatorMethods: true },
+    });
+
+    if (!act) throw new NotFoundException('Act not found');
+
+    if (act.userId !== initiatorId) {
+      throw new ForbiddenException('Only the act initiator can assign roles');
+    }
+
+    const method = roleType === 'hero' ? act.heroMethods : act.navigatorMethods;
+
+    let selectedUserId: number;
+
+    if (method === SelectionMethods.MANUAL) {
+      if (!candidateId)
+        throw new BadRequestException(
+          'Candidate ID is required for MANUAL method',
+        );
+      const candidate = await this.prisma.roleCandidate.findUnique({
+        where: { id: candidateId },
+      });
+      if (
+        !candidate ||
+        candidate.actId !== actId ||
+        candidate.roleType !== roleType
+      ) {
+        throw new BadRequestException('Invalid candidate for this role');
+      }
+      selectedUserId = candidate.userId;
+    } else if (method === SelectionMethods.VOTING) {
+      // Находим кандидата с наибольшим количеством голосов
+      const topCandidate = await this.prisma.roleCandidate.findFirst({
+        where: { actId, roleType, method: SelectionMethods.VOTING },
+        include: { _count: { select: { votes: true } } },
+        orderBy: { votes: { _count: 'desc' } },
+      });
+
+      if (!topCandidate || topCandidate._count.votes === 0) {
+        throw new BadRequestException('No candidates with votes for this role');
+      }
+
+      selectedUserId = topCandidate.userId;
+    } else if (method === SelectionMethods.BIDDING) {
+      // Находим кандидата с максимальной ставкой
+      const topBid = await this.prisma.roleCandidate.findFirst({
+        where: { actId, roleType, method: SelectionMethods.BIDDING },
+        orderBy: { bidAmount: 'desc' },
+      });
+
+      if (!topBid || !topBid.bidAmount) {
+        throw new BadRequestException('No valid bids for this role');
+      }
+
+      selectedUserId = topBid.userId;
+    }
+
+    // Назначаем роль
+    const participant = await this.prisma.actParticipant.create({
+      data: {
+        actId,
+        userId: selectedUserId,
+        role: roleType,
+        status: 'active',
+      },
+      include: {
+        user: { select: { id: true, login: true, email: true } },
+      },
+    });
+
+    // Опционально: обновляем статус кандидата
+    await this.prisma.roleCandidate.updateMany({
+      where: { actId, roleType, userId: selectedUserId },
+      data: { status: 'approved' },
+    });
+
+    return participant;
+  }
+
+  async getCandidates(actId: number, roleType: 'hero' | 'navigator') {
+    // Вместо orderBy с _count
+    const candidates = await this.prisma.roleCandidate.findMany({
+      where: { actId, roleType, method: SelectionMethods.VOTING },
+      include: {
+        user: { select: { id: true, login: true, email: true } },
+        votes: true,
+        _count: { select: { votes: true } },
+      },
+    });
+
+    // Сортируем вручную по количеству голосов
+    candidates.sort((a, b) => b._count.votes - a._count.votes);
+
+    if (candidates.length === 0 || candidates[0]._count.votes === 0) {
+      throw new BadRequestException('No candidates with votes for this role');
+    }
+
+    const topCandidate = candidates[0];
+
+    return candidates;
   }
 }

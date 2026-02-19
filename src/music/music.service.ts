@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Multer } from 'multer';
 import * as mm from 'music-metadata';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -35,7 +34,7 @@ export class MusicService {
     });
   }
 
-  async uploadMusic(music: Multer.File) {
+  async uploadMusic(music: Express.Multer.File) {
     const filePath = path.join(process.cwd(), 'uploads/musics', music.filename);
 
     try {

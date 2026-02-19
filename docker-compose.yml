@@ -20,7 +20,7 @@ services:
       - SMTP_PORT=465
       - SMTP_USER=codered-it@coderedit.ru
       - SMTP_PASSWORD=Stas-2001
-      - REDIS_HOST=localhost
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
       - CACHE_TTL=3600
       - AGORA_APP_ID=67f58d2ce54b46ddb2e73f2cadaa6899
@@ -35,10 +35,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    command: sh -c "sleep 20 && npx prisma generate && nest start --watch"
+      - uploads_data:/usr/src/app/uploads
+      - recordings_data:/usr/src/app/recordings
+    command: sh -c "sleep 20 && npx prisma generate && npx prisma db push && nest start --watch"
 
   db:
     image: postgres:15-alpine
@@ -58,5 +62,20 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
+  redis_data:
+  uploads_data:
+  recordings_data:
