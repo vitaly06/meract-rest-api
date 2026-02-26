@@ -9,6 +9,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { DiscordStrategy } from './strategies/discord.strategy';
+import { TwitchStrategy } from './strategies/twitch.strategy';
 import { S3Module } from 'src/s3/s3.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
@@ -81,6 +83,8 @@ import { join } from 'path';
     JwtRefreshStrategy,
     JwtAuthGuard,
     GoogleStrategy,
+    DiscordStrategy,
+    TwitchStrategy,
   ],
 })
 export class AuthModule {}

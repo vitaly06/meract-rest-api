@@ -18,3 +18,25 @@ export interface RequestWithGoogleUser extends Request {
     accessToken: string;
   };
 }
+
+export interface RequestWithDiscordUser extends Request {
+  user: {
+    discordId: string;
+    email: string;
+    username: string;
+    displayName: string;
+    avatar: string | null;
+    accessToken: string;
+  };
+}
+
+export interface RequestWithTwitchUser extends Request {
+  user: {
+    twitchId: string;
+    email: string;
+    username: string;
+    displayName: string;
+    avatar: string;
+    accessToken: string;
+  };
+}

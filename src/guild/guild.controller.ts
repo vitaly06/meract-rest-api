@@ -9,12 +9,16 @@ import {
   Query,
   Req,
   UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { GuildService } from './guild.service';
-import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
 import { CreateGuildRequest } from './dto/create-guild.dto';
 import { Multer } from 'multer';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
@@ -36,6 +40,10 @@ export class GuildController {
           type: 'string',
           format: 'binary',
         },
+        cover: {
+          type: 'string',
+          format: 'binary',
+        },
       },
     },
   })
@@ -44,15 +52,25 @@ export class GuildController {
   })
   @ApiConsumes('multipart/form-data')
   @Post('create-guild')
-  @UseInterceptors(FileInterceptor('photo'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'photo', maxCount: 1 },
+      { name: 'cover', maxCount: 1 },
+    ]),
+  )
   @UseGuards(JwtAuthGuard)
   async createGuild(
     @Body() dto: CreateGuildRequest,
     @Req() req: RequestWithUser,
-    @UploadedFile() photo?: Express.Multer.File,
+    @UploadedFiles()
+    files: { photo?: Express.Multer.File[]; cover?: Express.Multer.File[] },
   ) {
-    console.log(photo?.filename);
-    return await this.guildService.createGuild(dto, req, photo?.filename);
+    return await this.guildService.createGuild(
+      dto,
+      req,
+      files?.photo?.[0] || null,
+      files?.cover?.[0] || null,
+    );
   }
 
   @Get('find-all')
@@ -102,17 +120,83 @@ export class GuildController {
     return await this.guildService.updateGuild(+id, dto, photo?.filename);
   }
 
+  @ApiTags('Guild requests')
+  @ApiOperation({
+    summary: 'Submit a request (join to guild)',
+  })
+  @Post('submit-request/:guildId')
+  @UseGuards(JwtAuthGuard)
+  async submitRequest(
+    @Param('guildId') guildId: string,
+    @Req() req: RequestWithUser,
+    @Body() body: { message?: string },
+  ) {
+    return await this.guildService.submitJoinRequest(
+      +guildId,
+      req.user.sub,
+      body.message,
+    );
+  }
+
+  @ApiTags('Guild requests')
+  @ApiOperation({
+    summary: 'Get join requests for a guild (owner only)',
+  })
+  @Get(':guildId/join-requests')
+  @UseGuards(JwtAuthGuard)
+  async getJoinRequests(
+    @Param('guildId') guildId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.getJoinRequests(+guildId, req.user.sub);
+  }
+
+  @ApiTags('Guild requests')
+  @ApiOperation({
+    summary: 'Approve a join request (owner only)',
+  })
+  @Post('join-requests/:requestId/approve')
+  @UseGuards(JwtAuthGuard)
+  async approveJoinRequest(
+    @Param('requestId') requestId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.handleJoinRequest(
+      +requestId,
+      req.user.sub,
+      'approved',
+    );
+  }
+
+  @ApiTags('Guild requests')
+  @ApiOperation({
+    summary: 'Reject a join request (owner only)',
+  })
+  @Post('join-requests/:requestId/reject')
+  @UseGuards(JwtAuthGuard)
+  async rejectJoinRequest(
+    @Param('requestId') requestId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.handleJoinRequest(
+      +requestId,
+      req.user.sub,
+      'rejected',
+    );
+  }
+  @ApiTags('Guild requests')
   @ApiOperation({
     summary: 'Adding a user to a guild',
   })
   @Post('invite-user')
   async inviteUser(
-    @Query('userId') userId: string,
+    @Query('user') user: string,
     @Query('guildId') guildId: string,
   ) {
-    return await this.guildService.inviteUser(+userId, +guildId);
+    return await this.guildService.inviteUser(user, +guildId);
   }
 
+  @ApiTags('Guild requests')
   @ApiOperation({
     summary: 'Delete user from guild',
   })

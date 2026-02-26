@@ -40,13 +40,11 @@ export class AgoraRecordingService {
   private readonly customerSecret: string;
   private readonly recordingsPath: string;
 
-  // Timeweb S3 (основное хранилище)
+  // AWS S3 для Agora Cloud Recording
   private readonly s3Client: S3Client;
   private readonly s3Bucket: string;
-
-  // AWS S3 (промежуточное хранилище для Agora)
-  private readonly awsS3Client: S3Client;
-  private readonly awsS3Bucket: string;
+  private readonly s3Prefix: string;
+  private readonly s3Region: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -59,22 +57,15 @@ export class AgoraRecordingService {
     );
     this.recordingsPath = path.join(process.cwd(), 'recordings');
 
-    // Инициализация Timeweb S3 клиента (основное хранилище)
-    this.s3Bucket = this.configService.get<string>('S3_BUCKET');
+    // Инициализация AWS S3 клиента для Agora Cloud Recording
+    this.s3Bucket = this.configService.get<string>('AWS_S3_BUCKET');
+    this.s3Prefix = this.configService.get<string>('AWS_S3_PREFIX', 'meract');
+    this.s3Region = this.configService.get<string>(
+      'AWS_S3_REGION',
+      'us-east-1',
+    );
     this.s3Client = new S3Client({
-      region: this.configService.get<string>('S3_REGION', 'ru-1'),
-      endpoint: this.configService.get<string>('S3_ENDPOINT'),
-      credentials: {
-        accessKeyId: this.configService.get<string>('S3_ACCESS_KEY'),
-        secretAccessKey: this.configService.get<string>('S3_SECRET_KEY'),
-      },
-      forcePathStyle: true,
-    });
-
-    // Инициализация AWS S3 клиента (промежуточное хранилище для Agora)
-    this.awsS3Bucket = this.configService.get<string>('AWS_S3_BUCKET');
-    this.awsS3Client = new S3Client({
-      region: this.configService.get<string>('AWS_S3_REGION', 'us-east-1'),
+      region: this.s3Region,
       credentials: {
         accessKeyId: this.configService.get<string>('AWS_S3_ACCESS_KEY'),
         secretAccessKey: this.configService.get<string>('AWS_S3_SECRET_KEY'),
@@ -82,7 +73,7 @@ export class AgoraRecordingService {
     });
 
     this.ensureRecordingsDirectory();
-    this.logger.log('S3 Clients initialized (Timeweb + AWS)');
+    this.logger.log('AWS S3 Client initialized for recordings');
   }
 
   /**
@@ -98,6 +89,70 @@ export class AgoraRecordingService {
       this.logger.error(
         `Failed to create recordings directory: ${error.message}`,
       );
+    }
+  }
+
+  /**
+   * Тест загрузки в S3 - проверка что IAM креды работают
+   */
+  async testS3Upload(): Promise<{
+    success: boolean;
+    message: string;
+    details?: any;
+  }> {
+    const testKey = `${this.s3Prefix}/test-upload-${Date.now()}.txt`;
+    const testContent = `Test upload at ${new Date().toISOString()}`;
+
+    try {
+      // Попытка загрузить тестовый файл
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: testKey,
+          Body: testContent,
+          ContentType: 'text/plain',
+        }),
+      );
+
+      this.logger.log(`Test upload successful: ${testKey}`);
+
+      // Попытка прочитать файл обратно
+      const getResult = await this.s3Client.send(
+        new GetObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: testKey,
+        }),
+      );
+
+      // Удалить тестовый файл
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: testKey,
+        }),
+      );
+
+      return {
+        success: true,
+        message: 'S3 upload/read/delete test passed!',
+        details: {
+          bucket: this.s3Bucket,
+          region: this.s3Region,
+          testKey,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`S3 test failed: ${error.message}`);
+      return {
+        success: false,
+        message: `S3 test failed: ${error.message}`,
+        details: {
+          bucket: this.s3Bucket,
+          region: this.s3Region,
+          error: error.name,
+          code: error.Code || error.$metadata?.httpStatusCode,
+        },
+      };
     }
   }
 
@@ -174,12 +229,17 @@ export class AgoraRecordingService {
               subscribeUidGroup: 0, // 0: subscribe to all UIDs
             },
             storageConfig: {
-              vendor: 1, // 1: Amazon S3 (промежуточное хранилище, потом копируем в Timeweb)
-              region: 0, // 0: US_EAST_1
-              bucket: this.configService.get<string>('AWS_S3_BUCKET'),
+              vendor: 1, // 1: Amazon S3
+              region: 6, // 6: EU_CENTRAL_1 (Frankfurt)
+              bucket: this.s3Bucket,
               accessKey: this.configService.get<string>('AWS_S3_ACCESS_KEY'),
               secretKey: this.configService.get<string>('AWS_S3_SECRET_KEY'),
-              fileNamePrefix: ['recordings', channelName.replace('act_', '')],
+              fileNamePrefix: [
+                this.s3Prefix,
+                'recordings',
+                channelName.replace('act_', ''),
+              ],
+              sseType: 0, // 0: No encryption, explicit
             },
           },
         },
@@ -189,6 +249,15 @@ export class AgoraRecordingService {
             'Content-Type': 'application/json',
           },
         },
+      );
+
+      // Логируем конфигурацию для отладки
+      const accessKey = this.configService.get<string>('AWS_S3_ACCESS_KEY');
+      const secretKey = this.configService.get<string>('AWS_S3_SECRET_KEY');
+      this.logger.debug(
+        `S3 Config: bucket=${this.s3Bucket}, prefix=${this.s3Prefix}, region=6 (eu-central-1), ` +
+          `accessKey=${accessKey ? accessKey.substring(0, 4) + '***' : 'MISSING'}, ` +
+          `secretKey=${secretKey ? '***' + secretKey.slice(-4) : 'MISSING'}`,
       );
 
       this.logger.log(
@@ -269,7 +338,7 @@ export class AgoraRecordingService {
 
   /**
    * Обработка webhook от Agora о завершении записи
-   * Скачивает файл из AWS S3 и загружает в Timeweb S3
+   * Сохраняем URL файла из AWS S3 в БД
    */
   async handleRecordingCompleted(
     actId: number,
@@ -306,8 +375,17 @@ export class AgoraRecordingService {
         );
       });
 
-      // Ищем mp4 файл (m3u8 сложнее для переноса из-за сегментов)
-      let mainFile = fileList.find((f) => f.fileName?.endsWith('.mp4'));
+      // Agora Cloud Recording сохраняет HLS: ищем m3u8 плейлист (финальный с наибольшим индексом)
+      const m3u8Files = fileList.filter((f) => f.fileName?.endsWith('.m3u8'));
+      let mainFile = m3u8Files.sort((a, b) => {
+        // Сортируем по индексу в имени файла (например _5.m3u8 > _4.m3u8)
+        const matchA = a.fileName?.match(/_(\d+)\.m3u8$/);
+        const matchB = b.fileName?.match(/_(\d+)\.m3u8$/);
+        const indexA = matchA ? parseInt(matchA[1]) : 0;
+        const indexB = matchB ? parseInt(matchB[1]) : 0;
+        return indexB - indexA; // Наибольший индекс первый
+      })[0];
+
       if (!mainFile) {
         mainFile = fileList[0];
       }
@@ -317,21 +395,8 @@ export class AgoraRecordingService {
         return;
       }
 
-      // Скачиваем файл из AWS S3
-      this.logger.log(`Downloading ${mainFile.fileName} from AWS S3...`);
-      const fileBuffer = await this.downloadFromAwsS3(mainFile.fileName);
-
-      // Загружаем в Timeweb S3
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const newFileName = `act_${actId}_${timestamp}.mp4`;
-      const s3Key = `recordings/${newFileName}`;
-
-      this.logger.log(`Uploading to Timeweb S3: ${s3Key}...`);
-      await this.uploadBufferToTimewebS3(s3Key, fileBuffer);
-
-      // Формируем URL
-      const endpoint = this.configService.get<string>('S3_ENDPOINT');
-      const recordingUrl = `${endpoint}/${this.s3Bucket}/${s3Key}`;
+      // Формируем URL записи в AWS S3
+      const recordingUrl = `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${mainFile.fileName}`;
 
       // Обновляем БД
       await this.prisma.act.update({
@@ -342,18 +407,8 @@ export class AgoraRecordingService {
         },
       });
 
-      // Удаляем из AWS S3 (опционально, для экономии места)
-      try {
-        await this.deleteFromAwsS3(mainFile.fileName);
-        this.logger.log(`Deleted ${mainFile.fileName} from AWS S3`);
-      } catch (deleteError) {
-        this.logger.warn(
-          `Failed to delete from AWS S3: ${deleteError.message}`,
-        );
-      }
-
       this.logger.log(
-        `Recording transferred for act ${actId}. URL: ${recordingUrl}`,
+        `Recording completed for act ${actId}. URL: ${recordingUrl}`,
       );
     } catch (error) {
       this.logger.error(
@@ -364,52 +419,148 @@ export class AgoraRecordingService {
   }
 
   /**
-   * Скачать файл из AWS S3
+   * Обработка session_exit (eventType 11) - fallback если eventType 31 не пришёл
+   * Ищем файлы в S3 по известному prefix
    */
-  private async downloadFromAwsS3(key: string): Promise<Buffer> {
-    const command = new GetObjectCommand({
-      Bucket: this.awsS3Bucket,
-      Key: key,
-    });
-
-    const response = await this.awsS3Client.send(command);
-    const stream = response.Body as Readable;
-
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      stream.on('data', (chunk) => chunks.push(chunk));
-      stream.on('end', () => resolve(Buffer.concat(chunks)));
-      stream.on('error', reject);
-    });
-  }
-
-  /**
-   * Загрузить буфер в Timeweb S3
-   */
-  private async uploadBufferToTimewebS3(
-    key: string,
-    buffer: Buffer,
+  async handleSessionExit(
+    actId: number,
+    sid: string,
+    channelName: string,
   ): Promise<void> {
-    const command = new PutObjectCommand({
-      Bucket: this.s3Bucket,
-      Key: key,
-      Body: buffer,
-      ContentType: 'video/mp4',
-    });
+    try {
+      // Проверяем, не обработана ли уже запись
+      const act = await this.prisma.act.findUnique({
+        where: { id: actId },
+        select: {
+          id: true,
+          recordingStatus: true,
+          recordingUrl: true,
+        },
+      });
 
-    await this.s3Client.send(command);
-  }
+      if (!act) {
+        this.logger.warn(`Act ${actId} not found for session exit`);
+        return;
+      }
 
-  /**
-   * Удалить файл из AWS S3
-   */
-  private async deleteFromAwsS3(key: string): Promise<void> {
-    const command = new DeleteObjectCommand({
-      Bucket: this.awsS3Bucket,
-      Key: key,
-    });
+      // Если запись уже обработана (eventType 31 пришёл раньше), пропускаем
+      if (act.recordingStatus === 'completed' && act.recordingUrl) {
+        this.logger.log(
+          `Act ${actId} already has recording URL, skipping session exit handler`,
+        );
+        return;
+      }
 
-    await this.awsS3Client.send(command);
+      // Формируем prefix для поиска в S3
+      // Agora сохраняет файлы в формате: {prefix}/recordings/{actId}/{sid}_xxx.mp4
+      const actIdFromChannel = channelName.replace('act_', '');
+      const searchPrefix = `${this.s3Prefix}/recordings/${actIdFromChannel}/`;
+
+      this.logger.log(
+        `Searching for recordings in S3 with prefix: ${searchPrefix}`,
+      );
+
+      // Retry логика: S3 имеет eventual consistency, файлы могут появиться с задержкой
+      const maxRetries = 5;
+      const retryDelayMs = 3000; // 3 секунды между попытками
+      let response: any = null;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        // Ждём перед проверкой (кроме первой попытки можно сразу, но лучше подождать)
+        if (attempt > 1) {
+          this.logger.log(
+            `Retry ${attempt}/${maxRetries}: waiting ${retryDelayMs}ms...`,
+          );
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, attempt === 1 ? 2000 : retryDelayMs),
+        );
+
+        // Ищем файлы в S3
+        const command = new ListObjectsV2Command({
+          Bucket: this.s3Bucket,
+          Prefix: searchPrefix,
+        });
+
+        response = await this.s3Client.send(command);
+
+        if (response.Contents && response.Contents.length > 0) {
+          this.logger.log(
+            `Found ${response.Contents.length} files for act ${actId} on attempt ${attempt}`,
+          );
+          break;
+        }
+
+        if (attempt === maxRetries) {
+          this.logger.warn(
+            `No recordings found in S3 for act ${actId} after ${maxRetries} attempts`,
+          );
+
+          // Обновляем статус на failed
+          await this.prisma.act.update({
+            where: { id: actId },
+            data: {
+              recordingStatus: 'failed',
+            },
+          });
+          return;
+        }
+      }
+
+      if (!response?.Contents || response.Contents.length === 0) {
+        return;
+      }
+
+      // Agora Cloud Recording сохраняет HLS формат: .ts (сегменты) и .m3u8 (плейлисты)
+      // Ищем m3u8 плейлист с нужным sid (финальный плейлист имеет наибольший индекс)
+      const m3u8Files = response.Contents.filter(
+        (obj) => obj.Key?.endsWith('.m3u8') && obj.Key?.includes(sid),
+      );
+
+      let mainFile = m3u8Files.sort(
+        (a, b) =>
+          new Date(b.LastModified || 0).getTime() -
+          new Date(a.LastModified || 0).getTime(),
+      )[0];
+
+      // Если не нашли с sid, берём последний m3u8 файл
+      if (!mainFile) {
+        const allM3u8 = response.Contents.filter((obj) =>
+          obj.Key?.endsWith('.m3u8'),
+        );
+        mainFile = allM3u8.sort(
+          (a, b) =>
+            new Date(b.LastModified || 0).getTime() -
+            new Date(a.LastModified || 0).getTime(),
+        )[0];
+      }
+
+      if (!mainFile?.Key) {
+        this.logger.warn(`No M3U8 playlist found in S3 for act ${actId}`);
+        return;
+      }
+
+      // Формируем URL
+      const recordingUrl = `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${mainFile.Key}`;
+
+      // Обновляем БД
+      await this.prisma.act.update({
+        where: { id: actId },
+        data: {
+          recordingUrl,
+          recordingStatus: 'completed',
+        },
+      });
+
+      this.logger.log(
+        `Recording found via session exit for act ${actId}. URL: ${recordingUrl}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle session exit for act ${actId}: ${error.message}`,
+        error.stack,
+      );
+    }
   }
 
   /**
@@ -560,7 +711,7 @@ export class AgoraRecordingService {
   // ==================== S3 STORAGE METHODS ====================
 
   /**
-   * Загрузить запись в S3
+   * Загрузить запись в AWS S3
    */
   async uploadToS3(
     actId: number,
@@ -570,22 +721,21 @@ export class AgoraRecordingService {
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const filename = `act_${actId}_${actTitle.replace(/[^a-z0-9]/gi, '_')}_${timestamp}.mp4`;
-      const s3Key = `recordings/${filename}`;
+      const s3Key = `${this.s3Prefix}/recordings/${filename}`;
 
       const command = new PutObjectCommand({
         Bucket: this.s3Bucket,
         Key: s3Key,
         Body: fileBuffer,
         ContentType: 'video/mp4',
-        ACL: 'public-read', // Если нужен публичный доступ
       });
 
       await this.s3Client.send(command);
 
-      this.logger.log(`File uploaded to S3: ${s3Key}`);
+      this.logger.log(`File uploaded to AWS S3: ${s3Key}`);
 
-      // Обновляем URL в БД
-      const s3Url = `${this.configService.get('S3_ENDPOINT')}/${this.s3Bucket}/${s3Key}`;
+      // Формируем AWS S3 URL
+      const s3Url = `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${s3Key}`;
       await this.prisma.act.update({
         where: { id: actId },
         data: {
@@ -602,13 +752,13 @@ export class AgoraRecordingService {
   }
 
   /**
-   * Получить список всех записей из S3
+   * Получить список всех записей из AWS S3
    */
   async getAllRecordingsFromS3(): Promise<any[]> {
     try {
       const command = new ListObjectsV2Command({
         Bucket: this.s3Bucket,
-        Prefix: 'recordings/',
+        Prefix: `${this.s3Prefix}/recordings/`,
       });
 
       const response = await this.s3Client.send(command);
@@ -617,23 +767,28 @@ export class AgoraRecordingService {
         return [];
       }
 
+      // Agora Cloud Recording сохраняет в HLS формате: .ts (видео-сегменты) и .m3u8 (плейлисты)
       const recordings = await Promise.all(
-        response.Contents.filter((obj) => obj.Key.endsWith('.mp4')).map(
-          async (obj) => {
-            const filename = obj.Key.split('/').pop();
-            const match = filename.match(/^act_(\d+)_/);
-            const actId = match ? parseInt(match[1]) : null;
+        response.Contents.filter(
+          (obj) =>
+            obj.Key.endsWith('.ts') ||
+            obj.Key.endsWith('.m3u8') ||
+            obj.Key.endsWith('.mp4'),
+        ).map(async (obj) => {
+          const filename = obj.Key.split('/').pop();
+          // Формат: {sid}_act_{actId}_timestamp.ts или {sid}_act_{actId}_timestamp_N.m3u8
+          const match = filename.match(/_act_(\d+)_/);
+          const actId = match ? parseInt(match[1]) : null;
 
-            return {
-              key: obj.Key,
-              filename,
-              size: obj.Size,
-              lastModified: obj.LastModified,
-              actId,
-              url: `${this.configService.get('S3_ENDPOINT')}/${this.s3Bucket}/${obj.Key}`,
-            };
-          },
-        ),
+          return {
+            key: obj.Key,
+            filename,
+            size: obj.Size,
+            lastModified: obj.LastModified,
+            actId,
+            url: `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${obj.Key}`,
+          };
+        }),
       );
 
       return recordings.sort(

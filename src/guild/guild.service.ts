@@ -11,6 +11,7 @@ import { UpdateGuildRequest } from './dto/update-guild.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
 import { ConfigService } from '@nestjs/config';
 import { SendGuildMessageDto } from './dto/send-guild-message.dto';
+import { S3Service } from 'src/s3/s3.service';
 
 @Injectable()
 export class GuildService {
@@ -19,6 +20,7 @@ export class GuildService {
     private readonly prisma: PrismaService,
     private readonly utilsSerivce: UtilsService,
     private readonly configService: ConfigService,
+    private readonly s3Service: S3Service,
   ) {
     this.baseUrl = configService.get<string>(
       'BASE_URL',
@@ -29,13 +31,25 @@ export class GuildService {
   async createGuild(
     dto: CreateGuildRequest,
     req: RequestWithUser,
-    fileName?: string,
+    file: Express.Multer.File | null,
+    cover: Express.Multer.File | null,
   ) {
     const { name, description } = { ...dto };
 
     const checkGuild = await this.prisma.guild.findUnique({
       where: { name },
     });
+
+    let photoS3Data = null;
+    let coverS3Data = null;
+
+    if (file) {
+      photoS3Data = await this.s3Service.uploadFile(file);
+    }
+
+    if (cover) {
+      coverS3Data = await this.s3Service.uploadFile(cover);
+    }
 
     if (checkGuild) {
       throw new BadRequestException('A guild with this name already exists');
@@ -45,7 +59,8 @@ export class GuildService {
       data: {
         name,
         description,
-        logoFileName: fileName,
+        logoFileName: photoS3Data?.url || null,
+        coverFileName: coverS3Data?.url || null,
         ownerId: req.user.sub,
       },
     });
@@ -65,12 +80,7 @@ export class GuildService {
   async findAll() {
     const guilds = await this.prisma.guild.findMany();
 
-    return guilds.map((guild) => {
-      return {
-        ...guild,
-        logoFileName: `${this.baseUrl}/uploads/guilds/${guild.logoFileName}`,
-      };
-    });
+    return guilds;
   }
 
   async findById(guildId: number) {
@@ -85,12 +95,7 @@ export class GuildService {
       throw new NotFoundException('Guild not found');
     }
 
-    return {
-      ...guild,
-      logoFileName: guild.logoFileName
-        ? `${this.baseUrl}/uploads/guilds/${guild.logoFileName}`
-        : null,
-    };
+    return guild;
   }
 
   async updateGuild(id: number, dto: UpdateGuildRequest, fileName?: string) {
@@ -116,21 +121,22 @@ export class GuildService {
     return { message: 'Guild successfully updated' };
   }
 
-  async inviteUser(userId: number, guildId: number) {
-    const checkUser = await this.prisma.user.findUnique({
-      where: { id: userId },
+  async inviteUser(user: string, guildId: number) {
+    const checkUser = await this.prisma.user.findFirst({
+      where: { OR: [{ email: user }, { login: user }] },
       include: {
         Guild: true,
       },
     });
     if (!checkUser) {
-      throw new NotFoundException('User with this id not found');
+      throw new NotFoundException('User not found');
     }
 
     // Проверяем, что пользователь не состоит в другой гильдии
     if (checkUser.guildId && checkUser.guildId !== guildId) {
-      const currentGuild = checkUser.Guild;
-      if (currentGuild.ownerId === userId) {
+      const currentGuild = checkUser?.Guild;
+
+      if (currentGuild && currentGuild.ownerId === checkUser.id) {
         throw new BadRequestException(
           'User is the owner of another guild and cannot be invited',
         );
@@ -144,7 +150,7 @@ export class GuildService {
       where: { id: guildId },
       data: {
         members: {
-          connect: { id: userId },
+          connect: { id: checkUser.id },
         },
       },
     });
@@ -324,5 +330,140 @@ export class GuildService {
     });
 
     return { message: 'Message successfully deleted' };
+  }
+
+  async submitJoinRequest(guildId: number, userId: number, message?: string) {
+    // Проверяем, существует ли гильдия
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+      include: { members: true },
+    });
+
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
+    // Проверяем, не является ли пользователь уже членом гильдии
+    const isMember = guild.members.some((member) => member.id === userId);
+    if (isMember) {
+      throw new BadRequestException('You are already a member of this guild');
+    }
+
+    // Проверяем, нет ли уже заявки
+    const existingRequest = await this.prisma.guildJoinRequest.findUnique({
+      where: {
+        guildId_userId: { guildId, userId },
+      },
+    });
+
+    if (existingRequest) {
+      if (existingRequest.status === 'pending') {
+        throw new BadRequestException(
+          'You already have a pending request to join this guild',
+        );
+      }
+      if (existingRequest.status === 'rejected') {
+        // Обновляем отклонённую заявку на новую
+        await this.prisma.guildJoinRequest.update({
+          where: { id: existingRequest.id },
+          data: { status: 'pending', message },
+        });
+        return { message: 'Join request resubmitted successfully' };
+      }
+    }
+
+    // Создаём новую заявку
+    await this.prisma.guildJoinRequest.create({
+      data: {
+        guildId,
+        userId,
+        message,
+      },
+    });
+
+    return { message: 'Join request submitted successfully' };
+  }
+
+  async getJoinRequests(guildId: number, userId: number) {
+    // Проверяем, что гильдия существует и пользователь - владелец
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+    });
+
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
+    if (guild.ownerId !== userId) {
+      throw new ForbiddenException(
+        'Only the guild owner can view join requests',
+      );
+    }
+
+    const requests = await this.prisma.guildJoinRequest.findMany({
+      where: { guildId, status: 'pending' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return requests;
+  }
+
+  async handleJoinRequest(
+    requestId: number,
+    userId: number,
+    action: 'approved' | 'rejected',
+  ) {
+    // Находим заявку
+    const request = await this.prisma.guildJoinRequest.findUnique({
+      where: { id: requestId },
+      include: { guild: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Join request not found');
+    }
+
+    // Проверяем, что пользователь - владелец гильдии
+    if (request.guild.ownerId !== userId) {
+      throw new ForbiddenException(
+        'Only the guild owner can approve or reject requests',
+      );
+    }
+
+    if (request.status !== 'pending') {
+      throw new BadRequestException('This request has already been processed');
+    }
+
+    // Обновляем статус заявки
+    await this.prisma.guildJoinRequest.update({
+      where: { id: requestId },
+      data: { status: action },
+    });
+
+    // Если одобрено - добавляем пользователя в гильдию
+    if (action === 'approved') {
+      await this.prisma.guild.update({
+        where: { id: request.guildId },
+        data: {
+          members: {
+            connect: { id: request.userId },
+          },
+        },
+      });
+
+      return { message: 'User has been added to the guild' };
+    }
+
+    return { message: 'Join request has been rejected' };
   }
 }

@@ -513,7 +513,8 @@ CREATE TABLE public."Guild" (
     "logoFileName" text,
     "ownerId" integer NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "coverFileName" text
 );
 
 
@@ -554,6 +555,45 @@ ALTER SEQUENCE public."GuildChatMessage_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."GuildChatMessage_id_seq" OWNED BY public."GuildChatMessage".id;
+
+
+--
+-- Name: GuildJoinRequest; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."GuildJoinRequest" (
+    id integer NOT NULL,
+    "guildId" integer NOT NULL,
+    "userId" integer NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    message text,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."GuildJoinRequest" OWNER TO postgres;
+
+--
+-- Name: GuildJoinRequest_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."GuildJoinRequest_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."GuildJoinRequest_id_seq" OWNER TO postgres;
+
+--
+-- Name: GuildJoinRequest_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."GuildJoinRequest_id_seq" OWNED BY public."GuildJoinRequest".id;
 
 
 --
@@ -1126,6 +1166,13 @@ ALTER TABLE ONLY public."GuildChatMessage" ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
+-- Name: GuildJoinRequest id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildJoinRequest" ALTER COLUMN id SET DEFAULT nextval('public."GuildJoinRequest_id_seq"'::regclass);
+
+
+--
 -- Name: Intro id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1217,12 +1264,14 @@ COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 --
 
 COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes, "effectId", "spotAgentCount", "spotAgentMethods", "biddingTime") FROM stdin;
-14	fgfgffg	/uploads/acts/1771447569099-114656545.png	1	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-18 20:46:09.123	2026-02-18 20:46:42.505	\N	1	vtsbeKT89Swx3Hz6Im5tA88GIyzmPCysM3rJnekPOMLOMWTbCK0IvI4gCfO5_dD5HdClyddLEiH_BU4atp4AWQMvaeOzQ29VB0hVqDTdmn7VGD2vEXMOPsQMD8i4nvFX9P30K16Lv6XqrA1I30a21KefYWtpYIZUSsCgJ3W0Y5uxsoEX6pYyzXF4GcPB38-s	5fc28452954050efeb81088e5aeacdee	recording	\N	55.75282873553638	37.60734529396444	\N	\N	0	\N	1	VOTING	2026-02-18 20:51:09.074
-8	CS 2 Faceit Stream	/uploads/acts/1764699559719-538835166.jpg	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2025-12-02 18:19:19.747	\N	\N	1	Rd0701k3jtPKwxuNxg4691mtGLg-5rRSR3QLNeSuFVGfqToQwxWUgI-yCcgYbZq1_ysvFqNbHCn95B-bYvoSQzrvV2O_d2REnPcsv-dDt77mhank_QRfdU6f_kM65gFEeYf5J0rHODG6hiJHLyl1G9g8d2-3ngqXxgeeZOGrF3s_VEZbIUIYgY035rr7pbSu	56e3fbbb4248fd693d80148605a2d278	recording	\N	52.370216	4.895168	52.3675734	4.9041389	0	\N	0	VOTING	\N
-9	CS 2 Faceit Stream	/uploads/acts/1768479397608-406969982.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-01-15 12:16:37.643	\N	\N	1	R5DE95FiFRtTFIU08vyNQ2jZAZZ1HrOi77yu3WhrvUOf_YpWHOSs_3OD-obTGJDAa_7ka1PkUZYwS6oCEqufR28ue44S0MeZmqxpI5WB_O-NPoeFCpnBH8ZIN3wDBxn9HbvBt-iZyHqy5CBpfeP_QHd3ehaepQ5S4BWSrb1L25Bu1_wvM3-A1rdOVFjywozg	f81332567441b4546e2bf69ebb3bd305	recording	\N	52.370216	4.895168	52.3675734	4.9041389	0	\N	0	VOTING	\N
-11	trtret	/uploads/acts/1770819083590-60410241.png	1	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-11 14:11:23.616	2026-02-11 14:11:50.599	\N	1	IJ9ScqVWQVLboP_hgb3KMQRCFbO4of7Y3V1KywL9BduduwItpPU_GpqA3S8upQGNB54k-Kb-1xqmKpZA9YXDB9idSJRvGZiVqmAmHHmb2kEFiDn9AqW-FXLDb1WKzyP7Z7Oze2SCloYk59dFyIpm3n_jbgFv99-LoNlINHVf_yldpVc7bclLravvXVXRnFsu	d3d362836c4ef099341137856fd90186	recording	\N	55.74129844951926	37.61845779314172	\N	\N	0	\N	1	VOTING	\N
-12	gfgfdgfdg	/uploads/acts/1770819939252-334518745.png	1	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-11 14:25:39.281	2026-02-11 14:26:13.865	\N	1	eLkRRq2aBZIcle3NjuCkCSPGHfOIc7LYOv6Tc3CzyOjI0zwlslfxOkeQqDiz6t1ZVnV3CkZ1NTFIZS8Er8PLS6ZS2CjFRdWslU5hnk4fRtKEkl2FqfB4nL2lG7SwTQCJyRiF-jL5qOxCPQifgpHAMkTgf71R1VPWLnZXoK-AFnI9udf1KbX0Gi0JxMKAUTP9	56eae2105d459f914e8b82a9f5926544	recording	\N	55.75202328476227	37.60472488298547	\N	\N	0	\N	1	VOTING	\N
-13	gfdfgdffg	/uploads/acts/1770820379760-996104787.png	1	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-11 14:32:59.788	2026-02-11 14:33:30.096	\N	1	vruUYgrq7hqxONockBxpUdUwCB-b2InCTUb2bvP-009mA18DKTFMde92oSVzWVn9oI6-QQAlBYXPqABah86ldhJPKB7M1phTpygCOnQtV4RyKB05YLUGtbpw4_w3JROOMbHTele0lVVWy9uhqLVYW9jAW4VoAyH721GiFslwvYSRFwIJ5Ee1AT8XJ1U0MNP1	2dcd73bc994dc55b4b2f86b3b7a1f3c0	recording	\N	55.73936573331706	37.6335639943136	\N	\N	0	\N	1	VOTING	\N
+24	апавпапав	/uploads/acts/1771704054788-50599762.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:00:54.897	2026-02-21 20:01:28.094	\N	1	hxihVkPdE2RrsklnoWVPfPNlV9R6gLAkNrFcodp0TGzl-B0jcgTv2gd1vJQ9TmzwxqyLt-8KAIX2CPciZwe2-7aOvxOlIhoS0rlni9rBgtZQauDfwa0x8RAthA7uRDLhpglest_BHW410ivTGc-an4MLfTSsQtSDR8ODYHGsS7q7c9mvPN5topY8G356mZWG	43f51ee73b4b8e3a5ab00bb5b66022b4	failed	\N	55.74914429386128	37.59964370714443	\N	\N	0	\N	1	VOTING	2026-02-21 20:05:54.693
+20	gfgdggfdgf	/uploads/acts/1771601735501-908500336.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:35:35.619	2026-02-20 15:36:19.183	\N	8	_BDv6sMSOoNBditCLXy8OMGp3iHo_26T4ymZvbVqkUL-CQ_XHsUtHxepUQp0VdFyrSBugDVceJ2khqAnw2i6TnyHWXflrVHNVYsLiY2NgJms5qLjligGKwjdAjKShRxTvH_qv4xdbuNxxPTF8EiDivjl03aFAKOqeOSgjhQiICKH6rZrQYn7venU9mUeo8U0	73b5645f54453275a44009917affcb4d	failed	\N	55.74131777590301	37.63689422594326	\N	\N	0	\N	1	VOTING	2026-02-20 15:40:35.419
+25	fgfgfd	/uploads/acts/1771704591660-890934921.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:09:51.711	2026-02-21 20:10:27.057	\N	1	roAtozmtBkVxSbALApH1q6jEj8MJamTnrF4qyTRuV5g2M5cQkJEeZ18dk87XKdWlahs_eh8Zmr-XKduVpRU0kI1m21tUIranerDX96o5m39xgw1RbwDdFF3CRCuvXKNLUxfd3d0TW8r4IaQTbG6LOazq3TZjuMqjOUHz88-IAscEejs3uHa6fAipLPVhIT_c	6ddb98ca3c47aab8c9b4dca6251a1ab7	failed	\N	55.74759843942743	37.60822677599209	\N	\N	0	\N	1	VOTING	2026-02-21 20:14:51.611
+21	gfgfgf	/uploads/acts/1771601895116-731875344.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:38:15.209	2026-02-20 15:38:47.131	\N	8	2NrOxwNZv1rKBV3784aUbVA2NO888e9B_EUiaMr7Fw9uC2kxjkRCPzACNTfuHnbYBmC4wHM_fq6qMt_9CocdwOYQC9y2EVGPOZALPCXmuPAhQObxxS_jGyuIhCcXgpaD6mtnFzEs58wGT9FoOzVw9kTpR7JTBUAsEk4NKfeY7YSM77vBUuUGhStCve6DLYBE	e4c0c792494b3254ebf7a6828e3666cb	failed	\N	55.75088330688495	37.61354827867763	\N	\N	0	\N	1	VOTING	2026-02-20 15:43:15.004
+26	title	/uploads/acts/1771919465806-474854330.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-02-24 07:51:05.833	\N	\N	1	46eyU5df1pp9Z5NVX3787EBAllRCTlaRSwyGV72MghPDPpvOX-Bn-lmDWzhskDW1-_IxgIX9xAHumBvl0sHUkDyCgu0jyXfkHbSBgw8lg3ZzTAUJexQiDMx83l-n2hdAkgE1vSUx54qo9PVNGfpNdX18rxVrB-gZoLryA1Fvj4dhsaLp2FrGwBLJaHW5td5W	35c6bf06a14c64925a311ab01d9b5eae	recording	\N	55.74721196624832	37.59998702989834	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:05.737
+22	tgfdgfgfd	/uploads/acts/1771616825855-662215036.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 19:47:05.872	2026-02-20 19:47:46.04	\N	1	Ljr56LzivhEPgJ-rJpDxcubDhOUx2DRmdIbFXrD_GFbN-cE2rAYR-dO1bleVsra2DGB3D2EjVYJCGliilr2VHXlAIzZPs0F5P2BaI07KnR2EOKGJ4zxTIW-dCNY0Usowg5LuYo1Qg-UCocbE5j9c58BiTSVcgKPM-OUslxpvFAJc0hNXNr3C-HR8TvewByuV	52ac907a0449887ac1491ab40861fffc	failed	\N	55.74102787471819	37.60239028917568	\N	\N	0	\N	1	VOTING	2026-02-20 19:52:05.809
+23	titllee	/uploads/acts/1771703743355-353591108.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 19:55:43.45	2026-02-21 19:56:13.62	\N	1	HrA20628gWxFgePtSvC7U6JC479bErXUwdU1ervkE_fa__5a8w88psqJEgz44RE_BPIceT1T_4nQcLlrMwnjlhIoPqrPQTAeTrhcRG3QxmRReHIzgz_3xkS8xd1Teq4RZnHCNkE4P1zL3jfZhyxK1bEFhtARFEbvwdgJiQZH9MLYNqI8S7woEaTJOsguwzK_	20f406f8da4080e49d38fa9c6a386357	failed	\N	55.75803176823725	37.62487792955654	\N	\N	0	\N	1	VOTING	2026-02-21 20:00:43.28
+27	title	/uploads/acts/1771919517267-320857045.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-24 07:51:57.281	2026-02-24 07:52:30.469	\N	1	wNTCdqyZpKLwysHmhSKDamICnXc6rEWkQPHx-m9nlxgDlFKu_DeoniblQu_Le9n3VSNHi-7dMajT40ZLNPb5TurDirt5rFU1hfj9gMDCTBTNbRWqMfK4uJg4GCJGxZERpNxIsMqrb2xh4rPgu5N-dSRRCKYW2Cgd5EvkcScpZduiWyInXewJAh8Z2YWU_iFn	5de551d80c4bb25c8413f886675211ec	recording	\N	\N	\N	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:57.242
 \.
 
 
@@ -1231,15 +1280,14 @@ COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "hero
 --
 
 COPY public."ActMusic" ("actId", "musicId", "order") FROM stdin;
-8	1	0
-8	2	1
-8	3	2
-9	1	0
-9	2	1
-11	1	0
-12	2	0
-13	2	0
-14	2	0
+20	3	0
+21	2	0
+22	2	0
+23	2	0
+24	2	0
+25	2	0
+26	2	0
+27	2	0
 \.
 
 
@@ -1280,11 +1328,14 @@ COPY public."ActSpotAgentVote" (id, "candidateId", "voterId", "votedAt") FROM st
 --
 
 COPY public."ActTask" (id, title, "isCompleted", "createdAt", "completedAt", "actId") FROM stdin;
-3	ggfd	f	2026-02-11 14:11:23.843	\N	11
-4	gfgdfgfd	f	2026-02-11 14:25:39.521	\N	12
-5	vcvdfcvc	f	2026-02-11 14:33:00.028	\N	13
-6	gfggf	f	2026-02-18 20:46:09.324	\N	14
-7	gfgfgf	f	2026-02-18 20:46:09.345	\N	14
+13	ddfdfdfdfd	f	2026-02-20 15:35:36.261	\N	20
+14	vcvcxvcx	f	2026-02-20 15:38:15.578	\N	21
+16	gfdgfdgfd	t	2026-02-20 19:47:06.107	2026-02-20 19:47:10.536	22
+15	vxcvcxvcx	t	2026-02-20 19:47:06.108	2026-02-20 19:47:11.042	22
+17	fdfdfd	f	2026-02-21 19:55:43.963	\N	23
+18	папаа	f	2026-02-21 20:00:55.468	\N	24
+19	fdgfgdf	f	2026-02-21 20:09:52.084	\N	25
+20	dsdssdsds	f	2026-02-24 07:51:05.988	\N	26
 \.
 
 
@@ -1316,8 +1367,8 @@ COPY public."Effect" (id, "fileName", "userId") FROM stdin;
 -- Data for Name: Guild; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdAt", "updatedAt") FROM stdin;
-1	pvp	main guild	1764170902115-277023800.jpg	1	2025-11-26 15:28:22.134	2025-11-26 15:28:22.134
+COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdAt", "updatedAt", "coverFileName") FROM stdin;
+4	Main guild	Lorem description pupupupupu	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771969320088-7ed7787453b296e18901b5c4830a3f7b5d97682a.png	1	2026-02-24 21:42:00.971	2026-02-24 21:42:00.971	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771969320525-133c1306c8789c6235c8d0006bb094cc32ca9721.png
 \.
 
 
@@ -1326,6 +1377,14 @@ COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdA
 --
 
 COPY public."GuildChatMessage" (id, message, "createdAt", "userId", "guildId") FROM stdin;
+\.
+
+
+--
+-- Data for Name: GuildJoinRequest; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."GuildJoinRequest" (id, "guildId", "userId", status, message, "createdAt", "updatedAt") FROM stdin;
 \.
 
 
@@ -1398,9 +1457,6 @@ COPY public."RoleVote" (id, "candidateId", "voterId", "votedAt") FROM stdin;
 --
 
 COPY public."RoutePoint" (id, "actId", latitude, longitude, "order", "createdAt") FROM stdin;
-1	9	52.3676	4.9041	0	2026-01-15 12:16:37.645
-2	9	52.37	4.895	1	2026-01-15 12:16:37.645
-3	9	52.375	4.89	2	2026-01-15 12:16:37.645
 \.
 
 
@@ -1418,10 +1474,10 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName") FROM stdin;
-1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-02-18 20:48:32.938	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NzE0NDc3MTIsImV4cCI6MTc3MjA1MjUxMn0.Voi8dyTaJ6twB2blhsTHZC39fVKN9aksskuRUfYqxhY	\N	\N	\N
-2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2025-11-26 13:35:49.736	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	\N	\N	\N
-8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-19 16:57:33.682	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNTIwMjUzLCJleHAiOjE3NzIxMjUwNTN9.7akzkB8rYCz7xYbLy41N9DJ_T3uqahKkVQrDYnNl17k	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov
-4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2025-11-30 08:15:38.322	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	1	\N	\N
+1	\N	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-02-24 21:41:57.851	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjpudWxsLCJpYXQiOjE3NzE5NjkzMTcsImV4cCI6MTc3MjU3NDExN30.xBbKorvTWnbaAdU4QfMZa_NqyjVZywD-53p3IIQfwE8	\N	\N	\N
+2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-02-24 21:48:25.41	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N
+8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov
+4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-02-24 21:48:43.279	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N
 \.
 
 
@@ -1455,6 +1511,22 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 15	User vitaly.sadikov1@yandex.ru started stream: 'gfgfdgfdg'	\N	2026-02-11 14:25:39.313	\N	\N
 16	User vitaly.sadikov1@yandex.ru started stream: 'gfdfgdffg'	\N	2026-02-11 14:32:59.828	\N	\N
 17	User vitaly.sadikov1@yandex.ru started stream: 'fgfgffg'	\N	2026-02-18 20:46:09.161	\N	\N
+18	User vitaly.sadikov1 started stream: 'twtrrttr'	\N	2026-02-20 11:36:08.326	\N	\N
+19	User vitaly.sadikov1 started stream: 'test'	\N	2026-02-20 11:40:08.277	\N	\N
+20	User vitaly.sadikov1 started stream: 'test'	\N	2026-02-20 11:46:46.636	\N	\N
+21	User vitaly.sadikov1 started stream: 'gfgfgf'	\N	2026-02-20 15:28:07.379	\N	\N
+22	User vitaly.sadikov1 started stream: 'titile'	\N	2026-02-20 15:32:39.889	\N	\N
+23	User vitaly.sadikov1 started stream: 'gfgdggfdgf'	\N	2026-02-20 15:35:35.792	\N	\N
+24	User vitaly.sadikov1 started stream: 'gfgfgf'	\N	2026-02-20 15:38:15.264	\N	\N
+25	User vitaly.sadikov1@yandex.ru started stream: 'tgfdgfgfd'	\N	2026-02-20 19:47:05.9	\N	\N
+26	User vitaly.sadikov1@yandex.ru started stream: 'titllee'	\N	2026-02-21 19:55:43.489	\N	\N
+27	User vitaly.sadikov1@yandex.ru started stream: 'апавпапав'	\N	2026-02-21 20:00:55.015	\N	\N
+28	User vitaly.sadikov1@yandex.ru started stream: 'fgfgfd'	\N	2026-02-21 20:09:51.78	\N	\N
+29	User vitaly.sadikov1@yandex.ru started stream: 'title'	\N	2026-02-24 07:51:05.876	\N	\N
+30	User vitaly.sadikov1@yandex.ru started stream: 'title'	\N	2026-02-24 07:51:57.306	\N	\N
+31	Admin vitaly.sadikov1@yandex.ru created guild: 'Main guild'	\N	2026-02-24 21:34:16.234	\N	\N
+32	Admin vitaly.sadikov1@yandex.ru created guild: 'Main guild'	\N	2026-02-24 21:36:18.868	\N	\N
+33	Admin vitaly.sadikov1@yandex.ru created guild: 'Main guild'	\N	2026-02-24 21:42:00.98	\N	\N
 \.
 
 
@@ -1480,6 +1552,22 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 1	15	initiator
 1	16	initiator
 1	17	initiator
+8	18	initiator
+8	19	initiator
+8	20	initiator
+8	21	initiator
+8	22	initiator
+8	23	initiator
+8	24	initiator
+1	25	initiator
+1	26	initiator
+1	27	initiator
+1	28	initiator
+1	29	initiator
+1	30	initiator
+1	31	initiator
+1	32	initiator
+1	33	initiator
 \.
 
 
@@ -1538,14 +1626,14 @@ SELECT pg_catalog.setval('public."ActSpotAgent_id_seq"', 1, false);
 -- Name: ActTask_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."ActTask_id_seq"', 7, true);
+SELECT pg_catalog.setval('public."ActTask_id_seq"', 20, true);
 
 
 --
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Act_id_seq"', 14, true);
+SELECT pg_catalog.setval('public."Act_id_seq"', 27, true);
 
 
 --
@@ -1577,10 +1665,17 @@ SELECT pg_catalog.setval('public."GuildChatMessage_id_seq"', 1, false);
 
 
 --
+-- Name: GuildJoinRequest_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."GuildJoinRequest_id_seq"', 1, false);
+
+
+--
 -- Name: Guild_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Guild_id_seq"', 1, true);
+SELECT pg_catalog.setval('public."Guild_id_seq"', 4, true);
 
 
 --
@@ -1650,7 +1745,7 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, true);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 17, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 33, true);
 
 
 --
@@ -1754,6 +1849,14 @@ ALTER TABLE ONLY public."Effect"
 
 ALTER TABLE ONLY public."GuildChatMessage"
     ADD CONSTRAINT "GuildChatMessage_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: GuildJoinRequest GuildJoinRequest_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildJoinRequest"
+    ADD CONSTRAINT "GuildJoinRequest_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2001,6 +2104,13 @@ CREATE INDEX "ChatMessage_actId_createdAt_idx" ON public."ChatMessage" USING btr
 --
 
 CREATE INDEX "GuildChatMessage_guildId_createdAt_idx" ON public."GuildChatMessage" USING btree ("guildId", "createdAt");
+
+
+--
+-- Name: GuildJoinRequest_guildId_userId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "GuildJoinRequest_guildId_userId_key" ON public."GuildJoinRequest" USING btree ("guildId", "userId");
 
 
 --
@@ -2261,6 +2371,22 @@ ALTER TABLE ONLY public."GuildChatMessage"
 
 ALTER TABLE ONLY public."GuildChatMessage"
     ADD CONSTRAINT "GuildChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: GuildJoinRequest GuildJoinRequest_guildId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildJoinRequest"
+    ADD CONSTRAINT "GuildJoinRequest_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES public."Guild"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: GuildJoinRequest GuildJoinRequest_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildJoinRequest"
+    ADD CONSTRAINT "GuildJoinRequest_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
