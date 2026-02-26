@@ -20,6 +20,8 @@ import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { JwtRefreshGuard } from 'src/common/guards/jwt-refresh.guard';
 import {
   RequestWithGoogleUser,
+  RequestWithDiscordUser,
+  RequestWithTwitchUser,
   RequestWithUser,
   RequestWithUserRefresh,
 } from './interfaces/request-with-user.dto';
@@ -171,6 +173,100 @@ export class AuthController {
       user = await this.userService.create({
         login: googleUser.email,
         email: googleUser.email,
+        password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10),
+      });
+    }
+
+    // Получаем полные данные пользователя с ролью
+    const fullUser = await this.userService.findByIdWithRole(user.id);
+
+    const tokens = await this.authService.getTokens(user.id, user.login);
+    await this.authService.updateRefreshToken(user.id, tokens.refreshToken);
+
+    this.setCookies(res, tokens);
+
+    // Передаем полные данные пользователя через query параметры
+    const userData = encodeURIComponent(JSON.stringify(fullUser));
+
+    res.redirect(`${this.configService.get('FRONTEND_URL')}/?user=${userData}`);
+  }
+
+  @ApiOperation({
+    summary: 'Authorization with Discord',
+  })
+  @Get('discord')
+  @UseGuards(AuthGuard('discord'))
+  async discordAuth() {}
+
+  @Get('discord/callback')
+  @UseGuards(AuthGuard('discord'))
+  async discordAuthRedirect(
+    @Req() req: RequestWithDiscordUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (!req.user) {
+      throw new UnauthorizedException('Discord authentication failed');
+    }
+
+    const discordUser = req.user;
+
+    // Find user by email or create new one
+    let user = discordUser.email
+      ? await this.userService.findByEmail(discordUser.email)
+      : null;
+
+    if (!user) {
+      // Create new user if doesn't exist
+      user = await this.userService.create({
+        login: discordUser.username || `discord_${discordUser.discordId}`,
+        email: discordUser.email || `${discordUser.discordId}@discord.user`,
+        password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10),
+      });
+    }
+
+    // Получаем полные данные пользователя с ролью
+    const fullUser = await this.userService.findByIdWithRole(user.id);
+
+    const tokens = await this.authService.getTokens(user.id, user.login);
+    await this.authService.updateRefreshToken(user.id, tokens.refreshToken);
+
+    this.setCookies(res, tokens);
+
+    // Передаем полные данные пользователя через query параметры
+    const userData = encodeURIComponent(JSON.stringify(fullUser));
+
+    res.redirect(`${this.configService.get('FRONTEND_URL')}/?user=${userData}`);
+  }
+
+  @ApiOperation({
+    summary: 'Authorization with Twitch',
+  })
+  @Get('twitch')
+  @UseGuards(AuthGuard('twitch'))
+  async twitchAuth() {}
+
+  @Get('twitch/callback')
+  @UseGuards(AuthGuard('twitch'))
+  async twitchAuthRedirect(
+    @Req() req: RequestWithTwitchUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (!req.user) {
+      throw new UnauthorizedException('Twitch authentication failed');
+    }
+
+    const twitchUser = req.user;
+
+    // Find user by email or create new one
+    let user = twitchUser.email
+      ? await this.userService.findByEmail(twitchUser.email)
+      : null;
+
+    if (!user) {
+      // Create new user if doesn't exist
+      user = await this.userService.create({
+        login: twitchUser.username || `twitch_${twitchUser.twitchId}`,
+        email: twitchUser.email || `${twitchUser.twitchId}@twitch.user`,
         password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10),
       });
     }

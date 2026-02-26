@@ -2,25 +2,18 @@ import { Module } from '@nestjs/common';
 import { GuildService } from './guild.service';
 import { GuildController } from './guild.controller';
 import { MulterModule } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import * as path from 'path';
+import { memoryStorage } from 'multer';
 import { GuildChatGateway } from './guild.gateway';
 import { JwtModule } from '@nestjs/jwt';
+import { S3Module } from 'src/s3/s3.module';
 
 @Module({
   imports: [
-    MulterModule.register({
-      storage: diskStorage({
-        destination: './uploads/guilds',
-        filename: (req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = path.extname(file.originalname);
-          cb(null, `${uniqueSuffix}${ext}`);
-        },
-      }),
-    }),
+    S3Module,
     JwtModule.register({}),
+    MulterModule.register({
+      storage: memoryStorage(),
+    }),
   ],
   controllers: [GuildController],
   providers: [GuildService, GuildChatGateway],

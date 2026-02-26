@@ -69,6 +69,7 @@ model User {
   ranks                    UserRank[]
   Guild                    Guild?                     @relation(fields: [guildId], references: [id])
   guildId                  Int?
+  guildJoinRequests        GuildJoinRequest[]
 
   ActSpotAgent          ActSpotAgent[]
   ActSpotAgentCandidate ActSpotAgentCandidate[]
@@ -90,14 +91,31 @@ model Guild {
   name         String  @unique
   description  String?
   logoFileName String?
+  coverFileName String?
 
   ownerId Int
 
-  members  User[]
-  messages GuildChatMessage[]
+  members      User[]
+  messages     GuildChatMessage[]
+  joinRequests GuildJoinRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model GuildJoinRequest {
+  id      Int   @id @default(autoincrement())
+  guildId Int
+  guild   Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  userId  Int
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status    String   @default("pending") // pending | approved | rejected
+  message   String?  // сообщение от пользователя
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([guildId, userId])
 }
 
 model Act {
