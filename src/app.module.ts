@@ -21,6 +21,7 @@ import { AgoraRecordingModule } from './agora-recording/agora-recording.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { S3Module } from './s3/s3.module';
 import { GeoModule } from './geo/geo.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { GeoModule } from './geo/geo.module';
     GatewayModule,
     S3Module,
     GeoModule,
+    SecurityModule,
   ],
 })
 export class AppModule {}

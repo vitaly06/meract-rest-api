@@ -54,6 +54,13 @@ model User {
   notifyChatMentions    Boolean @default(true)
   notifyActStatusRealtime Boolean @default(true)
 
+  // Security
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean @default(false)
+
+  // Privacy
+  whoCanMessage String @default("all") // all | act_participants | guild_members
+
   status         UserStatus @default(ACTIVE)
   warningCount   Int        @default(0)
   roleId         Int        @default(1)
