@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -33,31 +33,15 @@ export class ActService {
   }
 
   async createAct(dto: CreateActRequest, userId: number, filename?: string) {
-    const {
-      title,
-      sequelId,
-      introId,
-      outroId,
-      musicIds,
-      type,
-      format,
-      heroMethods,
-      navigatorMethods,
-      spotAgentMethods,
-      spotAgentCount,
-      biddingTime,
-      tasks,
-    } = { ...dto };
+    const { title, description, sequelId, teams } = dto;
 
-    // Проверка существования пользователя
-    const user = await this.prisma.user.findUnique({
-      where: { id: +userId },
-    });
+    // Validate user
+    const user = await this.prisma.user.findUnique({ where: { id: +userId } });
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    // Проверка существования sequel если указан
+    // Validate sequel if provided
     if (sequelId) {
       const sequel = await this.prisma.sequel.findUnique({
         where: { id: +sequelId },
@@ -67,276 +51,103 @@ export class ActService {
       }
     }
 
-    // Проверка существования intro
-    const intro = await this.prisma.intro.findUnique({
-      where: { id: +introId },
-    });
-    if (!intro) {
-      throw new NotFoundException(`Intro with ID ${introId} not found`);
-    }
-
-    // Проверка существования outro
-    const outro = await this.prisma.outro.findUnique({
-      where: { id: +outroId },
-    });
-    if (!outro) {
-      throw new NotFoundException(`Outro with ID ${outroId} not found`);
-    }
-
-    // Проверка существования effect (опционально)
-    if (dto.effectId) {
-      const effect = await this.prisma.effect.findUnique({
-        where: { id: +dto.effectId },
+    // Validate all candidate user IDs exist (collect unique IDs across all teams/roles)
+    const allCandidateIds = [
+      ...new Set(
+        (teams ?? []).flatMap((team) =>
+          team.roles.flatMap((role) =>
+            !role.openVoting && role.candidateUserIds
+              ? role.candidateUserIds
+              : [],
+          ),
+        ),
+      ),
+    ];
+    if (allCandidateIds.length) {
+      const existingCount = await this.prisma.user.count({
+        where: { id: { in: allCandidateIds } },
       });
-      if (!effect) {
-        throw new NotFoundException(`Effect with ID ${dto.effectId} not found`);
+      if (existingCount !== allCandidateIds.length) {
+        throw new NotFoundException('One or more candidate users not found');
       }
     }
 
-    // Проверка и нормализация musicIds
-    let normalizedMusicIds: number[] = [];
-    if (Array.isArray(musicIds)) {
-      normalizedMusicIds = musicIds;
-    } else if (musicIds) {
-      const musicIdsAny = musicIds as any;
-      if (typeof musicIdsAny === 'string') {
-        try {
-          const parsed = JSON.parse(musicIdsAny);
-          normalizedMusicIds = Array.isArray(parsed)
-            ? parsed
-            : [Number(musicIdsAny)];
-        } catch {
-          normalizedMusicIds = musicIdsAny
-            .split(',')
-            .map((id: string) => Number(id.trim()));
-        }
-      } else {
-        normalizedMusicIds = [Number(musicIdsAny)];
-      }
-    }
-
-    // Нормализация tasks
-    let normalizedTasks = tasks;
-    if (tasks && !Array.isArray(tasks)) {
-      if (typeof tasks === 'string') {
-        try {
-          const parsed = JSON.parse(tasks);
-          normalizedTasks = Array.isArray(parsed) ? parsed : undefined;
-        } catch {
-          normalizedTasks = undefined;
-        }
-      } else {
-        normalizedTasks = undefined;
-      }
-    }
-
-    // Нормализация routePoints
-    let normalizedRoutePoints = dto.routePoints;
-    if (dto.routePoints && !Array.isArray(dto.routePoints)) {
-      if (typeof dto.routePoints === 'string') {
-        try {
-          const parsed = JSON.parse(dto.routePoints as any);
-          normalizedRoutePoints = Array.isArray(parsed) ? parsed : undefined;
-        } catch {
-          normalizedRoutePoints = undefined;
-        }
-      } else {
-        normalizedRoutePoints = undefined;
-      }
-    }
-
-    // Если передан массив routePoints, НЕ добавляем старые координаты
-    // Если НЕ передан - создаем из старых координат
-    const shouldUseOldCoordinates =
-      (!normalizedRoutePoints || normalizedRoutePoints.length === 0) &&
-      dto.startLatitude &&
-      dto.startLongitude &&
-      dto.destinationLatitude &&
-      dto.destinationLongitude;
-
-    // Логирование для отладки
-    this.logger.log(
-      `Creating act with route strategy: ${normalizedRoutePoints && normalizedRoutePoints.length > 0 ? `routePoints (${normalizedRoutePoints.length} points)` : shouldUseOldCoordinates ? 'old coordinates' : 'no route'}`,
-    );
-    if (normalizedRoutePoints && normalizedRoutePoints.length > 0) {
-      this.logger.debug(
-        `Route points: ${JSON.stringify(normalizedRoutePoints)}`,
-      );
-      this.logger.debug(
-        `Old coordinates ignored: start(${dto.startLatitude}, ${dto.startLongitude}), dest(${dto.destinationLatitude}, ${dto.destinationLongitude})`,
-      );
-    }
-
-    try {
-      const newStream = await this.prisma.act.create({
-        data: {
-          title,
-          sequelId: +dto.sequelId || null,
-          introId: +introId,
-          outroId: +outroId,
-          effectId: dto.effectId ? +dto.effectId : null,
-          format,
-          heroMethods,
-          navigatorMethods,
-          spotAgentMethods,
-          spotAgentCount: +spotAgentCount || 0,
-          biddingTime,
-          userId: +userId,
-          previewFileName: `/uploads/acts/${filename}` || null,
-          status: 'ONLINE',
-          startedAt: new Date(),
-          // Старые поля координат (для обратной совместимости)
-          startLatitude: dto.startLatitude ? +dto.startLatitude : null,
-          startLongitude: dto.startLongitude ? +dto.startLongitude : null,
-          destinationLatitude: dto.destinationLatitude
-            ? +dto.destinationLatitude
-            : null,
-          destinationLongitude: dto.destinationLongitude
-            ? +dto.destinationLongitude
-            : null,
-          musics: {
-            create: normalizedMusicIds.map((musicId, index) => ({
-              musicId: +musicId,
-              order: index,
-            })),
-          },
-          tasks: normalizedTasks
-            ? {
-                create: normalizedTasks.map((task) => ({
-                  title: task.title,
-                  isCompleted: false,
-                })),
-              }
-            : undefined,
-          // Точки маршрута
-          routePoints:
-            normalizedRoutePoints && normalizedRoutePoints.length > 0
+    const act = await this.prisma.act.create({
+      data: {
+        title,
+        description: description ?? null,
+        sequelId: sequelId ? +sequelId : null,
+        userId: +userId,
+        previewFileName: filename ? `/uploads/acts/${filename}` : null,
+        status: 'ONLINE',
+        startedAt: new Date(),
+        teams: {
+          create: (teams ?? []).map((team) => ({
+            name: team.name,
+            roleConfigs: {
+              create: team.roles.map((role) => ({
+                role: role.role,
+                openVoting: role.openVoting,
+                votingStartAt: role.votingStartAt
+                  ? new Date(role.votingStartAt)
+                  : null,
+                votingDurationHours: role.votingDurationHours ?? null,
+                candidates:
+                  !role.openVoting && role.candidateUserIds?.length
+                    ? {
+                        create: role.candidateUserIds.map((uid) => ({
+                          userId: uid,
+                        })),
+                      }
+                    : undefined,
+              })),
+            },
+            tasks: team.tasks?.length
               ? {
-                  create: normalizedRoutePoints.map((point, index) => ({
-                    latitude: +point.latitude,
-                    longitude: +point.longitude,
+                  create: team.tasks.map((task, index) => ({
+                    description: task.description,
+                    address: task.address ?? null,
                     order: index,
                   })),
                 }
-              : // Если routePoints не передан, но есть старые координаты - создаем из них
-                shouldUseOldCoordinates
-                ? {
-                    create: [
-                      {
-                        latitude: +dto.startLatitude,
-                        longitude: +dto.startLongitude,
-                        order: 0,
-                      },
-                      {
-                        latitude: +dto.destinationLatitude,
-                        longitude: +dto.destinationLongitude,
-                        order: 1,
-                      },
-                    ],
-                  }
-                : undefined,
+              : undefined,
+          })),
         },
-        include: {
-          user: true,
-          category: true,
-          routePoints: {
-            orderBy: { order: 'asc' },
-          },
+      },
+      include: {
+        user: {
+          select: { id: true, login: true, email: true, avatarUrl: true },
         },
-      });
-
-      await this.utilsService.addRecordToActivityJournal(
-        `User ${user.login || user.email} started stream: '${newStream.title}'`,
-        [+userId],
-      );
-
-      // Запускаем запись асинхронно
-      this.startRecordingForAct(newStream.id, newStream.title, +userId).catch(
-        (err) => console.error(`Failed to start recording: ${err.message}`),
-      );
-
-      const resultStream = await this.prisma.act.findUnique({
-        where: { id: newStream.id },
-        omit: {
-          sequelId: true,
-          introId: true,
-          outroId: true,
-        },
-        include: {
-          sequel: {
-            select: {
-              id: true,
-              title: true,
-              coverFileName: true,
-            },
-          },
-          intro: {
-            select: {
-              id: true,
-              fileName: true,
-            },
-          },
-          outro: {
-            select: {
-              id: true,
-              fileName: true,
-            },
-          },
-          musics: {
-            include: {
-              music: {
-                select: {
-                  id: true,
-                  fileName: true,
-                  length: true,
+        sequel: { select: { id: true, title: true, coverFileName: true } },
+        teams: {
+          include: {
+            roleConfigs: {
+              include: {
+                candidates: {
+                  include: {
+                    user: {
+                      select: { id: true, login: true, avatarUrl: true },
+                    },
+                  },
                 },
               },
             },
-            orderBy: {
-              order: 'asc',
-            },
-          },
-          tasks: {
-            orderBy: {
-              createdAt: 'asc',
-            },
-          },
-          routePoints: {
-            orderBy: {
-              order: 'asc',
-            },
+            tasks: { orderBy: { order: 'asc' } },
           },
         },
-      });
+      },
+    });
 
-      return {
-        // message: 'Stream launched successfully',
-        ...resultStream,
-        intro: {
-          ...resultStream.intro,
-          fileName: `${this.baseUrl}/${resultStream.intro.fileName}`,
-        },
-        outro: {
-          ...resultStream.outro,
-          fileName: `${this.baseUrl}/${resultStream.outro.fileName}`,
-        },
-        musics: resultStream.musics.map((actMusic) => ({
-          ...actMusic.music,
-          fileName: `${this.baseUrl}/${actMusic.music.fileName}`,
-          order: actMusic.order,
-        })),
-        sequel: resultStream.sequel
-          ? {
-              ...resultStream.sequel,
-              coverFileName: `${this.baseUrl}/${resultStream.sequel.coverFileName}`,
-            }
-          : null,
-        previewFileName: `${this.baseUrl}${resultStream.previewFileName}`,
-      };
-    } catch (error) {
-      console.error(`Error creating act: ${error.message}`);
-      throw new NotFoundException(`Failed to create act: ${error.message}`);
-    }
+    await this.utilsService.addRecordToActivityJournal(
+      `User ${user.login || user.email} created act: '${act.title}'`,
+      [+userId],
+    );
+
+    this.startRecordingForAct(act.id, act.title, +userId).catch((err) =>
+      console.error(`Failed to start recording: ${err.message}`),
+    );
+
+    return act;
   }
 
   async getActById(id: number) {
@@ -454,14 +265,14 @@ export class ActService {
       category: stream.category?.name || '',
       categoryId: stream.category?.id,
       status: stream.status || '',
-      spectators: 'Not implemented', // Замените, если есть реализация
+      spectators: 'Not implemented', // Р—Р°РјРµРЅРёС‚Рµ, РµСЃР»Рё РµСЃС‚СЊ СЂРµР°Р»РёР·Р°С†РёСЏ
       duration: this.formatTimeDifference(
         stream.startedAt,
         stream.endedAt || new Date(),
       ),
-      // Дата старта в формате "21 Jan. 15:30"
+      // Р”Р°С‚Р° СЃС‚Р°СЂС‚Р° РІ С„РѕСЂРјР°С‚Рµ "21 Jan. 15:30"
       startDate: this.formatStartDate(stream.startedAt),
-      // Время до начала трансляции в формате "Live in 2h 15m"
+      // Р’СЂРµРјСЏ РґРѕ РЅР°С‡Р°Р»Р° С‚СЂР°РЅСЃР»СЏС†РёРё РІ С„РѕСЂРјР°С‚Рµ "Live in 2h 15m"
       liveIn: this.formatLiveIn(stream.startedAt),
     }));
 
@@ -480,7 +291,7 @@ export class ActService {
       throw new NotFoundException(`Act with ID ${id} not found`);
     }
 
-    // Проверка прав доступа (например, только админ или владелец может остановить стрим)
+    // РџСЂРѕРІРµСЂРєР° РїСЂР°РІ РґРѕСЃС‚СѓРїР° (РЅР°РїСЂРёРјРµСЂ, С‚РѕР»СЊРєРѕ Р°РґРјРёРЅ РёР»Рё РІР»Р°РґРµР»РµС† РјРѕР¶РµС‚ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ СЃС‚СЂРёРј)
     const currentAdmin = await this.prisma.user.findUnique({
       where: { id: req.user.sub },
       include: { role: true },
@@ -498,13 +309,13 @@ export class ActService {
       await this.prisma.act.update({
         where: { id },
         data: {
-          status: 'OFFLINE', // или новый enum FINISHED
+          status: 'OFFLINE', // РёР»Рё РЅРѕРІС‹Р№ enum FINISHED
           endedAt: new Date(),
-          // recordingStatus обновится позже через webhook
+          // recordingStatus РѕР±РЅРѕРІРёС‚СЃСЏ РїРѕР·Р¶Рµ С‡РµСЂРµР· webhook
         },
       });
       if (currentAdmin.id !== currentStream.userId) {
-        // Увеличиваем счётчик остановок для админа
+        // РЈРІРµР»РёС‡РёРІР°РµРј СЃС‡С‘С‚С‡РёРє РѕСЃС‚Р°РЅРѕРІРѕРє РґР»СЏ Р°РґРјРёРЅР°
         await this.prisma.user.update({
           where: { id: req.user.sub },
           data: {
@@ -520,28 +331,28 @@ export class ActService {
         );
       }
 
-      // Останавливаем запись асинхронно
+      // РћСЃС‚Р°РЅР°РІР»РёРІР°РµРј Р·Р°РїРёСЃСЊ Р°СЃРёРЅС…СЂРѕРЅРЅРѕ
       this.stopRecordingForAct(id).catch((err) =>
         console.error(`Failed to stop recording: ${err.message}`),
       );
 
       return { message: 'Stream successfully stopped' };
     } catch (error) {
-      console.error(`Error stopping act ${id}: ${error.message}`);
-      throw new NotFoundException(`Failed to stop act: ${error.message}`);
+      console.error(`Error stopping act ${id}: ${error}`);
+      throw new NotFoundException(`Failed to stop act: ${error}`);
     }
   }
 
   async getStatistic() {
     try {
-      // Количество активных стримов
+      // РљРѕР»РёС‡РµСЃС‚РІРѕ Р°РєС‚РёРІРЅС‹С… СЃС‚СЂРёРјРѕРІ
       const activeStreams = await this.prisma.act.count({
         where: {
           status: 'ONLINE',
         },
       });
 
-      // Стримы, остановленные админами
+      // РЎС‚СЂРёРјС‹, РѕСЃС‚Р°РЅРѕРІР»РµРЅРЅС‹Рµ Р°РґРјРёРЅР°РјРё
       const admins = await this.prisma.user.findMany({
         where: {
           role: {
@@ -563,14 +374,12 @@ export class ActService {
 
       return {
         activeStreams,
-        allSpectators: 'Not implemented', // Замените, если есть реализация
+        allSpectators: 'Not implemented', // Р—Р°РјРµРЅРёС‚Рµ, РµСЃР»Рё РµСЃС‚СЊ СЂРµР°Р»РёР·Р°С†РёСЏ
         adminBlocked,
       };
     } catch (error) {
-      console.error(`Error fetching statistics: ${error.message}`);
-      throw new NotFoundException(
-        `Failed to fetch statistics: ${error.message}`,
-      );
+      console.error(`Error fetching statistics: ${error}`);
+      throw new NotFoundException(`Failed to fetch statistics: ${error}`);
     }
   }
 
@@ -621,8 +430,8 @@ export class ActService {
         throw new Error('Invalid tokenType');
       }
     } catch (error) {
-      console.error(`Error generating Agora token: ${error.message}`);
-      throw new Error(`Failed to generate token: ${error.message}`);
+      console.error(`Error generating Agora token: ${error}`);
+      throw new Error(`Failed to generate token: ${error}`);
     }
   }
 
@@ -634,7 +443,7 @@ export class ActService {
       const startDate = start instanceof Date ? start : new Date(start);
       const endDate = end instanceof Date ? end : new Date(end);
 
-      // Проверяем валидность дат
+      // РџСЂРѕРІРµСЂСЏРµРј РІР°Р»РёРґРЅРѕСЃС‚СЊ РґР°С‚
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         return '00:00:00';
       }
@@ -658,19 +467,19 @@ export class ActService {
   }
 
   /**
-   * Форматирует дату старта трансляции в формат "21 Jan. 15:30"
-   * @param startedAt дата начала стрима
-   * @returns отформатированная дата
+   * Р¤РѕСЂРјР°С‚РёСЂСѓРµС‚ РґР°С‚Сѓ СЃС‚Р°СЂС‚Р° С‚СЂР°РЅСЃР»СЏС†РёРё РІ С„РѕСЂРјР°С‚ "21 Jan. 15:30"
+   * @param startedAt РґР°С‚Р° РЅР°С‡Р°Р»Р° СЃС‚СЂРёРјР°
+   * @returns РѕС‚С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРЅР°СЏ РґР°С‚Р°
    */
   private formatStartDate(startedAt: Date | string): string {
     try {
       let date: Date;
 
-      // Если передана дата как объект Date, используем её напрямую
+      // Р•СЃР»Рё РїРµСЂРµРґР°РЅР° РґР°С‚Р° РєР°Рє РѕР±СЉРµРєС‚ Date, РёСЃРїРѕР»СЊР·СѓРµРј РµС‘ РЅР°РїСЂСЏРјСѓСЋ
       if (startedAt instanceof Date) {
         date = startedAt;
       } else {
-        // Если строка пустая или некорректная
+        // Р•СЃР»Рё СЃС‚СЂРѕРєР° РїСѓСЃС‚Р°СЏ РёР»Рё РЅРµРєРѕСЂСЂРµРєС‚РЅР°СЏ
         if (!startedAt || startedAt === 'string' || startedAt.length < 8) {
           date = new Date();
         } else {
@@ -678,13 +487,13 @@ export class ActService {
         }
       }
 
-      // Проверяем валидность даты
+      // РџСЂРѕРІРµСЂСЏРµРј РІР°Р»РёРґРЅРѕСЃС‚СЊ РґР°С‚С‹
       if (isNaN(date.getTime())) {
         console.warn('Could not parse startedAt:', startedAt);
         date = new Date();
       }
 
-      // Формат: "21 Jan. 15:30"
+      // Р¤РѕСЂРјР°С‚: "21 Jan. 15:30"
       const months = [
         'Jan',
         'Feb',
@@ -734,24 +543,24 @@ export class ActService {
   }
 
   /**
-   * Форматирует время до начала трансляции в формат "Live in 2h 15m"
-   * @param startedAt дата начала стрима
-   * @returns отформатированное время
+   * Р¤РѕСЂРјР°С‚РёСЂСѓРµС‚ РІСЂРµРјСЏ РґРѕ РЅР°С‡Р°Р»Р° С‚СЂР°РЅСЃР»СЏС†РёРё РІ С„РѕСЂРјР°С‚ "Live in 2h 15m"
+   * @param startedAt РґР°С‚Р° РЅР°С‡Р°Р»Р° СЃС‚СЂРёРјР°
+   * @returns РѕС‚С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРЅРѕРµ РІСЂРµРјСЏ
    */
   private formatLiveIn(startedAt: Date | string): string {
     try {
       let streamStartTime: Date;
 
-      // Если передана дата как объект Date, используем её напрямую
+      // Р•СЃР»Рё РїРµСЂРµРґР°РЅР° РґР°С‚Р° РєР°Рє РѕР±СЉРµРєС‚ Date, РёСЃРїРѕР»СЊР·СѓРµРј РµС‘ РЅР°РїСЂСЏРјСѓСЋ
       if (startedAt instanceof Date) {
         streamStartTime = startedAt;
       } else {
-        // Если строка пустая или некорректная
+        // Р•СЃР»Рё СЃС‚СЂРѕРєР° РїСѓСЃС‚Р°СЏ РёР»Рё РЅРµРєРѕСЂСЂРµРєС‚РЅР°СЏ
         if (!startedAt || startedAt === 'string' || startedAt.length < 8) {
           return 'Just started';
         }
 
-        // Пробуем распарсить строку
+        // РџСЂРѕР±СѓРµРј СЂР°СЃРїР°СЂСЃРёС‚СЊ СЃС‚СЂРѕРєСѓ
         streamStartTime = new Date(startedAt);
 
         if (isNaN(streamStartTime.getTime())) {
@@ -763,12 +572,12 @@ export class ActService {
       const now = new Date();
       const diff = now.getTime() - streamStartTime.getTime();
 
-      // Если стрим уже начался, показываем сколько времени он идет
+      // Р•СЃР»Рё СЃС‚СЂРёРј СѓР¶Рµ РЅР°С‡Р°Р»СЃСЏ, РїРѕРєР°Р·С‹РІР°РµРј СЃРєРѕР»СЊРєРѕ РІСЂРµРјРµРЅРё РѕРЅ РёРґРµС‚
       if (diff >= 0) {
         return this.formatDuration(diff);
       }
 
-      // Если время ещё не пришло (что маловероятно для startedAt)
+      // Р•СЃР»Рё РІСЂРµРјСЏ РµС‰С‘ РЅРµ РїСЂРёС€Р»Рѕ (С‡С‚Рѕ РјР°Р»РѕРІРµСЂРѕСЏС‚РЅРѕ РґР»СЏ startedAt)
       return `Starts in ${this.formatDuration(-diff)}`;
     } catch (error) {
       console.error('Error formatting liveIn:', error);
@@ -777,9 +586,9 @@ export class ActService {
   }
 
   /**
-   * Форматирует продолжительность в читаемый формат с неделями, днями, часами и минутами
-   * @param milliseconds продолжительность в миллисекундах
-   * @returns отформатированная строка
+   * Р¤РѕСЂРјР°С‚РёСЂСѓРµС‚ РїСЂРѕРґРѕР»Р¶РёС‚РµР»СЊРЅРѕСЃС‚СЊ РІ С‡РёС‚Р°РµРјС‹Р№ С„РѕСЂРјР°С‚ СЃ РЅРµРґРµР»СЏРјРё, РґРЅСЏРјРё, С‡Р°СЃР°РјРё Рё РјРёРЅСѓС‚Р°РјРё
+   * @param milliseconds РїСЂРѕРґРѕР»Р¶РёС‚РµР»СЊРЅРѕСЃС‚СЊ РІ РјРёР»Р»РёСЃРµРєСѓРЅРґР°С…
+   * @returns РѕС‚С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРЅР°СЏ СЃС‚СЂРѕРєР°
    */
   private formatDuration(milliseconds: number): string {
     const totalSeconds = Math.floor(Math.abs(milliseconds) / 1000);
@@ -810,17 +619,17 @@ export class ActService {
       parts.push(`${minutes}m`);
     }
 
-    // Если ничего нет, значит только что начался
+    // Р•СЃР»Рё РЅРёС‡РµРіРѕ РЅРµС‚, Р·РЅР°С‡РёС‚ С‚РѕР»СЊРєРѕ С‡С‚Рѕ РЅР°С‡Р°Р»СЃСЏ
     if (parts.length === 0) {
       return 'Just started';
     }
 
-    // Показываем максимум 2 единицы времени для краткости
+    // РџРѕРєР°Р·С‹РІР°РµРј РјР°РєСЃРёРјСѓРј 2 РµРґРёРЅРёС†С‹ РІСЂРµРјРµРЅРё РґР»СЏ РєСЂР°С‚РєРѕСЃС‚Рё
     return parts.slice(0, 2).join(' ');
   }
 
   /**
-   * Получить все задачи акта
+   * РџРѕР»СѓС‡РёС‚СЊ РІСЃРµ Р·Р°РґР°С‡Рё Р°РєС‚Р°
    */
   async getActTasks(actId: number) {
     const act = await this.prisma.act.findUnique({
@@ -839,10 +648,10 @@ export class ActService {
   }
 
   /**
-   * Переключить статус задачи (выполнена/не выполнена)
+   * РџРµСЂРµРєР»СЋС‡РёС‚СЊ СЃС‚Р°С‚СѓСЃ Р·Р°РґР°С‡Рё (РІС‹РїРѕР»РЅРµРЅР°/РЅРµ РІС‹РїРѕР»РЅРµРЅР°)
    */
   async toggleTaskStatus(actId: number, taskId: number, userId: number) {
-    // Проверяем, что акт существует и принадлежит пользователю
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ Р°РєС‚ СЃСѓС‰РµСЃС‚РІСѓРµС‚ Рё РїСЂРёРЅР°РґР»РµР¶РёС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ
     const act = await this.prisma.act.findUnique({
       where: { id: actId },
     });
@@ -857,7 +666,7 @@ export class ActService {
       );
     }
 
-    // Проверяем, что задача существует и принадлежит этому акту
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ Р·Р°РґР°С‡Р° СЃСѓС‰РµСЃС‚РІСѓРµС‚ Рё РїСЂРёРЅР°РґР»РµР¶РёС‚ СЌС‚РѕРјСѓ Р°РєС‚Сѓ
     const task = await this.prisma.actTask.findUnique({
       where: { id: taskId },
     });
@@ -870,7 +679,7 @@ export class ActService {
       throw new BadRequestException('Task does not belong to this act');
     }
 
-    // Переключаем статус
+    // РџРµСЂРµРєР»СЋС‡Р°РµРј СЃС‚Р°С‚СѓСЃ
     const updatedTask = await this.prisma.actTask.update({
       where: { id: taskId },
       data: {
@@ -883,10 +692,10 @@ export class ActService {
   }
 
   /**
-   * Добавить новую задачу к акту
+   * Р”РѕР±Р°РІРёС‚СЊ РЅРѕРІСѓСЋ Р·Р°РґР°С‡Сѓ Рє Р°РєС‚Сѓ
    */
   async addTaskToAct(actId: number, title: string, userId: number) {
-    // Проверяем, что акт существует и принадлежит пользователю
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ Р°РєС‚ СЃСѓС‰РµСЃС‚РІСѓРµС‚ Рё РїСЂРёРЅР°РґР»РµР¶РёС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ
     const act = await this.prisma.act.findUnique({
       where: { id: actId },
     });
@@ -911,10 +720,10 @@ export class ActService {
   }
 
   /**
-   * Удалить задачу
+   * РЈРґР°Р»РёС‚СЊ Р·Р°РґР°С‡Сѓ
    */
   async deleteTask(actId: number, taskId: number, userId: number) {
-    // Проверяем, что акт существует и принадлежит пользователю
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ Р°РєС‚ СЃСѓС‰РµСЃС‚РІСѓРµС‚ Рё РїСЂРёРЅР°РґР»РµР¶РёС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ
     const act = await this.prisma.act.findUnique({
       where: { id: actId },
     });
@@ -929,7 +738,7 @@ export class ActService {
       );
     }
 
-    // Проверяем, что задача существует
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ Р·Р°РґР°С‡Р° СЃСѓС‰РµСЃС‚РІСѓРµС‚
     const task = await this.prisma.actTask.findUnique({
       where: { id: taskId },
     });
@@ -950,7 +759,7 @@ export class ActService {
   }
 
   /**
-   * Начать запись акта через Agora Cloud Recording
+   * РќР°С‡Р°С‚СЊ Р·Р°РїРёСЃСЊ Р°РєС‚Р° С‡РµСЂРµР· Agora Cloud Recording
    */
   private async startRecordingForAct(
     actId: number,
@@ -961,7 +770,7 @@ export class ActService {
       const channelName = `act_${actId}`;
       const uid = `${userId}`;
 
-      // Генерируем токен для бота-рекордера
+      // Р“РµРЅРµСЂРёСЂСѓРµРј С‚РѕРєРµРЅ РґР»СЏ Р±РѕС‚Р°-СЂРµРєРѕСЂРґРµСЂР°
       const token = this.generateToken(
         channelName,
         'PUBLISHER',
@@ -970,13 +779,13 @@ export class ActService {
         86400,
       );
 
-      // Шаг 1: Acquire
+      // РЁР°Рі 1: Acquire
       const resourceId = await this.agoraRecordingService.acquire(
         channelName,
         uid,
       );
 
-      // Шаг 2: Start Recording
+      // РЁР°Рі 2: Start Recording
       const { sid } = await this.agoraRecordingService.startRecording(
         resourceId,
         channelName,
@@ -984,7 +793,7 @@ export class ActService {
         token,
       );
 
-      // Сохраняем данные записи в БД
+      // РЎРѕС…СЂР°РЅСЏРµРј РґР°РЅРЅС‹Рµ Р·Р°РїРёСЃРё РІ Р‘Р”
       await this.prisma.act.update({
         where: { id: actId },
         data: {
@@ -998,15 +807,13 @@ export class ActService {
         `Recording started for act ${actId}: resourceId=${resourceId}, sid=${sid}`,
       );
     } catch (error) {
-      console.error(
-        `Failed to start recording for act ${actId}: ${error.message}`,
-      );
-      // Не прерываем создание акта, просто логируем ошибку
+      console.error(`Failed to start recording for act ${actId}: ${error}`);
+      // РќРµ РїСЂРµСЂС‹РІР°РµРј СЃРѕР·РґР°РЅРёРµ Р°РєС‚Р°, РїСЂРѕСЃС‚Рѕ Р»РѕРіРёСЂСѓРµРј РѕС€РёР±РєСѓ
     }
   }
 
   /**
-   * Остановить запись при завершении акта
+   * РћСЃС‚Р°РЅРѕРІРёС‚СЊ Р·Р°РїРёСЃСЊ РїСЂРё Р·Р°РІРµСЂС€РµРЅРёРё Р°РєС‚Р°
    */
   private async stopRecordingForAct(actId: number): Promise<void> {
     try {
@@ -1028,7 +835,7 @@ export class ActService {
       const channelName = `act_${actId}`;
       const uid = `${act.userId}`;
 
-      // Останавливаем запись
+      // РћСЃС‚Р°РЅР°РІР»РёРІР°РµРј Р·Р°РїРёСЃСЊ
       if (act.status == 'OFFLINE') {
         return;
       }
@@ -1039,7 +846,7 @@ export class ActService {
         uid,
       );
 
-      // Обновляем статус
+      // РћР±РЅРѕРІР»СЏРµРј СЃС‚Р°С‚СѓСЃ
       await this.prisma.act.update({
         where: { id: actId },
         data: {
@@ -1049,19 +856,17 @@ export class ActService {
 
       console.log(`Recording stopped for act ${actId}`);
     } catch (error) {
-      console.error(
-        `Failed to stop recording for act ${actId}: ${error.message}`,
-      );
+      console.error(`Failed to stop recording for act ${actId}: ${error}`);
     }
   }
 
   // ==================== SPOT AGENT METHODS ====================
 
   /**
-   * Подать заявку на роль Spot Agent
+   * РџРѕРґР°С‚СЊ Р·Р°СЏРІРєСѓ РЅР° СЂРѕР»СЊ Spot Agent
    */
   async applyAsSpotAgent(actId: number, userId: number) {
-    // Проверяем существование акта
+    // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ Р°РєС‚Р°
     const act = await this.prisma.act.findUnique({
       where: { id: actId },
       select: {
@@ -1081,17 +886,17 @@ export class ActService {
       throw new NotFoundException(`Act with ID ${actId} not found`);
     }
 
-    // Проверяем, что пользователь не является инициатором
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ СЏРІР»СЏРµС‚СЃСЏ РёРЅРёС†РёР°С‚РѕСЂРѕРј
     if (act.userId === userId) {
       throw new BadRequestException('Initiator cannot apply as spot agent');
     }
 
-    // Проверяем, что spot-агенты нужны
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ spot-Р°РіРµРЅС‚С‹ РЅСѓР¶РЅС‹
     if (act.spotAgentCount === 0) {
       throw new BadRequestException('This act does not require spot agents');
     }
 
-    // Проверяем, не подавал ли уже заявку
+    // РџСЂРѕРІРµСЂСЏРµРј, РЅРµ РїРѕРґР°РІР°Р» Р»Рё СѓР¶Рµ Р·Р°СЏРІРєСѓ
     const existingCandidate =
       await this.prisma.actSpotAgentCandidate.findUnique({
         where: {
@@ -1106,7 +911,7 @@ export class ActService {
       throw new BadRequestException('You have already applied as spot agent');
     }
 
-    // Проверяем, не назначен ли уже spot-агентом
+    // РџСЂРѕРІРµСЂСЏРµРј, РЅРµ РЅР°Р·РЅР°С‡РµРЅ Р»Рё СѓР¶Рµ spot-Р°РіРµРЅС‚РѕРј
     const existingSpotAgent = await this.prisma.actSpotAgent.findUnique({
       where: {
         actId_userId: {
@@ -1120,7 +925,7 @@ export class ActService {
       throw new BadRequestException('You are already assigned as spot agent');
     }
 
-    // Создаем заявку
+    // РЎРѕР·РґР°РµРј Р·Р°СЏРІРєСѓ
     const candidate = await this.prisma.actSpotAgentCandidate.create({
       data: {
         actId,
@@ -1142,7 +947,7 @@ export class ActService {
   }
 
   /**
-   * Получить всех кандидатов в Spot Agent для акта
+   * РџРѕР»СѓС‡РёС‚СЊ РІСЃРµС… РєР°РЅРґРёРґР°С‚РѕРІ РІ Spot Agent РґР»СЏ Р°РєС‚Р°
    */
   async getSpotAgentCandidates(actId: number) {
     const act = await this.prisma.act.findUnique({
@@ -1180,7 +985,7 @@ export class ActService {
       },
     });
 
-    // Добавляем количество голосов к каждому кандидату
+    // Р”РѕР±Р°РІР»СЏРµРј РєРѕР»РёС‡РµСЃС‚РІРѕ РіРѕР»РѕСЃРѕРІ Рє РєР°Р¶РґРѕРјСѓ РєР°РЅРґРёРґР°С‚Сѓ
     return candidates.map((candidate) => ({
       ...candidate,
       voteCount: candidate.votes.length,
@@ -1188,10 +993,10 @@ export class ActService {
   }
 
   /**
-   * Проголосовать за кандидата в Spot Agent
+   * РџСЂРѕРіРѕР»РѕСЃРѕРІР°С‚СЊ Р·Р° РєР°РЅРґРёРґР°С‚Р° РІ Spot Agent
    */
   async voteForSpotAgentCandidate(candidateId: number, voterId: number) {
-    // Проверяем существование кандидата
+    // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ РєР°РЅРґРёРґР°С‚Р°
     const candidate = await this.prisma.actSpotAgentCandidate.findUnique({
       where: { id: candidateId },
       include: {
@@ -1209,17 +1014,17 @@ export class ActService {
       throw new NotFoundException(`Candidate with ID ${candidateId} not found`);
     }
 
-    // Проверяем, что для этого акта включено голосование
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РґР»СЏ СЌС‚РѕРіРѕ Р°РєС‚Р° РІРєР»СЋС‡РµРЅРѕ РіРѕР»РѕСЃРѕРІР°РЅРёРµ
     if (candidate.act.spotAgentMethods !== 'VOTING') {
       throw new BadRequestException('Voting is not enabled for this act');
     }
 
-    // Проверяем, что пользователь не голосует за себя
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РіРѕР»РѕСЃСѓРµС‚ Р·Р° СЃРµР±СЏ
     if (candidate.userId === voterId) {
       throw new BadRequestException('You cannot vote for yourself');
     }
 
-    // Проверяем, не голосовал ли уже
+    // РџСЂРѕРІРµСЂСЏРµРј, РЅРµ РіРѕР»РѕСЃРѕРІР°Р» Р»Рё СѓР¶Рµ
     const existingVote = await this.prisma.actSpotAgentVote.findUnique({
       where: {
         candidateId_voterId: {
@@ -1235,7 +1040,7 @@ export class ActService {
       );
     }
 
-    // Создаем голос
+    // РЎРѕР·РґР°РµРј РіРѕР»РѕСЃ
     const vote = await this.prisma.actSpotAgentVote.create({
       data: {
         candidateId,
@@ -1267,7 +1072,7 @@ export class ActService {
   }
 
   /**
-   * Назначить Spot Agent (только инициатор)
+   * РќР°Р·РЅР°С‡РёС‚СЊ Spot Agent (С‚РѕР»СЊРєРѕ РёРЅРёС†РёР°С‚РѕСЂ)
    */
   async assignSpotAgent(
     actId: number,
@@ -1275,7 +1080,7 @@ export class ActService {
     initiatorId: number,
     task?: string,
   ) {
-    // Проверяем существование акта
+    // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ Р°РєС‚Р°
     const act = await this.prisma.act.findUnique({
       where: { id: actId },
       include: {
@@ -1287,24 +1092,24 @@ export class ActService {
       throw new NotFoundException(`Act with ID ${actId} not found`);
     }
 
-    // Проверяем, что запрос от инициатора
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ Р·Р°РїСЂРѕСЃ РѕС‚ РёРЅРёС†РёР°С‚РѕСЂР°
     if (act.userId !== initiatorId) {
       throw new ForbiddenException('Only the initiator can assign spot agents');
     }
 
-    // Проверяем, что не превышено количество spot-агентов
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РЅРµ РїСЂРµРІС‹С€РµРЅРѕ РєРѕР»РёС‡РµСЃС‚РІРѕ spot-Р°РіРµРЅС‚РѕРІ
     if (act.spotAgents.length >= act.spotAgentCount) {
       throw new BadRequestException('Maximum number of spot agents reached');
     }
 
-    // Проверяем, что пользователь не инициатор
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РёРЅРёС†РёР°С‚РѕСЂ
     if (userId === initiatorId) {
       throw new BadRequestException(
         'Initiator cannot be assigned as spot agent',
       );
     }
 
-    // Проверяем, не назначен ли уже
+    // РџСЂРѕРІРµСЂСЏРµРј, РЅРµ РЅР°Р·РЅР°С‡РµРЅ Р»Рё СѓР¶Рµ
     const existingSpotAgent = await this.prisma.actSpotAgent.findUnique({
       where: {
         actId_userId: {
@@ -1318,7 +1123,7 @@ export class ActService {
       throw new BadRequestException('User is already assigned as spot agent');
     }
 
-    // Назначаем spot-агента
+    // РќР°Р·РЅР°С‡Р°РµРј spot-Р°РіРµРЅС‚Р°
     const spotAgent = await this.prisma.actSpotAgent.create({
       data: {
         actId,
@@ -1337,7 +1142,7 @@ export class ActService {
       },
     });
 
-    // Обновляем статус кандидата, если он подавал заявку
+    // РћР±РЅРѕРІР»СЏРµРј СЃС‚Р°С‚СѓСЃ РєР°РЅРґРёРґР°С‚Р°, РµСЃР»Рё РѕРЅ РїРѕРґР°РІР°Р» Р·Р°СЏРІРєСѓ
     await this.prisma.actSpotAgentCandidate.updateMany({
       where: {
         actId,
@@ -1352,7 +1157,7 @@ export class ActService {
   }
 
   /**
-   * Получить всех назначенных Spot Agent для акта
+   * РџРѕР»СѓС‡РёС‚СЊ РІСЃРµС… РЅР°Р·РЅР°С‡РµРЅРЅС‹С… Spot Agent РґР»СЏ Р°РєС‚Р°
    */
   async getAssignedSpotAgents(actId: number) {
     const act = await this.prisma.act.findUnique({
@@ -1383,14 +1188,14 @@ export class ActService {
   }
 
   /**
-   * Отозвать Spot Agent (только инициатор)
+   * РћС‚РѕР·РІР°С‚СЊ Spot Agent (С‚РѕР»СЊРєРѕ РёРЅРёС†РёР°С‚РѕСЂ)
    */
   async removeSpotAgent(
     actId: number,
     spotAgentId: number,
     initiatorId: number,
   ) {
-    // Проверяем существование акта
+    // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ Р°РєС‚Р°
     const act = await this.prisma.act.findUnique({
       where: { id: actId },
     });
@@ -1399,12 +1204,12 @@ export class ActService {
       throw new NotFoundException(`Act with ID ${actId} not found`);
     }
 
-    // Проверяем, что запрос от инициатора
+    // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ Р·Р°РїСЂРѕСЃ РѕС‚ РёРЅРёС†РёР°С‚РѕСЂР°
     if (act.userId !== initiatorId) {
       throw new ForbiddenException('Only the initiator can remove spot agents');
     }
 
-    // Проверяем существование spot-агента
+    // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ spot-Р°РіРµРЅС‚Р°
     const spotAgent = await this.prisma.actSpotAgent.findUnique({
       where: { id: spotAgentId },
     });
@@ -1415,7 +1220,7 @@ export class ActService {
       );
     }
 
-    // Удаляем spot-агента
+    // РЈРґР°Р»СЏРµРј spot-Р°РіРµРЅС‚Р°
     await this.prisma.actSpotAgent.delete({
       where: { id: spotAgentId },
     });
@@ -1423,7 +1228,7 @@ export class ActService {
     return { message: 'Spot agent removed successfully' };
   }
 
-  // ... существующий код ActService ...
+  // ... СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ РєРѕРґ ActService ...
 
   async applyForRole(
     actId: number,
@@ -1445,7 +1250,7 @@ export class ActService {
 
     const method = roleType === 'hero' ? act.heroMethods : act.navigatorMethods;
 
-    // Проверка времени торгов
+    // РџСЂРѕРІРµСЂРєР° РІСЂРµРјРµРЅРё С‚РѕСЂРіРѕРІ
     if (
       method !== SelectionMethods.MANUAL &&
       act.biddingTime &&
@@ -1454,7 +1259,7 @@ export class ActService {
       throw new BadRequestException('Bidding time has expired');
     }
 
-    // Проверка, что пользователь ещё не в этой роли
+    // РџСЂРѕРІРµСЂРєР°, С‡С‚Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РµС‰С‘ РЅРµ РІ СЌС‚РѕР№ СЂРѕР»Рё
     const existingParticipant = await this.prisma.actParticipant.findFirst({
       where: {
         actId,
@@ -1470,7 +1275,7 @@ export class ActService {
     }
 
     if (method === SelectionMethods.MANUAL) {
-      // Для MANUAL сразу создаём participant с pending статусом
+      // Р”Р»СЏ MANUAL СЃСЂР°Р·Сѓ СЃРѕР·РґР°С‘Рј participant СЃ pending СЃС‚Р°С‚СѓСЃРѕРј
       return this.prisma.actParticipant.create({
         data: {
           actId,
@@ -1482,7 +1287,7 @@ export class ActService {
       });
     }
 
-    // Для VOTING и BIDDING — создаём кандидатуру
+    // Р”Р»СЏ VOTING Рё BIDDING вЂ” СЃРѕР·РґР°С‘Рј РєР°РЅРґРёРґР°С‚СѓСЂСѓ
     return this.prisma.roleCandidate.create({
       data: {
         actId,
@@ -1587,7 +1392,7 @@ export class ActService {
       }
       selectedUserId = candidate.userId;
     } else if (method === SelectionMethods.VOTING) {
-      // Находим кандидата с наибольшим количеством голосов
+      // РќР°С…РѕРґРёРј РєР°РЅРґРёРґР°С‚Р° СЃ РЅР°РёР±РѕР»СЊС€РёРј РєРѕР»РёС‡РµСЃС‚РІРѕРј РіРѕР»РѕСЃРѕРІ
       const topCandidate = await this.prisma.roleCandidate.findFirst({
         where: { actId, roleType, method: SelectionMethods.VOTING },
         include: { _count: { select: { votes: true } } },
@@ -1600,7 +1405,7 @@ export class ActService {
 
       selectedUserId = topCandidate.userId;
     } else if (method === SelectionMethods.BIDDING) {
-      // Находим кандидата с максимальной ставкой
+      // РќР°С…РѕРґРёРј РєР°РЅРґРёРґР°С‚Р° СЃ РјР°РєСЃРёРјР°Р»СЊРЅРѕР№ СЃС‚Р°РІРєРѕР№
       const topBid = await this.prisma.roleCandidate.findFirst({
         where: { actId, roleType, method: SelectionMethods.BIDDING },
         orderBy: { bidAmount: 'desc' },
@@ -1613,7 +1418,7 @@ export class ActService {
       selectedUserId = topBid.userId;
     }
 
-    // Назначаем роль
+    // РќР°Р·РЅР°С‡Р°РµРј СЂРѕР»СЊ
     const participant = await this.prisma.actParticipant.create({
       data: {
         actId,
@@ -1626,7 +1431,7 @@ export class ActService {
       },
     });
 
-    // Опционально: обновляем статус кандидата
+    // РћРїС†РёРѕРЅР°Р»СЊРЅРѕ: РѕР±РЅРѕРІР»СЏРµРј СЃС‚Р°С‚СѓСЃ РєР°РЅРґРёРґР°С‚Р°
     await this.prisma.roleCandidate.updateMany({
       where: { actId, roleType, userId: selectedUserId },
       data: { status: 'approved' },
@@ -1636,7 +1441,7 @@ export class ActService {
   }
 
   async getCandidates(actId: number, roleType: 'hero' | 'navigator') {
-    // Вместо orderBy с _count
+    // Р’РјРµСЃС‚Рѕ orderBy СЃ _count
     const candidates = await this.prisma.roleCandidate.findMany({
       where: { actId, roleType, method: SelectionMethods.VOTING },
       include: {
@@ -1646,7 +1451,7 @@ export class ActService {
       },
     });
 
-    // Сортируем вручную по количеству голосов
+    // РЎРѕСЂС‚РёСЂСѓРµРј РІСЂСѓС‡РЅСѓСЋ РїРѕ РєРѕР»РёС‡РµСЃС‚РІСѓ РіРѕР»РѕСЃРѕРІ
     candidates.sort((a, b) => b._count.votes - a._count.votes);
 
     if (candidates.length === 0 || candidates[0]._count.votes === 0) {

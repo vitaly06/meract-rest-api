@@ -34,6 +34,35 @@ enum SelectionMethods {
   MANUAL
 }
 
+model Ticket {
+  id          Int             @id @default(autoincrement())
+  title       String
+  description String          @db.Text
+  img         String?         @db.Text
+  userId      Int
+  user        User            @relation(fields: [userId], references: [id])
+  
+  messages    TicketMessage[]
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model TicketMessage {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.Text
+  
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
+
+
+
 model User {
   id             Int        @id @default(autoincrement())
   login          String?    @unique
@@ -46,6 +75,9 @@ model User {
   communicationLanguages String[] @default([])
   country String?
   city    String?
+
+  tickets Ticket[] 
+  ticketMessages TicketMessage[]
 
   // Notification settings
   notifyAll             Boolean @default(true)
@@ -93,9 +125,10 @@ model User {
   ActSpotAgentCandidate ActSpotAgentCandidate[]
   ActSpotAgentVote      ActSpotAgentVote[]
 
-  ActParticipants ActParticipant[] @relation("UserActParticipants")
-  RoleCandidates  RoleCandidate[]  @relation("UserRoleCandidates")
-  RoleVotes       RoleVote[]       @relation("UserRoleVotes")
+  ActParticipants   ActParticipant[]   @relation("UserActParticipants")
+  RoleCandidates    RoleCandidate[]    @relation("UserRoleCandidates")
+  RoleVotes         RoleVote[]         @relation("UserRoleVotes")
+  ActTeamCandidates ActTeamCandidate[]
 }
 
 model Role {
@@ -139,6 +172,7 @@ model GuildJoinRequest {
 model Act {
   id              Int     @id @default(autoincrement())
   title           String
+  description     String?
   previewFileName String?
   sequelId        Int?
   sequel          Sequel? @relation(fields: [sequelId], references: [id], onDelete: Cascade)
@@ -149,13 +183,13 @@ model Act {
   navigatorMethods SelectionMethods @default(VOTING)
   spotAgentMethods SelectionMethods @default(VOTING)
   spotAgentCount   Int              @default(0)
-  biddingTime      DateTime? // ISO datetime окончания подачи заявок/торгов
+  biddingTime      DateTime?
 
-  introId Int
-  intro   Intro @relation(fields: [introId], references: [id], onDelete: Cascade)
+  introId Int?
+  intro   Intro? @relation(fields: [introId], references: [id], onDelete: Cascade)
 
-  outroId Int
-  outro   Outro @relation(fields: [outroId], references: [id], onDelete: Cascade)
+  outroId Int?
+  outro   Outro? @relation(fields: [outroId], references: [id], onDelete: Cascade)
 
   effectId Int?
   effect   Effect? @relation(fields: [effectId], references: [id], onDelete: Cascade)
@@ -171,7 +205,7 @@ model Act {
   recordingResourceId String?
   recordingSid        String?
   recordingUrl        String?
-  recordingStatus     String? // recording, processing, completed, failed
+  recordingStatus     String?
 
   // Location
   startLatitude        Float?
@@ -193,11 +227,13 @@ model Act {
   spotAgents          ActSpotAgent[]
   spotAgentCandidates ActSpotAgentCandidate[]
 
-  // Новые связи
   participants        ActParticipant[]
   heroCandidates      RoleCandidate[]  @relation("HeroCandidates")
   navigatorCandidates RoleCandidate[]  @relation("NavigatorCandidates")
   RoleCandidate       RoleCandidate[]
+
+  // Teams
+  teams ActTeam[]
 }
 
 model ActParticipant {
@@ -487,4 +523,61 @@ model ActSpotAgentVote {
   @@unique([candidateId, voterId])
   @@index([candidateId])
   @@index([voterId])
+}
+
+// ─── Act Teams (new structure) ────────────────────────────────────────────────
+
+model ActTeam {
+  id    Int    @id @default(autoincrement())
+  actId Int
+  act   Act    @relation(fields: [actId], references: [id], onDelete: Cascade)
+  name  String
+
+  roleConfigs ActTeamRoleConfig[]
+  tasks       ActTeamTask[]
+
+  createdAt DateTime @default(now())
+
+  @@index([actId])
+}
+
+// Per-role config: either specific candidates OR open voting
+model ActTeamRoleConfig {
+  id     Int     @id @default(autoincrement())
+  teamId Int
+  team   ActTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  role String // "hero" | "navigator" | "spot_agent"
+
+  openVoting          Boolean   @default(false)
+  votingStartAt       DateTime?
+  votingDurationHours Int?
+
+  candidates ActTeamCandidate[]
+
+  @@unique([teamId, role])
+}
+
+model ActTeamCandidate {
+  id       Int               @id @default(autoincrement())
+  configId Int
+  config   ActTeamRoleConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  userId   Int
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([configId, userId])
+}
+
+model ActTeamTask {
+  id          Int     @id @default(autoincrement())
+  teamId      Int
+  team        ActTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  imageUrl    String?
+  description String
+  address     String?
+  order       Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([teamId])
 }
