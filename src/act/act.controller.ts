@@ -1,18 +1,17 @@
-import {
+﻿import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpStatus,
+  Param,
+  Patch,
   Post,
   Query,
-  Param,
   Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  HttpStatus,
-  BadRequestException,
-  Patch,
-  Delete,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -21,264 +20,67 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { Multer } from 'multer';
-import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
-import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { ActService } from './act.service';
+import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { CreateActRequest } from './dto/create-act.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
-import { ActType, ActFormat } from '@prisma/client';
-import { SelectionMethods } from './enum/act.enum';
 import { ApplySpotAgentDto } from './dto/apply-spot-agent.dto';
 import { VoteSpotAgentDto } from './dto/vote-spot-agent.dto';
 import { AssignSpotAgentDto } from './dto/assign-spot-agent.dto';
-import { AssignRoleDto } from './dto/assign-role.dto';
-import { VoteForCandidateDto } from './dto/vote-for-candidate.dto';
 import { ApplyForRoleDto } from './dto/apply-for-role.dto';
+import { VoteForCandidateDto } from './dto/vote-for-candidate.dto';
+import { AssignRoleDto } from './dto/assign-role.dto';
 
-@ApiTags('Acts')
+@ApiTags('Акты')
 @Controller('act')
 export class ActController {
   constructor(private readonly actService: ActService) {}
 
   @ApiOperation({
-    summary: 'Create a new act (stream)',
+    summary: 'Создание нового акта (стрима)',
     description:
-      'Creates a new act with the provided details and optional preview image.',
+      'Создаёт новый акт с указанными данными и опциональной превью-картинкой.',
   })
   @ApiBody({
-    description: 'Act creation data with optional preview image and tasks',
+    description:
+      'Данные для создания акта (multipart/form-data). Поле `teams` передаётся как строка JSON.',
     schema: {
       type: 'object',
-      required: [
-        'title',
-        'introId',
-        'outroId',
-        'type',
-        'format',
-        'heroMethods',
-        'navigatorMethods',
-        'biddingTime',
-        'photo',
-        'musicIds',
-      ],
+      required: ['title', 'teams'],
       properties: {
-        title: { type: 'string', example: 'CS 2 Faceit Stream' },
-        sequelId: { type: 'number', example: 1 },
-        introId: { type: 'number', example: 1 },
-        outroId: { type: 'number', example: 1 },
-        effectId: {
-          type: 'number',
-          example: 1,
-          description: 'Effect ID (optional)',
-        },
-        musicIds: {
-          type: 'array',
-          items: { type: 'number' },
-          example: [1, 2, 3],
-          description:
-            'Array of music track IDs to be played during the stream',
-        },
-        type: {
+        title: { type: 'string', example: 'Очень Странные Дела' },
+        description: {
           type: 'string',
-          enum: Object.values(ActType),
-          example: ActType.SINGLE,
+          example: 'Описание акта',
+          nullable: true,
         },
-        format: {
+        sequelId: { type: 'number', example: 1, nullable: true },
+        teams: {
           type: 'string',
-          enum: Object.values(ActFormat),
-          example: ActFormat.SINGLE,
-        },
-        heroMethods: {
-          type: 'string',
-          enum: Object.values(SelectionMethods),
-          example: SelectionMethods.VOTING,
-        },
-        navigatorMethods: {
-          type: 'string',
-          enum: Object.values(SelectionMethods),
-          example: SelectionMethods.VOTING,
-        },
-        spotAgentMethods: {
-          type: 'string',
-          enum: Object.values(SelectionMethods),
-          example: SelectionMethods.VOTING,
-        },
-        spotAgentCount: {
-          type: 'number',
-          example: 3,
-          description: 'Number of spot agents required',
-        },
-        biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
-        routePoints: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              latitude: { type: 'number', example: 52.3676 },
-              longitude: { type: 'number', example: 4.9041 },
-            },
-          },
-          example: [
-            { latitude: 52.3676, longitude: 4.9041 },
-            { latitude: 52.37, longitude: 4.895 },
-            { latitude: 52.375, longitude: 4.89 },
-          ],
           description:
-            'Array of route points for the map (multiple waypoints). NOTE: If provided, startLatitude/startLongitude/destinationLatitude/destinationLongitude will be IGNORED.',
-        },
-        startLatitude: {
-          type: 'number',
-          example: 52.3675734,
-          description:
-            '[DEPRECATED] Use routePoints instead. Ignored if routePoints is provided.',
-        },
-        startLongitude: {
-          type: 'number',
-          example: 4.9041389,
-          description:
-            '[DEPRECATED] Use routePoints instead. Ignored if routePoints is provided.',
-        },
-        destinationLatitude: {
-          type: 'number',
-          example: 52.370216,
-          description:
-            '[DEPRECATED] Use routePoints instead. Ignored if routePoints is provided.',
-        },
-        destinationLongitude: {
-          type: 'number',
-          example: 4.895168,
-          description:
-            '[DEPRECATED] Use routePoints instead. Ignored if routePoints is provided.',
+            'JSON-массив команд. Каждая команда содержит: name, roles[], tasks?[]. ' +
+            'Каждая роль содержит: role (hero|navigator|spot_agent), openVoting, ' +
+            'votingStartAt?, votingDurationHours?, candidateUserIds?[]',
+          example:
+            '[{"name":"Команда 1","roles":[{"role":"hero","openVoting":false,"candidateUserIds":[1,2]},{"role":"navigator","openVoting":true,"votingStartAt":"2026-03-01T10:00:00Z","votingDurationHours":24},{"role":"spot_agent","openVoting":false,"candidateUserIds":[3]}],"tasks":[{"description":"Задание 1","address":"ул. Ленина, 1"}]}]',
         },
         photo: {
           type: 'string',
           format: 'binary',
-        },
-        tasks: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              title: { type: 'string', example: 'Reach Global Elite' },
-            },
-          },
-          example: [
-            { title: 'Reach Global Elite' },
-            { title: 'Win 10 games' },
-            { title: 'Do 100 headshots' },
-          ],
-          description:
-            'Array of tasks for the act (all tasks start as not completed)',
+          description: 'Превью-изображение (опционально)',
         },
       },
     },
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
-    description: 'Act successfully created',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'number', example: 1 },
-        title: { type: 'string', example: 'CS 2 Faceit Stream' },
-        previewFileName: {
-          type: 'string',
-          example: '/uploads/acts/1234567890.jpg',
-        },
-        sequelId: { type: 'number', nullable: true, example: null },
-        type: { type: 'string', enum: ['SINGLE', 'MULTI'], example: 'SINGLE' },
-        format: {
-          type: 'string',
-          enum: ['SINGLE', 'MULTI'],
-          example: 'SINGLE',
-        },
-        heroMethods: {
-          type: 'string',
-          enum: ['VOTING', 'ROULETTE'],
-          example: 'VOTING',
-        },
-        navigatorMethods: {
-          type: 'string',
-          enum: ['VOTING', 'ROULETTE'],
-          example: 'VOTING',
-        },
-        biddingTime: { type: 'string', example: '2025-09-15T12:00:00Z' },
-        introId: { type: 'number', example: 1 },
-        outroId: { type: 'number', example: 1 },
-        effectId: { type: 'number', nullable: true, example: null },
-        status: {
-          type: 'string',
-          enum: ['ONLINE', 'OFFLINE'],
-          example: 'ONLINE',
-        },
-        startedAt: {
-          type: 'string',
-          format: 'date-time',
-          example: '2026-01-14T07:14:20.306Z',
-        },
-        endedAt: {
-          type: 'string',
-          format: 'date-time',
-          nullable: true,
-          example: null,
-        },
-        likes: { type: 'number', example: 0 },
-        recordingResourceId: { type: 'string', nullable: true, example: null },
-        recordingSid: { type: 'string', nullable: true, example: null },
-        recordingUrl: { type: 'string', nullable: true, example: null },
-        recordingStatus: {
-          type: 'string',
-          nullable: true,
-          example: 'recording',
-        },
-        startLatitude: { type: 'number', nullable: true, example: 52.3675734 },
-        startLongitude: { type: 'number', nullable: true, example: 4.9041389 },
-        destinationLatitude: {
-          type: 'number',
-          nullable: true,
-          example: 52.370216,
-        },
-        destinationLongitude: {
-          type: 'number',
-          nullable: true,
-          example: 4.895168,
-        },
-        categoryId: { type: 'number', nullable: true, example: null },
-        userId: { type: 'number', example: 5 },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'number', example: 5 },
-            login: { type: 'string', example: 'streamer123' },
-            email: { type: 'string', example: 'streamer@example.com' },
-          },
-        },
-        routePoints: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'number', example: 1 },
-              actId: { type: 'number', example: 1 },
-              latitude: { type: 'number', example: 52.3676 },
-              longitude: { type: 'number', example: 4.9041 },
-              order: { type: 'number', example: 0 },
-              createdAt: {
-                type: 'string',
-                format: 'date-time',
-                example: '2026-01-14T07:14:20.306Z',
-              },
-            },
-          },
-        },
-      },
-    },
+    description: 'Акт успешно создан',
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid input data',
+    description: 'Некорректные входные данные',
   })
   @ApiConsumes('multipart/form-data')
   @UseGuards(JwtAuthGuard)
@@ -287,16 +89,13 @@ export class ActController {
   async createAct(
     @Req() req: RequestWithUser,
     @Body() dto: CreateActRequest,
-    @UploadedFile() photo: Express.Multer.File,
+    @UploadedFile() photo?: Express.Multer.File,
   ) {
-    if (!photo) {
-      throw new BadRequestException('Photo has been is not empty');
-    }
-    return await this.actService.createAct(dto, req.user.sub, photo.filename);
+    return await this.actService.createAct(dto, req.user.sub, photo?.filename);
   }
 
   @ApiOperation({
-    summary: 'Получение данных об акте по id',
+    summary: 'Получение данных об акте по ID',
   })
   @Get('find-by-id/:id')
   async getActById(@Param('id') id: string) {
@@ -304,12 +103,12 @@ export class ActController {
   }
 
   @ApiOperation({
-    summary: 'Get all acts',
-    description: 'Retrieves a list of all acts with their details.',
+    summary: 'Получение списка всех актов',
+    description: 'Возвращает список всех актов с их подробной информацией.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'List of acts',
+    description: 'Список актов',
     schema: {
       type: 'array',
       items: {
@@ -324,12 +123,12 @@ export class ActController {
           status: { type: 'string' },
           spectators: { type: 'string' },
           duration: { type: 'string' },
-          startDate: { type: 'string', example: '21 Jan. 15:30' },
+          startDate: { type: 'string', example: '21 янв. 15:30' },
           liveIn: {
             type: 'string',
-            example: '2h 15m',
+            example: '2ч 15мин',
             description:
-              'Stream duration in format: weeks(w), days(d), hours(h), minutes(m). Examples: "2h 15m", "1w 3d", "5d 12h"',
+              'Продолжительность стрима в формате: недели(н), дни(д), часы(ч), минуты(мин). Примеры: "2ч 15мин", "1н 3д", "5д 12ч"',
           },
         },
       },
@@ -341,23 +140,23 @@ export class ActController {
   }
 
   @ApiOperation({
-    summary: 'Stop an act',
-    description: 'Stops an act by its ID. Requires admin privileges.',
+    summary: 'Остановить акт',
+    description: 'Останавливает акт по его ID. Требуются права администратора.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Act successfully stopped',
+    description: 'Акт успешно остановлен',
     schema: {
-      example: { message: 'Stream successfully stopped' },
+      example: { message: 'Стрим успешно остановлен' },
     },
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'Act not found',
+    description: 'Акт не найден',
   })
   @ApiResponse({
     status: HttpStatus.FORBIDDEN,
-    description: 'Unauthorized to stop this act',
+    description: 'Нет прав на остановку этого акта',
   })
   @Post('stop-act')
   @UseGuards(JwtAuthGuard)
@@ -366,16 +165,17 @@ export class ActController {
   }
 
   @ApiOperation({
-    summary: 'Get act statistics',
-    description: 'Retrieves statistics about active streams and admin actions.',
+    summary: 'Получение статистики актов',
+    description:
+      'Возвращает статистику по активным стримам и действиям администраторов.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Statistics data',
+    description: 'Данные статистики',
     schema: {
       example: {
         activeStreams: 5,
-        allSpectators: 'Not done',
+        allSpectators: 'Не реализовано',
         adminBlocked: 10,
       },
     },
@@ -386,14 +186,14 @@ export class ActController {
   }
 
   @ApiOperation({
-    summary: 'Generate Agora token',
-    description: 'Generates an Agora token for a specific channel and role.',
+    summary: 'Генерация токена Agora',
+    description: 'Генерирует токен Agora для указанного канала и роли.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Generated token',
+    description: 'Сгенерированный токен',
     schema: {
-      example: { token: 'example-agora-token' },
+      example: { token: 'пример-токена-agora' },
     },
   })
   @Get('token/:channel/:role/:tokentype')
@@ -401,11 +201,11 @@ export class ActController {
     @Param('channel') channel: string,
     @Param('role') role: string,
     @Param('tokentype') tokentype: string,
-    @Query('uid') uid?: string, // uid теперь в query
+    @Query('uid') uid?: string,
     @Query('expiry') expiryStr?: string,
   ) {
     console.log(
-      `Generating token for channel: ${channel}, role: ${role}, tokentype: ${tokentype}, uid: ${uid || '0'}, expiry: ${expiryStr}`,
+      `Генерация токена: канал=${channel}, роль=${role}, тип=${tokentype}, uid=${uid || '0'}, срок=${expiryStr}`,
     );
     const expiry = parseInt(expiryStr, 10) || 3600;
     const token = this.actService.generateToken(
@@ -419,10 +219,10 @@ export class ActController {
   }
 
   @Get(':actId/tasks')
-  @ApiOperation({ summary: 'Get all tasks for an act' })
+  @ApiOperation({ summary: 'Получить все задания акта' })
   @ApiResponse({
     status: 200,
-    description: 'List of tasks for the act',
+    description: 'Список заданий для акта',
     schema: {
       type: 'array',
       items: {
@@ -444,14 +244,14 @@ export class ActController {
 
   @Post(':actId/tasks')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Add a new task to an act' })
+  @ApiOperation({ summary: 'Добавить новое задание в акт' })
   @ApiBody({
-    description: 'Task data',
+    description: 'Данные задания',
     type: CreateTaskDto,
   })
   @ApiResponse({
     status: 201,
-    description: 'Task successfully created',
+    description: 'Задание успешно создано',
     schema: {
       type: 'object',
       properties: {
@@ -474,10 +274,10 @@ export class ActController {
 
   @Patch(':actId/tasks/:taskId/toggle')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Toggle task completion status' })
+  @ApiOperation({ summary: 'Переключить статус выполнения задания' })
   @ApiResponse({
     status: 200,
-    description: 'Task status toggled',
+    description: 'Статус задания изменён',
     schema: {
       type: 'object',
       properties: {
@@ -500,12 +300,12 @@ export class ActController {
 
   @Delete(':actId/tasks/:taskId')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Delete a task from an act' })
+  @ApiOperation({ summary: 'Удалить задание из акта' })
   @ApiResponse({
     status: 200,
-    description: 'Task successfully deleted',
+    description: 'Задание успешно удалено',
     schema: {
-      example: { message: 'Task successfully deleted' },
+      example: { message: 'Задание успешно удалено' },
     },
   })
   async deleteTask(
@@ -521,12 +321,12 @@ export class ActController {
   @Post('spot-agent/apply')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
-    summary: 'Apply as Spot Agent',
-    description: 'User applies to become a spot agent for an act',
+    summary: 'Подать заявку на роль Spot Agent',
+    description: 'Пользователь подаёт заявку стать spot agent для акта',
   })
   @ApiResponse({
     status: 201,
-    description: 'Successfully applied as spot agent candidate',
+    description: 'Заявка на роль spot agent успешно подана',
     schema: {
       type: 'object',
       properties: {
@@ -556,13 +356,13 @@ export class ActController {
 
   @Get(':actId/spot-agent/candidates')
   @ApiOperation({
-    summary: 'Get all spot agent candidates',
+    summary: 'Получить всех кандидатов на роль Spot Agent',
     description:
-      'Get list of all candidates who applied to be spot agents for an act',
+      'Возвращает список всех кандидатов, подавших заявку на роль spot agent для акта',
   })
   @ApiResponse({
     status: 200,
-    description: 'List of spot agent candidates with vote counts',
+    description: 'Список кандидатов на роль spot agent с количеством голосов',
     schema: {
       type: 'array',
       items: {
@@ -604,13 +404,13 @@ export class ActController {
   @Post('spot-agent/vote')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
-    summary: 'Vote for a spot agent candidate',
+    summary: 'Проголосовать за кандидата на роль Spot Agent',
     description:
-      'Vote for a candidate to become a spot agent (only if voting is enabled)',
+      'Голосование за кандидата на роль spot agent (только если голосование открыто)',
   })
   @ApiResponse({
     status: 201,
-    description: 'Vote successfully cast',
+    description: 'Голос успешно учтён',
     schema: {
       type: 'object',
       properties: {
@@ -643,13 +443,13 @@ export class ActController {
   @Post('spot-agent/assign')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
-    summary: 'Assign a spot agent (Initiator only)',
+    summary: 'Назначить Spot Agent (только инициатор)',
     description:
-      'Initiator assigns a user as spot agent with optional task description',
+      'Инициатор назначает пользователя на роль spot agent с опциональным описанием задания',
   })
   @ApiResponse({
     status: 201,
-    description: 'Spot agent successfully assigned',
+    description: 'Spot Agent успешно назначен',
     schema: {
       type: 'object',
       properties: {
@@ -685,12 +485,13 @@ export class ActController {
 
   @Get(':actId/spot-agent/assigned')
   @ApiOperation({
-    summary: 'Get all assigned spot agents',
-    description: 'Get list of all users assigned as spot agents for an act',
+    summary: 'Получить всех назначенных Spot Agent',
+    description:
+      'Возвращает список всех пользователей, назначенных на роль spot agent для акта',
   })
   @ApiResponse({
     status: 200,
-    description: 'List of assigned spot agents',
+    description: 'Список назначенных spot agent',
     schema: {
       type: 'array',
       items: {
@@ -722,14 +523,14 @@ export class ActController {
   @Delete(':actId/spot-agent/:spotAgentId')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
-    summary: 'Remove a spot agent (Initiator only)',
-    description: 'Initiator removes an assigned spot agent from the act',
+    summary: 'Удалить назначенного Spot Agent (только инициатор)',
+    description: 'Инициатор удаляет назначенного spot agent из акта',
   })
   @ApiResponse({
     status: 200,
-    description: 'Spot agent successfully removed',
+    description: 'Spot Agent успешно удалён',
     schema: {
-      example: { message: 'Spot agent removed successfully' },
+      example: { message: 'Spot Agent успешно удалён' },
     },
   })
   async removeSpotAgent(
@@ -744,7 +545,9 @@ export class ActController {
 
   @Post(':actId/apply-role')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Подать заявку на роль Героя или Навигатора' })
+  @ApiOperation({
+    summary: 'Подать заявку на роль Героя или Навигатора',
+  })
   @ApiBody({ type: ApplyForRoleDto })
   async applyForRole(
     @Param('actId') actId: string,
@@ -762,7 +565,9 @@ export class ActController {
 
   @Post(':actId/vote-candidate')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Проголосовать за кандидата на роль' })
+  @ApiOperation({
+    summary: 'Проголосовать за кандидата на роль',
+  })
   @ApiBody({ type: VoteForCandidateDto })
   async voteForCandidate(
     @Param('actId') actId: string,
@@ -774,7 +579,9 @@ export class ActController {
 
   @Post(':actId/assign-role')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Назначить роль (только инициатор)' })
+  @ApiOperation({
+    summary: 'Назначить роль (только инициатор)',
+  })
   @ApiBody({ type: AssignRoleDto })
   async assignRole(
     @Param('actId') actId: string,
@@ -790,7 +597,9 @@ export class ActController {
   }
 
   @Get(':actId/candidates/:roleType')
-  @ApiOperation({ summary: 'Получить список кандидатов на роль' })
+  @ApiOperation({
+    summary: 'Получить список кандидатов на роль',
+  })
   async getCandidates(
     @Param('actId') actId: string,
     @Param('roleType') roleType: 'hero' | 'navigator',

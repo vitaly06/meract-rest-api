@@ -147,8 +147,8 @@ CREATE TABLE public."Act" (
     format public."ActFormat" DEFAULT 'SINGLE'::public."ActFormat" NOT NULL,
     "heroMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
     "navigatorMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
-    "introId" integer NOT NULL,
-    "outroId" integer NOT NULL,
+    "introId" integer,
+    "outroId" integer,
     status public."ActStatus" DEFAULT 'ONLINE'::public."ActStatus" NOT NULL,
     "startedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "endedAt" timestamp(3) without time zone,
@@ -166,7 +166,8 @@ CREATE TABLE public."Act" (
     "effectId" integer,
     "spotAgentCount" integer DEFAULT 0 NOT NULL,
     "spotAgentMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
-    "biddingTime" timestamp(3) without time zone
+    "biddingTime" timestamp(3) without time zone,
+    description text
 );
 
 
@@ -372,6 +373,154 @@ ALTER SEQUENCE public."ActTask_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."ActTask_id_seq" OWNED BY public."ActTask".id;
+
+
+--
+-- Name: ActTeam; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActTeam" (
+    id integer NOT NULL,
+    "actId" integer NOT NULL,
+    name text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."ActTeam" OWNER TO postgres;
+
+--
+-- Name: ActTeamCandidate; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActTeamCandidate" (
+    id integer NOT NULL,
+    "configId" integer NOT NULL,
+    "userId" integer NOT NULL
+);
+
+
+ALTER TABLE public."ActTeamCandidate" OWNER TO postgres;
+
+--
+-- Name: ActTeamCandidate_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ActTeamCandidate_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ActTeamCandidate_id_seq" OWNER TO postgres;
+
+--
+-- Name: ActTeamCandidate_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ActTeamCandidate_id_seq" OWNED BY public."ActTeamCandidate".id;
+
+
+--
+-- Name: ActTeamRoleConfig; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActTeamRoleConfig" (
+    id integer NOT NULL,
+    "teamId" integer NOT NULL,
+    role text NOT NULL,
+    "openVoting" boolean DEFAULT false NOT NULL,
+    "votingStartAt" timestamp(3) without time zone,
+    "votingDurationHours" integer
+);
+
+
+ALTER TABLE public."ActTeamRoleConfig" OWNER TO postgres;
+
+--
+-- Name: ActTeamRoleConfig_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ActTeamRoleConfig_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ActTeamRoleConfig_id_seq" OWNER TO postgres;
+
+--
+-- Name: ActTeamRoleConfig_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ActTeamRoleConfig_id_seq" OWNED BY public."ActTeamRoleConfig".id;
+
+
+--
+-- Name: ActTeamTask; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActTeamTask" (
+    id integer NOT NULL,
+    "teamId" integer NOT NULL,
+    "imageUrl" text,
+    description text NOT NULL,
+    address text,
+    "order" integer DEFAULT 0 NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."ActTeamTask" OWNER TO postgres;
+
+--
+-- Name: ActTeamTask_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ActTeamTask_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ActTeamTask_id_seq" OWNER TO postgres;
+
+--
+-- Name: ActTeamTask_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ActTeamTask_id_seq" OWNED BY public."ActTeamTask".id;
+
+
+--
+-- Name: ActTeam_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ActTeam_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ActTeam_id_seq" OWNER TO postgres;
+
+--
+-- Name: ActTeam_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ActTeam_id_seq" OWNED BY public."ActTeam".id;
 
 
 --
@@ -948,6 +1097,82 @@ ALTER SEQUENCE public."Sequel_id_seq" OWNED BY public."Sequel".id;
 
 
 --
+-- Name: Ticket; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Ticket" (
+    id integer NOT NULL,
+    title text NOT NULL,
+    description text NOT NULL,
+    img text,
+    "userId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Ticket" OWNER TO postgres;
+
+--
+-- Name: TicketMessage; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."TicketMessage" (
+    id integer NOT NULL,
+    text text NOT NULL,
+    "ticketId" integer NOT NULL,
+    "userId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."TicketMessage" OWNER TO postgres;
+
+--
+-- Name: TicketMessage_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."TicketMessage_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."TicketMessage_id_seq" OWNER TO postgres;
+
+--
+-- Name: TicketMessage_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."TicketMessage_id_seq" OWNED BY public."TicketMessage".id;
+
+
+--
+-- Name: Ticket_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Ticket_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Ticket_id_seq" OWNER TO postgres;
+
+--
+-- Name: Ticket_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Ticket_id_seq" OWNED BY public."Ticket".id;
+
+
+--
 -- Name: User; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1143,6 +1368,34 @@ ALTER TABLE ONLY public."ActTask" ALTER COLUMN id SET DEFAULT nextval('public."A
 
 
 --
+-- Name: ActTeam id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeam" ALTER COLUMN id SET DEFAULT nextval('public."ActTeam_id_seq"'::regclass);
+
+
+--
+-- Name: ActTeamCandidate id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamCandidate" ALTER COLUMN id SET DEFAULT nextval('public."ActTeamCandidate_id_seq"'::regclass);
+
+
+--
+-- Name: ActTeamRoleConfig id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamRoleConfig" ALTER COLUMN id SET DEFAULT nextval('public."ActTeamRoleConfig_id_seq"'::regclass);
+
+
+--
+-- Name: ActTeamTask id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamTask" ALTER COLUMN id SET DEFAULT nextval('public."ActTeamTask_id_seq"'::regclass);
+
+
+--
 -- Name: Category id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1248,6 +1501,20 @@ ALTER TABLE ONLY public."Sequel" ALTER COLUMN id SET DEFAULT nextval('public."Se
 
 
 --
+-- Name: Ticket id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Ticket" ALTER COLUMN id SET DEFAULT nextval('public."Ticket_id_seq"'::regclass);
+
+
+--
+-- Name: TicketMessage id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TicketMessage" ALTER COLUMN id SET DEFAULT nextval('public."TicketMessage_id_seq"'::regclass);
+
+
+--
 -- Name: User id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1275,15 +1542,15 @@ COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes, "effectId", "spotAgentCount", "spotAgentMethods", "biddingTime") FROM stdin;
-24	апавпапав	/uploads/acts/1771704054788-50599762.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:00:54.897	2026-02-21 20:01:28.094	\N	1	hxihVkPdE2RrsklnoWVPfPNlV9R6gLAkNrFcodp0TGzl-B0jcgTv2gd1vJQ9TmzwxqyLt-8KAIX2CPciZwe2-7aOvxOlIhoS0rlni9rBgtZQauDfwa0x8RAthA7uRDLhpglest_BHW410ivTGc-an4MLfTSsQtSDR8ODYHGsS7q7c9mvPN5topY8G356mZWG	43f51ee73b4b8e3a5ab00bb5b66022b4	failed	\N	55.74914429386128	37.59964370714443	\N	\N	0	\N	1	VOTING	2026-02-21 20:05:54.693
-20	gfgdggfdgf	/uploads/acts/1771601735501-908500336.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:35:35.619	2026-02-20 15:36:19.183	\N	8	_BDv6sMSOoNBditCLXy8OMGp3iHo_26T4ymZvbVqkUL-CQ_XHsUtHxepUQp0VdFyrSBugDVceJ2khqAnw2i6TnyHWXflrVHNVYsLiY2NgJms5qLjligGKwjdAjKShRxTvH_qv4xdbuNxxPTF8EiDivjl03aFAKOqeOSgjhQiICKH6rZrQYn7venU9mUeo8U0	73b5645f54453275a44009917affcb4d	failed	\N	55.74131777590301	37.63689422594326	\N	\N	0	\N	1	VOTING	2026-02-20 15:40:35.419
-25	fgfgfd	/uploads/acts/1771704591660-890934921.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:09:51.711	2026-02-21 20:10:27.057	\N	1	roAtozmtBkVxSbALApH1q6jEj8MJamTnrF4qyTRuV5g2M5cQkJEeZ18dk87XKdWlahs_eh8Zmr-XKduVpRU0kI1m21tUIranerDX96o5m39xgw1RbwDdFF3CRCuvXKNLUxfd3d0TW8r4IaQTbG6LOazq3TZjuMqjOUHz88-IAscEejs3uHa6fAipLPVhIT_c	6ddb98ca3c47aab8c9b4dca6251a1ab7	failed	\N	55.74759843942743	37.60822677599209	\N	\N	0	\N	1	VOTING	2026-02-21 20:14:51.611
-21	gfgfgf	/uploads/acts/1771601895116-731875344.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:38:15.209	2026-02-20 15:38:47.131	\N	8	2NrOxwNZv1rKBV3784aUbVA2NO888e9B_EUiaMr7Fw9uC2kxjkRCPzACNTfuHnbYBmC4wHM_fq6qMt_9CocdwOYQC9y2EVGPOZALPCXmuPAhQObxxS_jGyuIhCcXgpaD6mtnFzEs58wGT9FoOzVw9kTpR7JTBUAsEk4NKfeY7YSM77vBUuUGhStCve6DLYBE	e4c0c792494b3254ebf7a6828e3666cb	failed	\N	55.75088330688495	37.61354827867763	\N	\N	0	\N	1	VOTING	2026-02-20 15:43:15.004
-26	title	/uploads/acts/1771919465806-474854330.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-02-24 07:51:05.833	\N	\N	1	46eyU5df1pp9Z5NVX3787EBAllRCTlaRSwyGV72MghPDPpvOX-Bn-lmDWzhskDW1-_IxgIX9xAHumBvl0sHUkDyCgu0jyXfkHbSBgw8lg3ZzTAUJexQiDMx83l-n2hdAkgE1vSUx54qo9PVNGfpNdX18rxVrB-gZoLryA1Fvj4dhsaLp2FrGwBLJaHW5td5W	35c6bf06a14c64925a311ab01d9b5eae	recording	\N	55.74721196624832	37.59998702989834	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:05.737
-22	tgfdgfgfd	/uploads/acts/1771616825855-662215036.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 19:47:05.872	2026-02-20 19:47:46.04	\N	1	Ljr56LzivhEPgJ-rJpDxcubDhOUx2DRmdIbFXrD_GFbN-cE2rAYR-dO1bleVsra2DGB3D2EjVYJCGliilr2VHXlAIzZPs0F5P2BaI07KnR2EOKGJ4zxTIW-dCNY0Usowg5LuYo1Qg-UCocbE5j9c58BiTSVcgKPM-OUslxpvFAJc0hNXNr3C-HR8TvewByuV	52ac907a0449887ac1491ab40861fffc	failed	\N	55.74102787471819	37.60239028917568	\N	\N	0	\N	1	VOTING	2026-02-20 19:52:05.809
-23	titllee	/uploads/acts/1771703743355-353591108.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 19:55:43.45	2026-02-21 19:56:13.62	\N	1	HrA20628gWxFgePtSvC7U6JC479bErXUwdU1ervkE_fa__5a8w88psqJEgz44RE_BPIceT1T_4nQcLlrMwnjlhIoPqrPQTAeTrhcRG3QxmRReHIzgz_3xkS8xd1Teq4RZnHCNkE4P1zL3jfZhyxK1bEFhtARFEbvwdgJiQZH9MLYNqI8S7woEaTJOsguwzK_	20f406f8da4080e49d38fa9c6a386357	failed	\N	55.75803176823725	37.62487792955654	\N	\N	0	\N	1	VOTING	2026-02-21 20:00:43.28
-27	title	/uploads/acts/1771919517267-320857045.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-24 07:51:57.281	2026-02-24 07:52:30.469	\N	1	wNTCdqyZpKLwysHmhSKDamICnXc6rEWkQPHx-m9nlxgDlFKu_DeoniblQu_Le9n3VSNHi-7dMajT40ZLNPb5TurDirt5rFU1hfj9gMDCTBTNbRWqMfK4uJg4GCJGxZERpNxIsMqrb2xh4rPgu5N-dSRRCKYW2Cgd5EvkcScpZduiWyInXewJAh8Z2YWU_iFn	5de551d80c4bb25c8413f886675211ec	recording	\N	\N	\N	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:57.242
+COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes, "effectId", "spotAgentCount", "spotAgentMethods", "biddingTime", description) FROM stdin;
+24	апавпапав	/uploads/acts/1771704054788-50599762.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:00:54.897	2026-02-21 20:01:28.094	\N	1	hxihVkPdE2RrsklnoWVPfPNlV9R6gLAkNrFcodp0TGzl-B0jcgTv2gd1vJQ9TmzwxqyLt-8KAIX2CPciZwe2-7aOvxOlIhoS0rlni9rBgtZQauDfwa0x8RAthA7uRDLhpglest_BHW410ivTGc-an4MLfTSsQtSDR8ODYHGsS7q7c9mvPN5topY8G356mZWG	43f51ee73b4b8e3a5ab00bb5b66022b4	failed	\N	55.74914429386128	37.59964370714443	\N	\N	0	\N	1	VOTING	2026-02-21 20:05:54.693	\N
+20	gfgdggfdgf	/uploads/acts/1771601735501-908500336.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:35:35.619	2026-02-20 15:36:19.183	\N	8	_BDv6sMSOoNBditCLXy8OMGp3iHo_26T4ymZvbVqkUL-CQ_XHsUtHxepUQp0VdFyrSBugDVceJ2khqAnw2i6TnyHWXflrVHNVYsLiY2NgJms5qLjligGKwjdAjKShRxTvH_qv4xdbuNxxPTF8EiDivjl03aFAKOqeOSgjhQiICKH6rZrQYn7venU9mUeo8U0	73b5645f54453275a44009917affcb4d	failed	\N	55.74131777590301	37.63689422594326	\N	\N	0	\N	1	VOTING	2026-02-20 15:40:35.419	\N
+25	fgfgfd	/uploads/acts/1771704591660-890934921.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:09:51.711	2026-02-21 20:10:27.057	\N	1	roAtozmtBkVxSbALApH1q6jEj8MJamTnrF4qyTRuV5g2M5cQkJEeZ18dk87XKdWlahs_eh8Zmr-XKduVpRU0kI1m21tUIranerDX96o5m39xgw1RbwDdFF3CRCuvXKNLUxfd3d0TW8r4IaQTbG6LOazq3TZjuMqjOUHz88-IAscEejs3uHa6fAipLPVhIT_c	6ddb98ca3c47aab8c9b4dca6251a1ab7	failed	\N	55.74759843942743	37.60822677599209	\N	\N	0	\N	1	VOTING	2026-02-21 20:14:51.611	\N
+21	gfgfgf	/uploads/acts/1771601895116-731875344.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:38:15.209	2026-02-20 15:38:47.131	\N	8	2NrOxwNZv1rKBV3784aUbVA2NO888e9B_EUiaMr7Fw9uC2kxjkRCPzACNTfuHnbYBmC4wHM_fq6qMt_9CocdwOYQC9y2EVGPOZALPCXmuPAhQObxxS_jGyuIhCcXgpaD6mtnFzEs58wGT9FoOzVw9kTpR7JTBUAsEk4NKfeY7YSM77vBUuUGhStCve6DLYBE	e4c0c792494b3254ebf7a6828e3666cb	failed	\N	55.75088330688495	37.61354827867763	\N	\N	0	\N	1	VOTING	2026-02-20 15:43:15.004	\N
+26	title	/uploads/acts/1771919465806-474854330.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-02-24 07:51:05.833	\N	\N	1	46eyU5df1pp9Z5NVX3787EBAllRCTlaRSwyGV72MghPDPpvOX-Bn-lmDWzhskDW1-_IxgIX9xAHumBvl0sHUkDyCgu0jyXfkHbSBgw8lg3ZzTAUJexQiDMx83l-n2hdAkgE1vSUx54qo9PVNGfpNdX18rxVrB-gZoLryA1Fvj4dhsaLp2FrGwBLJaHW5td5W	35c6bf06a14c64925a311ab01d9b5eae	recording	\N	55.74721196624832	37.59998702989834	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:05.737	\N
+22	tgfdgfgfd	/uploads/acts/1771616825855-662215036.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 19:47:05.872	2026-02-20 19:47:46.04	\N	1	Ljr56LzivhEPgJ-rJpDxcubDhOUx2DRmdIbFXrD_GFbN-cE2rAYR-dO1bleVsra2DGB3D2EjVYJCGliilr2VHXlAIzZPs0F5P2BaI07KnR2EOKGJ4zxTIW-dCNY0Usowg5LuYo1Qg-UCocbE5j9c58BiTSVcgKPM-OUslxpvFAJc0hNXNr3C-HR8TvewByuV	52ac907a0449887ac1491ab40861fffc	failed	\N	55.74102787471819	37.60239028917568	\N	\N	0	\N	1	VOTING	2026-02-20 19:52:05.809	\N
+23	titllee	/uploads/acts/1771703743355-353591108.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 19:55:43.45	2026-02-21 19:56:13.62	\N	1	HrA20628gWxFgePtSvC7U6JC479bErXUwdU1ervkE_fa__5a8w88psqJEgz44RE_BPIceT1T_4nQcLlrMwnjlhIoPqrPQTAeTrhcRG3QxmRReHIzgz_3xkS8xd1Teq4RZnHCNkE4P1zL3jfZhyxK1bEFhtARFEbvwdgJiQZH9MLYNqI8S7woEaTJOsguwzK_	20f406f8da4080e49d38fa9c6a386357	failed	\N	55.75803176823725	37.62487792955654	\N	\N	0	\N	1	VOTING	2026-02-21 20:00:43.28	\N
+27	title	/uploads/acts/1771919517267-320857045.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-24 07:51:57.281	2026-02-24 07:52:30.469	\N	1	wNTCdqyZpKLwysHmhSKDamICnXc6rEWkQPHx-m9nlxgDlFKu_DeoniblQu_Le9n3VSNHi-7dMajT40ZLNPb5TurDirt5rFU1hfj9gMDCTBTNbRWqMfK4uJg4GCJGxZERpNxIsMqrb2xh4rPgu5N-dSRRCKYW2Cgd5EvkcScpZduiWyInXewJAh8Z2YWU_iFn	5de551d80c4bb25c8413f886675211ec	recording	\N	\N	\N	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:57.242	\N
 \.
 
 
@@ -1348,6 +1615,38 @@ COPY public."ActTask" (id, title, "isCompleted", "createdAt", "completedAt", "ac
 18	папаа	f	2026-02-21 20:00:55.468	\N	24
 19	fdgfgdf	f	2026-02-21 20:09:52.084	\N	25
 20	dsdssdsds	f	2026-02-24 07:51:05.988	\N	26
+\.
+
+
+--
+-- Data for Name: ActTeam; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActTeam" (id, "actId", name, "createdAt") FROM stdin;
+\.
+
+
+--
+-- Data for Name: ActTeamCandidate; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActTeamCandidate" (id, "configId", "userId") FROM stdin;
+\.
+
+
+--
+-- Data for Name: ActTeamRoleConfig; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActTeamRoleConfig" (id, "teamId", role, "openVoting", "votingStartAt", "votingDurationHours") FROM stdin;
+\.
+
+
+--
+-- Data for Name: ActTeamTask; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActTeamTask" (id, "teamId", "imageUrl", description, address, "order", "createdAt") FROM stdin;
 \.
 
 
@@ -1482,11 +1781,27 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 
 
 --
+-- Data for Name: Ticket; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Ticket" (id, title, description, img, "userId", "createdAt", "updatedAt") FROM stdin;
+\.
+
+
+--
+-- Data for Name: TicketMessage; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."TicketMessage" (id, text, "ticketId", "userId", "createdAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage") FROM stdin;
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-02-27 09:51:11.517	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzIxODU4NzEsImV4cCI6MTc3Mjc5MDY3MX0.D2qDzyGlGxO0H7qzbtT4tuipcrVkQjQBDBKHEVGMOK0	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	f	\N	all
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-02-27 13:23:16.854	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzIxOTg0NjMsImV4cCI6MTc3MjgwMzI2M30.jL7Jtq7AOdz9xeSBsmWV9VDS3Q6uLbGz9Mk-xYs7JBs	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-02-24 21:48:25.41	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all
 8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-02-24 21:48:43.279	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all
@@ -1642,6 +1957,34 @@ SELECT pg_catalog.setval('public."ActTask_id_seq"', 20, true);
 
 
 --
+-- Name: ActTeamCandidate_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ActTeamCandidate_id_seq"', 1, false);
+
+
+--
+-- Name: ActTeamRoleConfig_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ActTeamRoleConfig_id_seq"', 1, false);
+
+
+--
+-- Name: ActTeamTask_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ActTeamTask_id_seq"', 1, false);
+
+
+--
+-- Name: ActTeam_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ActTeam_id_seq"', 1, false);
+
+
+--
 -- Name: Act_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1754,6 +2097,20 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, true);
 
 
 --
+-- Name: TicketMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."TicketMessage_id_seq"', 1, false);
+
+
+--
+-- Name: Ticket_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Ticket_id_seq"', 1, false);
+
+
+--
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1821,6 +2178,38 @@ ALTER TABLE ONLY public."ActSpotAgent"
 
 ALTER TABLE ONLY public."ActTask"
     ADD CONSTRAINT "ActTask_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ActTeamCandidate ActTeamCandidate_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamCandidate"
+    ADD CONSTRAINT "ActTeamCandidate_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ActTeamRoleConfig ActTeamRoleConfig_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamRoleConfig"
+    ADD CONSTRAINT "ActTeamRoleConfig_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ActTeamTask ActTeamTask_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamTask"
+    ADD CONSTRAINT "ActTeamTask_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ActTeam ActTeam_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeam"
+    ADD CONSTRAINT "ActTeam_pkey" PRIMARY KEY (id);
 
 
 --
@@ -1949,6 +2338,22 @@ ALTER TABLE ONLY public."RoutePoint"
 
 ALTER TABLE ONLY public."Sequel"
     ADD CONSTRAINT "Sequel_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: TicketMessage TicketMessage_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TicketMessage"
+    ADD CONSTRAINT "TicketMessage_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Ticket Ticket_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Ticket"
+    ADD CONSTRAINT "Ticket_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2095,6 +2500,34 @@ CREATE INDEX "ActSpotAgent_userId_idx" ON public."ActSpotAgent" USING btree ("us
 --
 
 CREATE INDEX "ActTask_actId_idx" ON public."ActTask" USING btree ("actId");
+
+
+--
+-- Name: ActTeamCandidate_configId_userId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "ActTeamCandidate_configId_userId_key" ON public."ActTeamCandidate" USING btree ("configId", "userId");
+
+
+--
+-- Name: ActTeamRoleConfig_teamId_role_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "ActTeamRoleConfig_teamId_role_key" ON public."ActTeamRoleConfig" USING btree ("teamId", role);
+
+
+--
+-- Name: ActTeamTask_teamId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ActTeamTask_teamId_idx" ON public."ActTeamTask" USING btree ("teamId");
+
+
+--
+-- Name: ActTeam_actId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ActTeam_actId_idx" ON public."ActTeam" USING btree ("actId");
 
 
 --
@@ -2298,6 +2731,46 @@ ALTER TABLE ONLY public."ActTask"
 
 
 --
+-- Name: ActTeamCandidate ActTeamCandidate_configId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamCandidate"
+    ADD CONSTRAINT "ActTeamCandidate_configId_fkey" FOREIGN KEY ("configId") REFERENCES public."ActTeamRoleConfig"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActTeamCandidate ActTeamCandidate_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamCandidate"
+    ADD CONSTRAINT "ActTeamCandidate_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActTeamRoleConfig ActTeamRoleConfig_teamId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamRoleConfig"
+    ADD CONSTRAINT "ActTeamRoleConfig_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES public."ActTeam"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActTeamTask ActTeamTask_teamId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamTask"
+    ADD CONSTRAINT "ActTeamTask_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES public."ActTeam"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActTeam ActTeam_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeam"
+    ADD CONSTRAINT "ActTeam_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: Act Act_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2487,6 +2960,30 @@ ALTER TABLE ONLY public."RoutePoint"
 
 ALTER TABLE ONLY public."Sequel"
     ADD CONSTRAINT "Sequel_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: TicketMessage TicketMessage_ticketId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TicketMessage"
+    ADD CONSTRAINT "TicketMessage_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES public."Ticket"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: TicketMessage TicketMessage_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TicketMessage"
+    ADD CONSTRAINT "TicketMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: Ticket Ticket_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Ticket"
+    ADD CONSTRAINT "Ticket_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
