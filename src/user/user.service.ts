@@ -1,15 +1,273 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { User } from '@prisma/client';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
+import {
+  communicationLanguages,
+  utcTimeZones,
+} from 'src/common/constants/constants';
 import { UtilsService } from 'src/common/utils/utils.serivice';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { S3Service } from 'src/s3/s3.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly utilsService: UtilsService,
+    private readonly s3Service: S3Service,
   ) {}
+
+  async deleteAvatar(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.avatarUrl) {
+      throw new NotFoundException("You don't have an avatar to delete.");
+    }
+
+    // Удаляем аватар из S3
+    await this.s3Service.deleteFile(user.avatarUrl);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatarUrl: null,
+      },
+    });
+
+    return { message: 'Avatar successfully deleted' };
+  }
+
+  async updateAvatar(userId: number, file: Express.Multer.File) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const s3Data = await this.s3Service.uploadFile(file);
+
+    // Удаляем старый аватар из S3
+    if (user.avatarUrl) {
+      await this.s3Service.deleteFile(user.avatarUrl);
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatarUrl: s3Data?.url || null,
+      },
+    });
+
+    return { message: 'Avatar successfully updated' };
+  }
+
+  async changeFullName(userId: number, fullName: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullName,
+      },
+    });
+
+    return { message: 'Full name updated successfully' };
+  }
+
+  async changeUsername(userId: number, login: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const checkUser = await this.prisma.user.findUnique({
+      where: { login },
+    });
+
+    if (checkUser && checkUser.id != user.id) {
+      throw new BadRequestException('Username taken');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        login,
+      },
+    });
+
+    return { message: 'Login updated successfully' };
+  }
+
+  async findAllTimeZones() {
+    return { zones: utcTimeZones };
+  }
+
+  async selectTimeZone(userId: number, zone: string) {
+    if (!utcTimeZones.includes(zone)) {
+      throw new BadRequestException('Invalid time zone passed');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        timeZone: zone,
+      },
+    });
+
+    return { message: 'Time zone updated successfully' };
+  }
+
+  async getCommunicationLanguages() {
+    return { languages: communicationLanguages };
+  }
+
+  async setCountry(userId: number, country: string) {
+    if (!country || country.trim().length === 0) {
+      throw new BadRequestException('Country cannot be empty');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { country: country.trim(), city: null },
+    });
+
+    return { message: 'Country updated successfully' };
+  }
+
+  async setCity(userId: number, city: string) {
+    if (!city || city.trim().length === 0) {
+      throw new BadRequestException('City cannot be empty');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.country) throw new BadRequestException('Set a country first');
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { city: city.trim() },
+    });
+
+    return { message: 'City updated successfully' };
+  }
+
+  async getUserLanguages(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { communicationLanguages: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return { languages: user.communicationLanguages };
+  }
+
+  async updateUserLanguages(userId: number, languages: string[]) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Валидация языков
+    const invalidLanguages = languages.filter(
+      (lang) => !communicationLanguages.includes(lang),
+    );
+
+    if (invalidLanguages.length > 0) {
+      throw new BadRequestException(
+        `Invalid languages: ${invalidLanguages.join(', ')}`,
+      );
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { communicationLanguages: languages },
+    });
+
+    return { message: 'Languages updated successfully' };
+  }
+
+  async getNotificationSettings(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        notifyAll: true,
+        notifyActProgress: true,
+        notifyGuildInvites: true,
+        notifyChatMentions: true,
+        notifyActStatusRealtime: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async updateNotificationSettings(
+    userId: number,
+    settings: {
+      notifyAll?: boolean;
+      notifyActProgress?: boolean;
+      notifyGuildInvites?: boolean;
+      notifyChatMentions?: boolean;
+      notifyActStatusRealtime?: boolean;
+    },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: settings,
+    });
+
+    return { message: 'Notification settings updated successfully' };
+  }
 
   async findById(id: number): Promise<User> {
     const user = await this.prisma.user.findUnique({

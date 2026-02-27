@@ -1,4 +1,8 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -30,5 +34,22 @@ export class S3Service {
       key,
       url: `${process.env.S3_ENDPOINT}/${bucketName}/${key}`,
     };
+  }
+
+  async deleteFile(url: string) {
+    const bucketName = process.env.S3_BUCKET;
+    // URL format: ${S3_ENDPOINT}/${bucket}/${key}
+    const key = url.split(`/${bucketName}/`).pop();
+
+    if (!key) {
+      return;
+    }
+
+    await this.s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+      }),
+    );
   }
 }

@@ -20,6 +20,7 @@ import { RankModule } from './rank/rank.module';
 import { AgoraRecordingModule } from './agora-recording/agora-recording.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { S3Module } from './s3/s3.module';
+import { GeoModule } from './geo/geo.module';
 
 @Module({
   imports: [
@@ -49,7 +50,8 @@ import { S3Module } from './s3/s3.module';
     RankModule,
     AgoraRecordingModule,
     GatewayModule,
-    S3Module, // Единый gateway для всех namespace
+    S3Module,
+    GeoModule,
   ],
 })
 export class AppModule {}
