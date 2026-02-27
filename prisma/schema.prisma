@@ -42,6 +42,17 @@ model User {
   email          String     @unique
   refreshToken             String?
   avatarUrl String?
+  timeZone String?
+  communicationLanguages String[] @default([])
+  country String?
+  city    String?
+
+  // Notification settings
+  notifyAll             Boolean @default(true)
+  notifyActProgress     Boolean @default(true)
+  notifyGuildInvites    Boolean @default(true)
+  notifyChatMentions    Boolean @default(true)
+  notifyActStatusRealtime Boolean @default(true)
 
   status         UserStatus @default(ACTIVE)
   warningCount   Int        @default(0)
