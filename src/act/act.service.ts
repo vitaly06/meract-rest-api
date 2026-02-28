@@ -33,25 +33,25 @@ export class ActService {
   }
 
   async createAct(dto: CreateActRequest, userId: number, filename?: string) {
-    const { title, description, sequelId, teams } = dto;
+    const { title, description, sequelId, teams, tags } = dto;
 
-    // Validate user
-    const user = await this.prisma.user.findUnique({ where: { id: +userId } });
+    // Проверка пользователя
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
+      throw new NotFoundException(`Пользователь с ID ${userId} не найден`);
     }
 
-    // Validate sequel if provided
+    // Проверка сиквела, если указан
     if (sequelId) {
       const sequel = await this.prisma.sequel.findUnique({
-        where: { id: +sequelId },
+        where: { id: sequelId },
       });
       if (!sequel) {
-        throw new NotFoundException(`Sequel with ID ${sequelId} not found`);
+        throw new NotFoundException(`Сиквел с ID ${sequelId} не найден`);
       }
     }
 
-    // Validate all candidate user IDs exist (collect unique IDs across all teams/roles)
+    // Сбор и проверка всех кандидатов (уникальные ID)
     const allCandidateIds = [
       ...new Set(
         (teams ?? []).flatMap((team) =>
@@ -63,12 +63,13 @@ export class ActService {
         ),
       ),
     ];
+
     if (allCandidateIds.length) {
       const existingCount = await this.prisma.user.count({
         where: { id: { in: allCandidateIds } },
       });
       if (existingCount !== allCandidateIds.length) {
-        throw new NotFoundException('One or more candidate users not found');
+        throw new NotFoundException('Один или несколько кандидатов не найдены');
       }
     }
 
@@ -76,11 +77,12 @@ export class ActService {
       data: {
         title,
         description: description ?? null,
-        sequelId: sequelId ? +sequelId : null,
-        userId: +userId,
+        sequelId: sequelId ?? null,
+        userId,
         previewFileName: filename ? `/uploads/acts/${filename}` : null,
         status: 'ONLINE',
         startedAt: new Date(),
+        tags: tags ?? [], // ← Добавляем теги
         teams: {
           create: (teams ?? []).map((team) => ({
             name: team.name,
@@ -139,12 +141,12 @@ export class ActService {
     });
 
     await this.utilsService.addRecordToActivityJournal(
-      `User ${user.login || user.email} created act: '${act.title}'`,
-      [+userId],
+      `Пользователь ${user.login || user.email} создал акт: '${act.title}'`,
+      [userId],
     );
 
-    this.startRecordingForAct(act.id, act.title, +userId).catch((err) =>
-      console.error(`Failed to start recording: ${err.message}`),
+    this.startRecordingForAct(act.id, act.title, userId).catch((err) =>
+      console.error(`Не удалось запустить запись: ${err.message}`),
     );
 
     return act;

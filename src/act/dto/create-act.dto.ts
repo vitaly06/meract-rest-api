@@ -14,32 +14,35 @@ import {
   Min,
 } from 'class-validator';
 
-// в”Ђв”Ђв”Ђ Task inside a team в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── Задание внутри команды ────────────────────────────────────────────────
 
 export class ActTeamTaskDto {
-  @ApiProperty({ example: 'Р”РѕР№С‚Рё РґРѕ С‚РѕС‡РєРё A', description: 'РћРїРёСЃР°РЅРёРµ Р·Р°РґР°РЅРёСЏ' })
+  @ApiProperty({
+    example: 'Дойти до точки A',
+    description: 'Описание задания',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
   description: string;
 
   @ApiProperty({
-    example: 'СѓР». Р›РµРЅРёРЅР°, 1',
+    example: 'ул. Ленина, 1',
     required: false,
-    description: 'РђРґСЂРµСЃ (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)',
+    description: 'Адрес (опционально)',
   })
   @IsOptional()
   @IsString()
   address?: string;
 }
 
-// в”Ђв”Ђв”Ђ Role config (hero / navigator / spot_agent) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── Конфигурация роли (hero / navigator / spot_agent) ─────────────────────
 
 export class ActTeamRoleConfigDto {
   @ApiProperty({
     enum: ['hero', 'navigator', 'spot_agent'],
     example: 'hero',
-    description: 'Р РѕР»СЊ: hero | navigator | spot_agent',
+    description: 'Роль: hero | navigator | spot_agent',
   })
   @IsString()
   @IsNotEmpty()
@@ -47,7 +50,7 @@ export class ActTeamRoleConfigDto {
 
   @ApiProperty({
     example: false,
-    description: 'true вЂ” РѕС‚РєСЂС‹С‚РѕРµ РіРѕР»РѕСЃРѕРІР°РЅРёРµ; false вЂ” РєРѕРЅРєСЂРµС‚РЅС‹Рµ РєР°РЅРґРёРґР°С‚С‹',
+    description: 'true — открытое голосование; false — конкретные кандидаты',
   })
   @IsBoolean()
   openVoting: boolean;
@@ -55,7 +58,7 @@ export class ActTeamRoleConfigDto {
   @ApiProperty({
     example: '2026-03-01T10:00:00Z',
     required: false,
-    description: 'РќР°С‡Р°Р»Рѕ РіРѕР»РѕСЃРѕРІР°РЅРёСЏ (РїСЂРё openVoting=true)',
+    description: 'Дата начала голосования (при openVoting = true)',
   })
   @IsOptional()
   @IsDateString()
@@ -64,7 +67,7 @@ export class ActTeamRoleConfigDto {
   @ApiProperty({
     example: 24,
     required: false,
-    description: 'Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РіРѕР»РѕСЃРѕРІР°РЅРёСЏ РІ С‡Р°СЃР°С… (РїСЂРё openVoting=true)',
+    description: 'Длительность голосования в часах (при openVoting = true)',
   })
   @IsOptional()
   @IsInt()
@@ -74,7 +77,7 @@ export class ActTeamRoleConfigDto {
   @ApiProperty({
     example: [1, 2, 3],
     required: false,
-    description: 'ID РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№-РєР°РЅРґРёРґР°С‚РѕРІ (РїСЂРё openVoting=false)',
+    description: 'ID пользователей-кандидатов (при openVoting = false)',
     type: [Number],
   })
   @IsOptional()
@@ -84,10 +87,13 @@ export class ActTeamRoleConfigDto {
   candidateUserIds?: number[];
 }
 
-// в”Ђв”Ђв”Ђ Team inside an act в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── Команда внутри акта ───────────────────────────────────────────────────
 
 export class ActTeamDto {
-  @ApiProperty({ example: 'РљРѕРјР°РЅРґР° 1', description: 'РќР°Р·РІР°РЅРёРµ РєРѕРјР°РЅРґС‹' })
+  @ApiProperty({
+    example: 'Команда 1',
+    description: 'Название команды',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
@@ -95,7 +101,7 @@ export class ActTeamDto {
 
   @ApiProperty({
     type: [ActTeamRoleConfigDto],
-    description: 'РљРѕРЅС„РёРіСѓСЂР°С†РёРё СЂРѕР»РµР№ (hero, navigator, spot_agent)',
+    description: 'Конфигурации ролей (hero, navigator, spot_agent)',
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -105,7 +111,7 @@ export class ActTeamDto {
   @ApiProperty({
     type: [ActTeamTaskDto],
     required: false,
-    description: 'Р—Р°РґР°РЅРёСЏ РєРѕРјР°РЅРґС‹',
+    description: 'Задания команды',
   })
   @IsOptional()
   @IsArray()
@@ -114,19 +120,22 @@ export class ActTeamDto {
   tasks?: ActTeamTaskDto[];
 }
 
-// в”Ђв”Ђв”Ђ Main DTO в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── Основной DTO для создания акта ────────────────────────────────────────
 
 export class CreateActRequest {
-  @ApiProperty({ example: 'Very Strange Things', description: 'РќР°Р·РІР°РЅРёРµ Р°РєС‚Р°' })
+  @ApiProperty({
+    example: 'Очень Странные Дела',
+    description: 'Название акта',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   title: string;
 
   @ApiProperty({
-    example: 'РћРїРёСЃР°РЅРёРµ Р°РєС‚Р°',
+    example: 'Описание акта',
     required: false,
-    description: 'РћРїРёСЃР°РЅРёРµ',
+    description: 'Описание акта',
   })
   @IsOptional()
   @IsString()
@@ -136,7 +145,7 @@ export class CreateActRequest {
   @ApiProperty({
     example: 1,
     required: false,
-    description: 'Sequel ID (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)',
+    description: 'ID сиквела (опционально)',
   })
   @IsOptional()
   @Type(() => Number)
@@ -145,9 +154,10 @@ export class CreateActRequest {
   sequelId?: number;
 
   @ApiProperty({
-    description: 'РљРѕРјР°РЅРґС‹ Р°РєС‚Р°. JSON-СЃС‚СЂРѕРєР° РїСЂРё multipart/form-data',
+    description:
+      'Массив команд акта. Передаётся как строка JSON при multipart/form-data',
     example:
-      '[{"name":"РљРѕРјР°РЅРґР° 1","roles":[{"role":"hero","openVoting":false,"candidateUserIds":[1,2]},{"role":"navigator","openVoting":true,"votingStartAt":"2026-03-01T10:00:00Z","votingDurationHours":24},{"role":"spot_agent","openVoting":false,"candidateUserIds":[3]}],"tasks":[{"description":"Р—Р°РґР°РЅРёРµ 1","address":"СѓР». Р›РµРЅРёРЅР°, 1"}]}]',
+      '[{"name":"Команда 1","roles":[{"role":"hero","openVoting":false,"candidateUserIds":[1,2]},{"role":"navigator","openVoting":true,"votingStartAt":"2026-03-01T10:00:00Z","votingDurationHours":24},{"role":"spot_agent","openVoting":false,"candidateUserIds":[3]}],"tasks":[{"description":"Задание 1","address":"ул. Ленина, 1"}]}]',
   })
   @Transform(({ value }) => {
     if (typeof value === 'string') {
@@ -163,5 +173,15 @@ export class CreateActRequest {
   @ValidateNested({ each: true })
   @Type(() => ActTeamDto)
   teams: ActTeamDto[];
-}
 
+  @ApiProperty({
+    example: ['приключение', 'квест', 'улицы'],
+    description: 'Теги акта (для поиска и фильтрации)',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  tags?: string[];
+}

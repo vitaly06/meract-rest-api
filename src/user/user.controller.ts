@@ -39,6 +39,10 @@ export class UserController {
     return await this.userService.getCurrentUser(req.user.sub);
   }
 
+  // @UseGuards(JwtAuthGuard)
+  // @Post('set-points/:userId')
+  // async setPoints(@Query("points") points: string, @Param)
+
   @ApiTags('Settings (personal data)')
   @UseGuards(JwtAuthGuard)
   @Delete('delete-avatar')

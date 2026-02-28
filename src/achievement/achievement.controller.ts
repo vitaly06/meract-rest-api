@@ -7,14 +7,17 @@ import {
   Post,
   Put,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AchievementService } from './achievement.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
 import { AwardAchievementDto } from './dto/award-achievement.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('achievement')
 export class AchievementController {
@@ -22,13 +25,34 @@ export class AchievementController {
   @ApiOperation({
     summary: 'Создать достижение',
   })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['name', 'photo'],
+      properties: {
+        name: { type: 'string', example: 'Act master' },
+        photo: {
+          type: 'string',
+          format: 'binary',
+          description: 'Achievement image',
+        },
+      },
+    },
+  })
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('photo'))
   @Post('create-achievement')
   async createAchievement(
     @Body() dto: CreateAchievementDto,
     @Req() req: RequestWithUser,
+    @UploadedFile() photo: Express.Multer.File,
   ) {
-    return await this.achievementService.createAchievement(dto, req.user.sub);
+    return await this.achievementService.createAchievement(
+      dto,
+      req.user.sub,
+      photo,
+    );
   }
 
   @ApiOperation({

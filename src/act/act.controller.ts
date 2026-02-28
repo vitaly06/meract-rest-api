@@ -41,11 +41,11 @@ export class ActController {
   @ApiOperation({
     summary: 'Создание нового акта (стрима)',
     description:
-      'Создаёт новый акт с указанными данными и опциональной превью-картинкой.',
+      'Создаёт новый акт с указанными данными, командами и опциональными тегами. Превью-картинка передаётся как файл.',
   })
   @ApiBody({
     description:
-      'Данные для создания акта (multipart/form-data). Поле `teams` передаётся как строка JSON.',
+      'Данные для создания акта (multipart/form-data). Поле `teams` — строка JSON с командами. Поле `tags` — массив строк.',
     schema: {
       type: 'object',
       required: ['title', 'teams'],
@@ -60,11 +60,15 @@ export class ActController {
         teams: {
           type: 'string',
           description:
-            'JSON-массив команд. Каждая команда содержит: name, roles[], tasks?[]. ' +
-            'Каждая роль содержит: role (hero|navigator|spot_agent), openVoting, ' +
-            'votingStartAt?, votingDurationHours?, candidateUserIds?[]',
+            'JSON-массив команд. Каждая команда: name, roles[], tasks?[]',
           example:
             '[{"name":"Команда 1","roles":[{"role":"hero","openVoting":false,"candidateUserIds":[1,2]},{"role":"navigator","openVoting":true,"votingStartAt":"2026-03-01T10:00:00Z","votingDurationHours":24},{"role":"spot_agent","openVoting":false,"candidateUserIds":[3]}],"tasks":[{"description":"Задание 1","address":"ул. Ленина, 1"}]}]',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['приключение', 'квест', 'городской'],
+          description: 'Теги для акта (опционально)',
         },
         photo: {
           type: 'string',

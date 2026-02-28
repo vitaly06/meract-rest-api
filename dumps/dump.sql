@@ -106,7 +106,8 @@ SET default_table_access_method = heap;
 CREATE TABLE public."Achievement" (
     id integer NOT NULL,
     name text NOT NULL,
-    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "imageUrl" text
 );
 
 
@@ -167,7 +168,8 @@ CREATE TABLE public."Act" (
     "spotAgentCount" integer DEFAULT 0 NOT NULL,
     "spotAgentMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
     "biddingTime" timestamp(3) without time zone,
-    description text
+    description text,
+    tags text[] DEFAULT ARRAY[]::text[]
 );
 
 
@@ -1202,7 +1204,8 @@ CREATE TABLE public."User" (
     country text,
     "twoFactorEnabled" boolean DEFAULT false NOT NULL,
     "twoFactorSecret" text,
-    "whoCanMessage" text DEFAULT 'all'::text NOT NULL
+    "whoCanMessage" text DEFAULT 'all'::text NOT NULL,
+    points integer DEFAULT 0 NOT NULL
 );
 
 
@@ -1532,9 +1535,10 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 -- Data for Name: Achievement; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Achievement" (id, name, "createdAt") FROM stdin;
-1	Набрать 100 просмотров	2025-11-26 12:49:07.856
-2	Набрать 500 просмотров	2025-11-26 15:27:21.906
+COPY public."Achievement" (id, name, "createdAt", "imageUrl") FROM stdin;
+1	Набрать 100 просмотров	2025-11-26 12:49:07.856	\N
+2	Набрать 500 просмотров	2025-11-26 15:27:21.906	\N
+3	Act master	2026-02-28 12:15:40.217	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772280936458-c5fa02a9bba44b136980625ed7efc2e7489f20cc.png
 \.
 
 
@@ -1542,15 +1546,15 @@ COPY public."Achievement" (id, name, "createdAt") FROM stdin;
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes, "effectId", "spotAgentCount", "spotAgentMethods", "biddingTime", description) FROM stdin;
-24	апавпапав	/uploads/acts/1771704054788-50599762.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:00:54.897	2026-02-21 20:01:28.094	\N	1	hxihVkPdE2RrsklnoWVPfPNlV9R6gLAkNrFcodp0TGzl-B0jcgTv2gd1vJQ9TmzwxqyLt-8KAIX2CPciZwe2-7aOvxOlIhoS0rlni9rBgtZQauDfwa0x8RAthA7uRDLhpglest_BHW410ivTGc-an4MLfTSsQtSDR8ODYHGsS7q7c9mvPN5topY8G356mZWG	43f51ee73b4b8e3a5ab00bb5b66022b4	failed	\N	55.74914429386128	37.59964370714443	\N	\N	0	\N	1	VOTING	2026-02-21 20:05:54.693	\N
-20	gfgdggfdgf	/uploads/acts/1771601735501-908500336.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:35:35.619	2026-02-20 15:36:19.183	\N	8	_BDv6sMSOoNBditCLXy8OMGp3iHo_26T4ymZvbVqkUL-CQ_XHsUtHxepUQp0VdFyrSBugDVceJ2khqAnw2i6TnyHWXflrVHNVYsLiY2NgJms5qLjligGKwjdAjKShRxTvH_qv4xdbuNxxPTF8EiDivjl03aFAKOqeOSgjhQiICKH6rZrQYn7venU9mUeo8U0	73b5645f54453275a44009917affcb4d	failed	\N	55.74131777590301	37.63689422594326	\N	\N	0	\N	1	VOTING	2026-02-20 15:40:35.419	\N
-25	fgfgfd	/uploads/acts/1771704591660-890934921.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:09:51.711	2026-02-21 20:10:27.057	\N	1	roAtozmtBkVxSbALApH1q6jEj8MJamTnrF4qyTRuV5g2M5cQkJEeZ18dk87XKdWlahs_eh8Zmr-XKduVpRU0kI1m21tUIranerDX96o5m39xgw1RbwDdFF3CRCuvXKNLUxfd3d0TW8r4IaQTbG6LOazq3TZjuMqjOUHz88-IAscEejs3uHa6fAipLPVhIT_c	6ddb98ca3c47aab8c9b4dca6251a1ab7	failed	\N	55.74759843942743	37.60822677599209	\N	\N	0	\N	1	VOTING	2026-02-21 20:14:51.611	\N
-21	gfgfgf	/uploads/acts/1771601895116-731875344.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:38:15.209	2026-02-20 15:38:47.131	\N	8	2NrOxwNZv1rKBV3784aUbVA2NO888e9B_EUiaMr7Fw9uC2kxjkRCPzACNTfuHnbYBmC4wHM_fq6qMt_9CocdwOYQC9y2EVGPOZALPCXmuPAhQObxxS_jGyuIhCcXgpaD6mtnFzEs58wGT9FoOzVw9kTpR7JTBUAsEk4NKfeY7YSM77vBUuUGhStCve6DLYBE	e4c0c792494b3254ebf7a6828e3666cb	failed	\N	55.75088330688495	37.61354827867763	\N	\N	0	\N	1	VOTING	2026-02-20 15:43:15.004	\N
-26	title	/uploads/acts/1771919465806-474854330.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-02-24 07:51:05.833	\N	\N	1	46eyU5df1pp9Z5NVX3787EBAllRCTlaRSwyGV72MghPDPpvOX-Bn-lmDWzhskDW1-_IxgIX9xAHumBvl0sHUkDyCgu0jyXfkHbSBgw8lg3ZzTAUJexQiDMx83l-n2hdAkgE1vSUx54qo9PVNGfpNdX18rxVrB-gZoLryA1Fvj4dhsaLp2FrGwBLJaHW5td5W	35c6bf06a14c64925a311ab01d9b5eae	recording	\N	55.74721196624832	37.59998702989834	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:05.737	\N
-22	tgfdgfgfd	/uploads/acts/1771616825855-662215036.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 19:47:05.872	2026-02-20 19:47:46.04	\N	1	Ljr56LzivhEPgJ-rJpDxcubDhOUx2DRmdIbFXrD_GFbN-cE2rAYR-dO1bleVsra2DGB3D2EjVYJCGliilr2VHXlAIzZPs0F5P2BaI07KnR2EOKGJ4zxTIW-dCNY0Usowg5LuYo1Qg-UCocbE5j9c58BiTSVcgKPM-OUslxpvFAJc0hNXNr3C-HR8TvewByuV	52ac907a0449887ac1491ab40861fffc	failed	\N	55.74102787471819	37.60239028917568	\N	\N	0	\N	1	VOTING	2026-02-20 19:52:05.809	\N
-23	titllee	/uploads/acts/1771703743355-353591108.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 19:55:43.45	2026-02-21 19:56:13.62	\N	1	HrA20628gWxFgePtSvC7U6JC479bErXUwdU1ervkE_fa__5a8w88psqJEgz44RE_BPIceT1T_4nQcLlrMwnjlhIoPqrPQTAeTrhcRG3QxmRReHIzgz_3xkS8xd1Teq4RZnHCNkE4P1zL3jfZhyxK1bEFhtARFEbvwdgJiQZH9MLYNqI8S7woEaTJOsguwzK_	20f406f8da4080e49d38fa9c6a386357	failed	\N	55.75803176823725	37.62487792955654	\N	\N	0	\N	1	VOTING	2026-02-21 20:00:43.28	\N
-27	title	/uploads/acts/1771919517267-320857045.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-24 07:51:57.281	2026-02-24 07:52:30.469	\N	1	wNTCdqyZpKLwysHmhSKDamICnXc6rEWkQPHx-m9nlxgDlFKu_DeoniblQu_Le9n3VSNHi-7dMajT40ZLNPb5TurDirt5rFU1hfj9gMDCTBTNbRWqMfK4uJg4GCJGxZERpNxIsMqrb2xh4rPgu5N-dSRRCKYW2Cgd5EvkcScpZduiWyInXewJAh8Z2YWU_iFn	5de551d80c4bb25c8413f886675211ec	recording	\N	\N	\N	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:57.242	\N
+COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes, "effectId", "spotAgentCount", "spotAgentMethods", "biddingTime", description, tags) FROM stdin;
+24	апавпапав	/uploads/acts/1771704054788-50599762.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:00:54.897	2026-02-21 20:01:28.094	\N	1	hxihVkPdE2RrsklnoWVPfPNlV9R6gLAkNrFcodp0TGzl-B0jcgTv2gd1vJQ9TmzwxqyLt-8KAIX2CPciZwe2-7aOvxOlIhoS0rlni9rBgtZQauDfwa0x8RAthA7uRDLhpglest_BHW410ivTGc-an4MLfTSsQtSDR8ODYHGsS7q7c9mvPN5topY8G356mZWG	43f51ee73b4b8e3a5ab00bb5b66022b4	failed	\N	55.74914429386128	37.59964370714443	\N	\N	0	\N	1	VOTING	2026-02-21 20:05:54.693	\N	{}
+20	gfgdggfdgf	/uploads/acts/1771601735501-908500336.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:35:35.619	2026-02-20 15:36:19.183	\N	8	_BDv6sMSOoNBditCLXy8OMGp3iHo_26T4ymZvbVqkUL-CQ_XHsUtHxepUQp0VdFyrSBugDVceJ2khqAnw2i6TnyHWXflrVHNVYsLiY2NgJms5qLjligGKwjdAjKShRxTvH_qv4xdbuNxxPTF8EiDivjl03aFAKOqeOSgjhQiICKH6rZrQYn7venU9mUeo8U0	73b5645f54453275a44009917affcb4d	failed	\N	55.74131777590301	37.63689422594326	\N	\N	0	\N	1	VOTING	2026-02-20 15:40:35.419	\N	{}
+25	fgfgfd	/uploads/acts/1771704591660-890934921.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:09:51.711	2026-02-21 20:10:27.057	\N	1	roAtozmtBkVxSbALApH1q6jEj8MJamTnrF4qyTRuV5g2M5cQkJEeZ18dk87XKdWlahs_eh8Zmr-XKduVpRU0kI1m21tUIranerDX96o5m39xgw1RbwDdFF3CRCuvXKNLUxfd3d0TW8r4IaQTbG6LOazq3TZjuMqjOUHz88-IAscEejs3uHa6fAipLPVhIT_c	6ddb98ca3c47aab8c9b4dca6251a1ab7	failed	\N	55.74759843942743	37.60822677599209	\N	\N	0	\N	1	VOTING	2026-02-21 20:14:51.611	\N	{}
+21	gfgfgf	/uploads/acts/1771601895116-731875344.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:38:15.209	2026-02-20 15:38:47.131	\N	8	2NrOxwNZv1rKBV3784aUbVA2NO888e9B_EUiaMr7Fw9uC2kxjkRCPzACNTfuHnbYBmC4wHM_fq6qMt_9CocdwOYQC9y2EVGPOZALPCXmuPAhQObxxS_jGyuIhCcXgpaD6mtnFzEs58wGT9FoOzVw9kTpR7JTBUAsEk4NKfeY7YSM77vBUuUGhStCve6DLYBE	e4c0c792494b3254ebf7a6828e3666cb	failed	\N	55.75088330688495	37.61354827867763	\N	\N	0	\N	1	VOTING	2026-02-20 15:43:15.004	\N	{}
+26	title	/uploads/acts/1771919465806-474854330.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-02-24 07:51:05.833	\N	\N	1	46eyU5df1pp9Z5NVX3787EBAllRCTlaRSwyGV72MghPDPpvOX-Bn-lmDWzhskDW1-_IxgIX9xAHumBvl0sHUkDyCgu0jyXfkHbSBgw8lg3ZzTAUJexQiDMx83l-n2hdAkgE1vSUx54qo9PVNGfpNdX18rxVrB-gZoLryA1Fvj4dhsaLp2FrGwBLJaHW5td5W	35c6bf06a14c64925a311ab01d9b5eae	recording	\N	55.74721196624832	37.59998702989834	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:05.737	\N	{}
+22	tgfdgfgfd	/uploads/acts/1771616825855-662215036.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 19:47:05.872	2026-02-20 19:47:46.04	\N	1	Ljr56LzivhEPgJ-rJpDxcubDhOUx2DRmdIbFXrD_GFbN-cE2rAYR-dO1bleVsra2DGB3D2EjVYJCGliilr2VHXlAIzZPs0F5P2BaI07KnR2EOKGJ4zxTIW-dCNY0Usowg5LuYo1Qg-UCocbE5j9c58BiTSVcgKPM-OUslxpvFAJc0hNXNr3C-HR8TvewByuV	52ac907a0449887ac1491ab40861fffc	failed	\N	55.74102787471819	37.60239028917568	\N	\N	0	\N	1	VOTING	2026-02-20 19:52:05.809	\N	{}
+23	titllee	/uploads/acts/1771703743355-353591108.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 19:55:43.45	2026-02-21 19:56:13.62	\N	1	HrA20628gWxFgePtSvC7U6JC479bErXUwdU1ervkE_fa__5a8w88psqJEgz44RE_BPIceT1T_4nQcLlrMwnjlhIoPqrPQTAeTrhcRG3QxmRReHIzgz_3xkS8xd1Teq4RZnHCNkE4P1zL3jfZhyxK1bEFhtARFEbvwdgJiQZH9MLYNqI8S7woEaTJOsguwzK_	20f406f8da4080e49d38fa9c6a386357	failed	\N	55.75803176823725	37.62487792955654	\N	\N	0	\N	1	VOTING	2026-02-21 20:00:43.28	\N	{}
+27	title	/uploads/acts/1771919517267-320857045.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-24 07:51:57.281	2026-02-24 07:52:30.469	\N	1	wNTCdqyZpKLwysHmhSKDamICnXc6rEWkQPHx-m9nlxgDlFKu_DeoniblQu_Le9n3VSNHi-7dMajT40ZLNPb5TurDirt5rFU1hfj9gMDCTBTNbRWqMfK4uJg4GCJGxZERpNxIsMqrb2xh4rPgu5N-dSRRCKYW2Cgd5EvkcScpZduiWyInXewJAh8Z2YWU_iFn	5de551d80c4bb25c8413f886675211ec	recording	\N	\N	\N	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:57.242	\N	{}
 \.
 
 
@@ -1800,11 +1804,11 @@ COPY public."TicketMessage" (id, text, "ticketId", "userId", "createdAt") FROM s
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage") FROM stdin;
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-02-27 13:23:16.854	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzIxOTg0NjMsImV4cCI6MTc3MjgwMzI2M30.jL7Jtq7AOdz9xeSBsmWV9VDS3Q6uLbGz9Mk-xYs7JBs	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all
-2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-02-24 21:48:25.41	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all
-8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all
-4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-02-24 21:48:43.279	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all
+COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage", points) FROM stdin;
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-02-28 12:13:47.406	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzIyODA4MjcsImV4cCI6MTc3Mjg4NTYyN30.iUWmGK7QdlXDhxsojWaKUlwJUYLCRmgMkP5Usp-ziBA	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	0
+2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-02-24 21:48:25.41	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0
+8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0
+4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-02-24 21:48:43.279	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0
 \.
 
 
@@ -1918,7 +1922,7 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 -- Name: Achievement_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Achievement_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."Achievement_id_seq"', 3, true);
 
 
 --
@@ -3092,5 +3096,4 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
-
 
