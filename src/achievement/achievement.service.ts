@@ -8,15 +8,21 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
 import { MainGateway } from '../gateway/main.gateway';
 import { AwardAchievementDto } from './dto/award-achievement.dto';
+import { S3Service } from 'src/s3/s3.service';
 
 @Injectable()
 export class AchievementService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mainGateway: MainGateway,
+    private readonly s3Service: S3Service,
   ) {}
 
-  async createAchievement(dto: CreateAchievementDto, userId: number) {
+  async createAchievement(
+    dto: CreateAchievementDto,
+    userId: number,
+    photo: Express.Multer.File,
+  ) {
     const checkRole = await this.isAdmin(userId);
 
     if (!checkRole) {
@@ -33,9 +39,16 @@ export class AchievementService {
       );
     }
 
+    let s3Data = null;
+    // Load avatar to S3
+    if (photo) {
+      s3Data = await this.s3Service.uploadFile(photo);
+    }
+
     return await this.prisma.achievement.create({
       data: {
         name: dto.name,
+        imageUrl: s3Data?.url || null,
       },
     });
   }

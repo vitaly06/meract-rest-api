@@ -86,6 +86,8 @@ model User {
   notifyChatMentions    Boolean @default(true)
   notifyActStatusRealtime Boolean @default(true)
 
+  points Int @default(0)
+
   // Security
   twoFactorSecret  String?
   twoFactorEnabled Boolean @default(false)
@@ -184,6 +186,8 @@ model Act {
   spotAgentMethods SelectionMethods @default(VOTING)
   spotAgentCount   Int              @default(0)
   biddingTime      DateTime?
+
+  tags String[] @default([])
 
   introId Int?
   intro   Intro? @relation(fields: [introId], references: [id], onDelete: Cascade)
@@ -407,6 +411,7 @@ model ChatMessage {
 model Achievement {
   id   Int    @id @default(autoincrement())
   name String @unique
+  imageUrl String?
 
   users UserAchievement[]
 
