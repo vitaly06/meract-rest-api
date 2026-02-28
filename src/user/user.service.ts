@@ -21,6 +21,19 @@ export class UserService {
     private readonly s3Service: S3Service,
   ) {}
 
+  async getCurrentUser(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      omit: { password: true, refreshToken: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
   async deleteAvatar(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

@@ -33,6 +33,12 @@ import { utcTimeZones } from 'src/common/constants/constants';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getCurrentUser(@Req() req: RequestWithUser) {
+    return await this.userService.getCurrentUser(req.user.sub);
+  }
+
   @ApiTags('Settings (personal data)')
   @UseGuards(JwtAuthGuard)
   @Delete('delete-avatar')
