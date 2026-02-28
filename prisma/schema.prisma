@@ -131,6 +131,9 @@ model User {
   RoleCandidates    RoleCandidate[]    @relation("UserRoleCandidates")
   RoleVotes         RoleVote[]         @relation("UserRoleVotes")
   ActTeamCandidates ActTeamCandidate[]
+
+  chatMembers ChatMember[]
+  messages    Message[]   @relation("MessageSender")
 }
 
 model Role {
@@ -151,6 +154,7 @@ model Guild {
   members      User[]
   messages     GuildChatMessage[]
   joinRequests GuildJoinRequest[]
+  chat         Chat?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -585,4 +589,66 @@ model ActTeamTask {
   createdAt DateTime @default(now())
 
   @@index([teamId])
+}
+
+// ─── Chat System ──────────────────────────────────────────────────────────────
+
+model Chat {
+  id         Int     @id @default(autoincrement())
+  type       String  @default("direct") // direct | group | guild
+  name       String? // for group/guild chats
+  imageUrl   String? // cover image for group chats (S3 url)
+  inviteCode String? @unique // random token for invite links (group/guild only)
+
+  // For guild chats — one-to-one with Guild
+  guildId Int?   @unique
+  guild   Guild? @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  members  ChatMember[]
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChatMember {
+  id     Int  @id @default(autoincrement())
+  chatId Int
+  chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lastReadAt DateTime?
+  joinedAt   DateTime  @default(now())
+
+  @@unique([chatId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id       Int  @id @default(autoincrement())
+  chatId   Int
+  chat     Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId Int
+  sender   User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  text     String? // text content (optional if file sent)
+  fileUrl  String? // S3 url for uploaded file / voice
+  fileType String? // image | video | audio | voice | file
+
+  // Reply to a specific message
+  replyToId Int?
+  replyTo   Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies   Message[] @relation("MessageReplies")
+
+  // Forwarded from another message
+  forwardedFromId Int?
+  forwardedFrom   Message?  @relation("MessageForwards", fields: [forwardedFromId], references: [id], onDelete: SetNull)
+  forwards        Message[] @relation("MessageForwards")
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([chatId, createdAt])
+  @@index([senderId])
 }

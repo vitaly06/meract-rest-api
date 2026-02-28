@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ChatService } from '../chat/chat.service';
 import { GuildService } from '../guild/guild.service';
 import { ActService } from '../act/act.service';
-import { CreateMessageDto } from '../chat/dto/create-message.dto';
+
 import { SendGuildMessageDto } from '../guild/dto/send-guild-message.dto';
 import moment from 'moment';
 
@@ -177,7 +177,11 @@ export class MainGateway
 
           socket.emit('joinedStream', { actId });
 
-          const messages = await this.chatService.getMessages(actId, 50, 0);
+          const messages = await this.chatService.getStreamMessages(
+            actId,
+            50,
+            0,
+          );
           socket.emit('chatHistory', { messages });
         } catch (error) {
           this.logger.error(`Error joining stream: ${error.message}`);
@@ -225,11 +229,10 @@ export class MainGateway
               );
             }
 
-            const dto: CreateMessageDto = { message: messageText };
-            const newMessage = await this.chatService.sendMessage(
+            const newMessage = await this.chatService.sendStreamMessage(
               actId,
               socket.userId,
-              dto,
+              { message: messageText },
             );
 
             ns.to(`stream_${actId}`).emit('newMessage', newMessage);
@@ -258,7 +261,10 @@ export class MainGateway
 
             const { messageId, actId } = data;
 
-            await this.chatService.deleteMessage(messageId, socket.userId);
+            await this.chatService.deleteStreamMessage(
+              messageId,
+              socket.userId,
+            );
 
             ns.to(`stream_${actId}`).emit('messageDeleted', { messageId });
 

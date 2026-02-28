@@ -1,191 +1,297 @@
-import {
+﻿import {
   Controller,
   Post,
   Get,
   Delete,
+  Patch,
   Body,
   Param,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
-  HttpStatus,
+  UseInterceptors,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
-  ApiParam,
-  ApiQuery,
+  ApiConsumes,
+  ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { ChatService } from './chat.service';
-import { CreateMessageDto } from './dto/create-message.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
+import { ChatService } from './chat.service';
+import { CreateGroupChatDto } from './dto/create-chat.dto';
+import { SendMessageDto } from './dto/send-message.dto';
 
 @ApiTags('Chat')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  @ApiOperation({
-    summary: 'Send message to stream chat',
-    description: 'Send a message to the chat of a specific stream',
-  })
-  @ApiParam({
-    name: 'actId',
-    description: 'Stream ID',
-    type: 'number',
-    example: 1,
-  })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'Message sent successfully',
-    schema: {
-      example: {
-        id: 1,
-        message: 'Hello everyone!',
-        createdAt: '2025-11-02T12:00:00.000Z',
-        user: {
-          id: 1,
-          username: 'john_doe',
-          status: 'ACTIVE',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Stream not found',
-  })
-  @ApiResponse({
-    status: HttpStatus.FORBIDDEN,
-    description: 'User is blocked or stream is offline',
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Post(':actId/message')
-  async sendMessage(
-    @Param('actId') actId: string,
-    @Body() dto: CreateMessageDto,
-    @Req() req: RequestWithUser,
-  ) {
-    return await this.chatService.sendMessage(+actId, req.user.sub, dto);
-  }
+  // ─── Chat list ───────────────────────────────────────────────────────────────
 
   @ApiOperation({
-    summary: 'Get chat messages',
-    description: 'Get chat messages for a specific stream',
+    summary: 'Список чатов',
+    description:
+      'Возвращает все чаты пользователя: личные, групповые и гильдийные. ' +
+      'Содержит аватар/логин собеседника, последнее сообщение, кол-во непрочитанных.',
   })
-  @ApiParam({
-    name: 'actId',
-    description: 'Stream ID',
-    type: 'number',
-    example: 1,
+  @Get()
+  async getChats(@Req() req: RequestWithUser) {
+    return this.chatService.getChats(req.user.sub);
+  }
+
+  // ─── Direct chat ─────────────────────────────────────────────────────────────
+
+  @ApiOperation({
+    summary: 'Получить или создать личный чат с пользователем',
   })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Number of messages to fetch',
-    required: false,
-    type: 'number',
-    example: 50,
+  @Post('direct/:userId')
+  async getOrCreateDirectChat(
+    @Req() req: RequestWithUser,
+    @Param('userId', ParseIntPipe) userId: number,
+  ) {
+    return this.chatService.getOrCreateDirectChat(req.user.sub, userId);
+  }
+
+  // ─── Group chat ───────────────────────────────────────────────────────────────
+
+  @ApiOperation({
+    summary: 'Создать групповой чат',
+    description:
+      'name обязателен. participantIds — JSON-массив в multipart. Файл (image/video) — опционально.',
   })
-  @ApiQuery({
-    name: 'offset',
-    description: 'Number of messages to skip',
-    required: false,
-    type: 'number',
-    example: 0,
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Chat messages retrieved successfully',
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
     schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'number' },
-          message: { type: 'string' },
-          createdAt: { type: 'string' },
-          user: {
-            type: 'object',
-            properties: {
-              id: { type: 'number' },
-              username: { type: 'string' },
-              status: { type: 'string' },
-            },
-          },
+      type: 'object',
+      required: ['name', 'participantIds'],
+      properties: {
+        name: { type: 'string', example: 'Команда А' },
+        participantIds: {
+          type: 'string',
+          example: '[1,2,3]',
+          description: 'JSON-массив ID участников',
+        },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Обложка чата (опционально)',
         },
       },
     },
   })
-  @Get(':actId/messages')
+  @Post('group')
+  @UseInterceptors(FileInterceptor('image', { storage: memoryStorage() }))
+  async createGroupChat(
+    @Req() req: RequestWithUser,
+    @Body() dto: CreateGroupChatDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.chatService.createGroupChat(req.user.sub, dto, file);
+  }
+
+  // ─── Guild chat ───────────────────────────────────────────────────────────────
+
+  @ApiOperation({
+    summary: 'Получить или создать чат гильдии',
+    description:
+      'Возвращает chatId для чата гильдии. Доступно только членам гильдии.',
+  })
+  @Post('guild/:guildId')
+  async getOrCreateGuildChat(
+    @Req() req: RequestWithUser,
+    @Param('guildId', ParseIntPipe) guildId: number,
+  ) {
+    return this.chatService.getOrCreateGuildChat(req.user.sub, guildId);
+  }
+
+  // ─── Messages ────────────────────────────────────────────────────────────────
+
+  @ApiOperation({
+    summary: 'Получить сообщения чата (пагинация курсором)',
+    description:
+      'limit по умолчанию 50. before — ID сообщения для загрузки более старых.',
+  })
+  @Get(':chatId/messages')
   async getMessages(
-    @Param('actId') actId: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
-  ) {
-    const limitNum = limit ? +limit : 50;
-    const offsetNum = offset ? +offset : 0;
-    return await this.chatService.getMessages(+actId, limitNum, offsetNum);
-  }
-
-  @ApiOperation({
-    summary: 'Delete chat message',
-    description: 'Delete a chat message (author, stream owner, or admin only)',
-  })
-  @ApiParam({
-    name: 'messageId',
-    description: 'Message ID',
-    type: 'number',
-    example: 1,
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Message deleted successfully',
-    schema: {
-      example: { message: 'Message deleted successfully' },
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Message not found',
-  })
-  @ApiResponse({
-    status: HttpStatus.FORBIDDEN,
-    description: 'No permission to delete this message',
-  })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Delete('message/:messageId')
-  async deleteMessage(
-    @Param('messageId') messageId: string,
     @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+    @Query('limit') limit?: string,
+    @Query('before') before?: string,
   ) {
-    return await this.chatService.deleteMessage(+messageId, req.user.sub);
+    return this.chatService.getMessages(
+      chatId,
+      req.user.sub,
+      limit ? +limit : 50,
+      before ? +before : undefined,
+    );
+  }
+
+  // ─── Send message ─────────────────────────────────────────────────────────────
+
+  @ApiOperation({
+    summary: 'Отправить сообщение',
+    description:
+      'text, replyToId и forwardedFromId — опциональны в multipart-теле. ' +
+      'Прикрепить файл (image/video/audio/голосовое) — поле file.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          example: 'Привет!',
+          description: 'Текст сообщения',
+        },
+        replyToId: {
+          type: 'number',
+          example: 5,
+          description: 'ID сообщения-ответа',
+        },
+        forwardedFromId: {
+          type: 'number',
+          example: 10,
+          description: 'ID пересылаемого сообщения',
+        },
+        file: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'Вложение: изображение, видео, аудио или голосовое (audio/ogg, audio/webm)',
+        },
+      },
+    },
+  })
+  @Post(':chatId/messages')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  async sendMessage(
+    @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+    @Body() dto: SendMessageDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.chatService.sendMessage(chatId, req.user.sub, dto, file);
+  }
+
+  // ─── Delete message ───────────────────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Удалить своё сообщение (soft delete)' })
+  @Delete('messages/:messageId')
+  async deleteMessage(
+    @Req() req: RequestWithUser,
+    @Param('messageId', ParseIntPipe) messageId: number,
+  ) {
+    return this.chatService.deleteMessage(messageId, req.user.sub);
+  }
+
+  // ─── Add member ───────────────────────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Добавить участника в групповой чат' })
+  @Post(':chatId/members/:userId')
+  async addMember(
+    @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('userId', ParseIntPipe) targetUserId: number,
+  ) {
+    return this.chatService.addMember(chatId, req.user.sub, targetUserId);
+  }
+
+  // ─── Mark as read ─────────────────────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Отметить чат как прочитанный' })
+  @Patch(':chatId/read')
+  async markAsRead(
+    @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+  ) {
+    return this.chatService.markAsRead(chatId, req.user.sub);
+  }
+
+  // ─── Invite link ──────────────────────────────────────────────────────────────
+
+  @ApiOperation({
+    summary: 'Получить или создать ссылку-приглашение для чата',
+    description: 'Доступно только для групповых и гильдийных чатов.',
+  })
+  @Get(':chatId/invite')
+  async getInviteCode(
+    @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+  ) {
+    return this.chatService.generateInviteCode(chatId, req.user.sub);
   }
 
   @ApiOperation({
-    summary: 'Get message count',
-    description: 'Get total number of messages in stream chat',
+    summary: 'Вступить в чат по коду приглашения',
+    description:
+      'Пользователь присоединяется к групповому/гильдийному чату по invite-коду.',
   })
-  @ApiParam({
-    name: 'actId',
-    description: 'Stream ID',
-    type: 'number',
-    example: 1,
+  @Post('join/:code')
+  async joinByInviteCode(
+    @Req() req: RequestWithUser,
+    @Param('code') code: string,
+  ) {
+    return this.chatService.joinByInviteCode(code, req.user.sub);
+  }
+
+  // ─── Media queries ────────────────────────────────────────────────────────────
+
+  @ApiOperation({
+    summary: 'Получить все изображения чата',
+    description: 'Пагинация по cursor (before = ID). limit по умолчанию 30.',
   })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Message count retrieved successfully',
-    schema: {
-      example: { count: 150 },
-    },
+  @Get(':chatId/media/images')
+  async getChatImages(
+    @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+    @Query('limit') limit?: string,
+    @Query('before') before?: string,
+  ) {
+    return this.chatService.getChatImages(
+      chatId,
+      req.user.sub,
+      limit ? +limit : 30,
+      before ? +before : undefined,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Получить все видео чата',
+    description: 'Пагинация по cursor (before = ID). limit по умолчанию 30.',
   })
-  @Get(':actId/count')
-  async getMessageCount(@Param('actId') actId: string) {
-    const count = await this.chatService.getMessageCount(+actId);
-    return { count };
+  @Get(':chatId/media/videos')
+  async getChatVideos(
+    @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+    @Query('limit') limit?: string,
+    @Query('before') before?: string,
+  ) {
+    return this.chatService.getChatVideos(
+      chatId,
+      req.user.sub,
+      limit ? +limit : 30,
+      before ? +before : undefined,
+    );
+  }
+
+  // ─── Members list ─────────────────────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Получить всех участников чата' })
+  @Get(':chatId/members')
+  async getChatMembers(
+    @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+  ) {
+    return this.chatService.getChatMembers(chatId, req.user.sub);
   }
 }
