@@ -1,4 +1,4 @@
-import {
+﻿import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
@@ -9,268 +9,131 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
-import { ChatService } from './chat.service';
-import { CreateMessageDto } from './dto/create-message.dto';
+import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ChatService } from './chat.service';
+import { SendMessageDto } from './dto/send-message.dto';
 
-interface AuthenticatedSocket extends Socket {
+interface AuthSocket extends Socket {
   userId?: number;
-  actId?: number;
 }
 
-// @WebSocketGateway - УДАЛЕНО, используется MainGateway
-// @WebSocketGateway({
-//   cors: {
-//     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-//     credentials: true,
-//   },
-//   namespace: 'chat',
-//   path: '/socket.io/',
-// })
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
   server: Server;
 
-  private logger: Logger = new Logger('ChatGateway');
-  private connectedUsers: Map<string, AuthenticatedSocket> = new Map();
+  private readonly logger = new Logger('ChatGateway');
 
   constructor(
     private readonly chatService: ChatService,
     private readonly jwtService: JwtService,
   ) {}
 
-  afterInit(server: Server) {
+  afterInit() {
     this.logger.log('Chat WebSocket Gateway initialized');
   }
 
-  /**
-   * Извлекает токен из cookies
-   */
-  private extractTokenFromCookies(cookieHeader: string): string | null {
-    if (!cookieHeader) return null;
-
-    const cookies = cookieHeader.split(';').reduce(
-      (acc, cookie) => {
-        const [key, value] = cookie.trim().split('=');
-        acc[key] = value;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
-
-    // Пробуем разные названия токена
-    return (
-      cookies['accessToken'] ||
-      cookies['token'] ||
-      cookies['access_token'] ||
-      null
-    );
+  private extractToken(client: Socket): string | null {
+    const auth = client.handshake.auth?.token as string;
+    if (auth) return auth;
+    const query = client.handshake.query?.token as string;
+    if (query) return query;
+    const cookie = client.handshake.headers.cookie ?? '';
+    const match = cookie.match(/(?:^|;\s*)accessToken=([^;]+)/);
+    return match ? match[1] : null;
   }
 
-  async handleConnection(client: AuthenticatedSocket) {
+  async handleConnection(client: AuthSocket) {
     try {
-      // Попытка 1: Получаем токен из auth объекта
-      let token = client.handshake.auth?.token;
-
-      // Попытка 2: Получаем токен из query параметров
+      const token = this.extractToken(client);
       if (!token) {
-        token = client.handshake.query?.token as string;
-      }
-
-      // Попытка 3: Извлекаем токен из httpOnly cookies
-      if (!token) {
-        const cookieHeader = client.handshake.headers.cookie;
-        token = this.extractTokenFromCookies(cookieHeader);
-      }
-
-      if (!token) {
-        this.logger.warn(
-          `Client ${client.id} connected without token (checked auth, query, and cookies)`,
-        );
         client.disconnect();
         return;
       }
-
-      // Верифицируем JWT токен
       const payload = this.jwtService.verify(token, {
         secret: process.env.JWT_ACCESS_SECRET,
       });
-
       client.userId = payload.sub;
-      this.connectedUsers.set(client.id, client);
-
-      this.logger.log(
-        `User ${client.userId} connected with socket ${client.id}`,
-      );
-    } catch (error) {
-      this.logger.warn(
-        `Authentication failed for client ${client.id}: ${error.message}`,
-      );
+      this.logger.log(`User ${client.userId} connected (${client.id})`);
+    } catch {
       client.disconnect();
     }
   }
 
-  handleDisconnect(client: AuthenticatedSocket) {
-    this.connectedUsers.delete(client.id);
+  handleDisconnect(client: AuthSocket) {
     this.logger.log(`Client ${client.id} disconnected`);
   }
 
-  @SubscribeMessage('joinStream')
-  async handleJoinStream(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { actId: number },
+  // ─── Join / leave a chat room ─────────────────────────────────────────────
+
+  @SubscribeMessage('chat:join')
+  handleJoin(
+    @ConnectedSocket() client: AuthSocket,
+    @MessageBody() data: { chatId: number },
   ) {
-    try {
-      if (!client.userId) {
-        client.emit('error', { message: 'Not authenticated' });
-        return;
-      }
-
-      const { actId } = data;
-
-      // Покидаем предыдущую комнату, если была
-      if (client.actId) {
-        client.leave(`stream_${client.actId}`);
-      }
-
-      // Присоединяемся к комнате стрима
-      client.join(`stream_${actId}`);
-      client.actId = actId;
-
-      this.logger.log(`User ${client.userId} joined stream ${actId} chat`);
-
-      // Отправляем подтверждение
-      client.emit('joinedStream', { actId });
-
-      // Отправляем последние сообщения
-      const messages = await this.chatService.getMessages(actId, 50, 0);
-      client.emit('chatHistory', { messages });
-    } catch (error) {
-      this.logger.error(`Error joining stream: ${error.message}`);
-      client.emit('error', { message: 'Failed to join stream chat' });
-    }
+    client.join(`chat_${data.chatId}`);
+    client.emit('chat:joined', { chatId: data.chatId });
   }
 
-  @SubscribeMessage('leaveStream')
-  handleLeaveStream(@ConnectedSocket() client: AuthenticatedSocket) {
-    if (client.actId) {
-      client.leave(`stream_${client.actId}`);
-      this.logger.log(`User ${client.userId} left stream ${client.actId} chat`);
-      client.actId = undefined;
-      client.emit('leftStream');
-    }
+  @SubscribeMessage('chat:leave')
+  handleLeave(
+    @ConnectedSocket() client: AuthSocket,
+    @MessageBody() data: { chatId: number },
+  ) {
+    client.leave(`chat_${data.chatId}`);
   }
 
-  @SubscribeMessage('sendMessage')
-  async handleSendMessage(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { actId: number; message?: string; content?: string },
+  // ─── Send message via WebSocket ───────────────────────────────────────────
+
+  @SubscribeMessage('chat:send')
+  async handleSend(
+    @ConnectedSocket() client: AuthSocket,
+    @MessageBody()
+    data: {
+      chatId: number;
+      text?: string;
+      replyToId?: number;
+      forwardedFromId?: number;
+    },
   ) {
+    if (!client.userId) return;
     try {
-      if (!client.userId) {
-        client.emit('error', { message: 'Not authenticated' });
-        return;
-      }
-
-      const { actId, message, content } = data;
-      const messageText = message || content; // Поддержка обоих полей
-
-      if (!messageText) {
-        client.emit('messageError', { message: 'Message text is required' });
-        return;
-      }
-
-      // Автоматически присоединяем к комнате, если еще не в ней
-      if (client.actId !== actId) {
-        client.join(`stream_${actId}`);
-        client.actId = actId;
-        this.logger.debug(
-          `User ${client.userId} auto-joined stream ${actId} chat`,
-        );
-      }
-
-      // Валидируем данные
-      const dto: CreateMessageDto = { message: messageText };
-
-      // Отправляем сообщение через сервис
-      const newMessage = await this.chatService.sendMessage(
-        actId,
+      const dto: SendMessageDto = {
+        text: data.text,
+        replyToId: data.replyToId,
+        forwardedFromId: data.forwardedFromId,
+      };
+      const message = await this.chatService.sendMessage(
+        data.chatId,
         client.userId,
         dto,
       );
-
-      // Отправляем сообщение всем пользователям в комнате стрима
-      this.server.to(`stream_${actId}`).emit('newMessage', newMessage);
-
-      this.logger.debug(
-        `Message sent to stream ${actId} by user ${client.userId}`,
-      );
-    } catch (error) {
-      this.logger.error(`Error sending message: ${error.message}`);
-      client.emit('messageError', {
-        message: error.message || 'Failed to send message',
-      });
+      // Broadcast to everyone in the room (including sender)
+      this.server.to(`chat_${data.chatId}`).emit('chat:message', message);
+    } catch (err) {
+      client.emit('chat:error', { message: err.message });
     }
   }
 
-  @SubscribeMessage('deleteMessage')
-  async handleDeleteMessage(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { messageId: number; actId: number },
+  // ─── Mark as read ─────────────────────────────────────────────────────────
+
+  @SubscribeMessage('chat:read')
+  async handleRead(
+    @ConnectedSocket() client: AuthSocket,
+    @MessageBody() data: { chatId: number },
   ) {
-    try {
-      if (!client.userId) {
-        client.emit('error', { message: 'Not authenticated' });
-        return;
-      }
-
-      const { messageId, actId } = data;
-
-      // Удаляем сообщение через сервис
-      await this.chatService.deleteMessage(messageId, client.userId);
-
-      // Уведомляем всех пользователей в комнате стрима об удалении
-      this.server.to(`stream_${actId}`).emit('messageDeleted', { messageId });
-
-      this.logger.debug(
-        `Message ${messageId} deleted by user ${client.userId}`,
-      );
-    } catch (error) {
-      this.logger.error(`Error deleting message: ${error.message}`);
-      client.emit('deleteError', {
-        message: error.message || 'Failed to delete message',
-      });
-    }
+    if (!client.userId) return;
+    await this.chatService.markAsRead(data.chatId, client.userId);
+    this.server
+      .to(`chat_${data.chatId}`)
+      .emit('chat:read', { chatId: data.chatId, userId: client.userId });
   }
 
-  /**
-   * Отправить системное сообщение в чат стрима (например, о начале/окончании стрима)
-   */
-  async sendSystemMessage(actId: number, message: string) {
-    const systemMessage = {
-      id: 0,
-      message,
-      createdAt: new Date().toISOString(),
-      user: {
-        id: 0,
-        username: 'System',
-        status: 'SYSTEM',
-      },
-      isSystem: true,
-    };
+  // ─── Helper for broadcasting from other services ──────────────────────────
 
-    this.server.to(`stream_${actId}`).emit('newMessage', systemMessage);
-    this.logger.debug(`System message sent to stream ${actId}: ${message}`);
-  }
-
-  /**
-   * Получить количество подключенных пользователей к чату стрима
-   */
-  getConnectedUsersCount(actId: number): number {
-    const room = this.server.sockets.adapter.rooms.get(`stream_${actId}`);
-    return room ? room.size : 0;
+  broadcastMessage(chatId: number, message: any) {
+    this.server.to(`chat_${chatId}`).emit('chat:message', message);
   }
 }

@@ -582,6 +582,61 @@ ALTER SEQUENCE public."Category_id_seq" OWNED BY public."Category".id;
 
 
 --
+-- Name: Chat; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Chat" (
+    id integer NOT NULL,
+    type text DEFAULT 'direct'::text NOT NULL,
+    name text,
+    "imageUrl" text,
+    "guildId" integer,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "inviteCode" text
+);
+
+
+ALTER TABLE public."Chat" OWNER TO postgres;
+
+--
+-- Name: ChatMember; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ChatMember" (
+    id integer NOT NULL,
+    "chatId" integer NOT NULL,
+    "userId" integer NOT NULL,
+    "lastReadAt" timestamp(3) without time zone,
+    "joinedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."ChatMember" OWNER TO postgres;
+
+--
+-- Name: ChatMember_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ChatMember_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ChatMember_id_seq" OWNER TO postgres;
+
+--
+-- Name: ChatMember_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ChatMember_id_seq" OWNED BY public."ChatMember".id;
+
+
+--
 -- Name: ChatMessage; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -616,6 +671,28 @@ ALTER SEQUENCE public."ChatMessage_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."ChatMessage_id_seq" OWNED BY public."ChatMessage".id;
+
+
+--
+-- Name: Chat_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Chat_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Chat_id_seq" OWNER TO postgres;
+
+--
+-- Name: Chat_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Chat_id_seq" OWNED BY public."Chat".id;
 
 
 --
@@ -802,6 +879,48 @@ ALTER SEQUENCE public."Intro_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."Intro_id_seq" OWNED BY public."Intro".id;
+
+
+--
+-- Name: Message; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Message" (
+    id integer NOT NULL,
+    "chatId" integer NOT NULL,
+    "senderId" integer NOT NULL,
+    text text,
+    "fileUrl" text,
+    "fileType" text,
+    "replyToId" integer,
+    "forwardedFromId" integer,
+    "isDeleted" boolean DEFAULT false NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."Message" OWNER TO postgres;
+
+--
+-- Name: Message_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Message_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Message_id_seq" OWNER TO postgres;
+
+--
+-- Name: Message_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Message_id_seq" OWNED BY public."Message".id;
 
 
 --
@@ -1406,6 +1525,20 @@ ALTER TABLE ONLY public."Category" ALTER COLUMN id SET DEFAULT nextval('public."
 
 
 --
+-- Name: Chat id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat" ALTER COLUMN id SET DEFAULT nextval('public."Chat_id_seq"'::regclass);
+
+
+--
+-- Name: ChatMember id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ChatMember" ALTER COLUMN id SET DEFAULT nextval('public."ChatMember_id_seq"'::regclass);
+
+
+--
 -- Name: ChatMessage id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1445,6 +1578,13 @@ ALTER TABLE ONLY public."GuildJoinRequest" ALTER COLUMN id SET DEFAULT nextval('
 --
 
 ALTER TABLE ONLY public."Intro" ALTER COLUMN id SET DEFAULT nextval('public."Intro_id_seq"'::regclass);
+
+
+--
+-- Name: Message id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message" ALTER COLUMN id SET DEFAULT nextval('public."Message_id_seq"'::regclass);
 
 
 --
@@ -1663,6 +1803,22 @@ COPY public."Category" (id, name) FROM stdin;
 
 
 --
+-- Data for Name: Chat; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Chat" (id, type, name, "imageUrl", "guildId", "createdAt", "updatedAt", "inviteCode") FROM stdin;
+\.
+
+
+--
+-- Data for Name: ChatMember; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ChatMember" (id, "chatId", "userId", "lastReadAt", "joinedAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: ChatMessage; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1709,6 +1865,14 @@ COPY public."GuildJoinRequest" (id, "guildId", "userId", status, message, "creat
 
 COPY public."Intro" (id, "fileName", "userId") FROM stdin;
 1	uploads/intros/1764162877115-75180112.mp4	\N
+\.
+
+
+--
+-- Data for Name: Message; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Message" (id, "chatId", "senderId", text, "fileUrl", "fileType", "replyToId", "forwardedFromId", "isDeleted", "createdAt") FROM stdin;
 \.
 
 
@@ -2003,10 +2167,24 @@ SELECT pg_catalog.setval('public."Category_id_seq"', 1, false);
 
 
 --
+-- Name: ChatMember_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ChatMember_id_seq"', 1, false);
+
+
+--
 -- Name: ChatMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
 SELECT pg_catalog.setval('public."ChatMessage_id_seq"', 1, false);
+
+
+--
+-- Name: Chat_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Chat_id_seq"', 1, false);
 
 
 --
@@ -2042,6 +2220,13 @@ SELECT pg_catalog.setval('public."Guild_id_seq"', 4, true);
 --
 
 SELECT pg_catalog.setval('public."Intro_id_seq"', 1, true);
+
+
+--
+-- Name: Message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Message_id_seq"', 1, false);
 
 
 --
@@ -2233,11 +2418,27 @@ ALTER TABLE ONLY public."Category"
 
 
 --
+-- Name: ChatMember ChatMember_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ChatMember"
+    ADD CONSTRAINT "ChatMember_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: ChatMessage ChatMessage_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."ChatMessage"
     ADD CONSTRAINT "ChatMessage_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Chat Chat_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat"
+    ADD CONSTRAINT "Chat_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2278,6 +2479,14 @@ ALTER TABLE ONLY public."Guild"
 
 ALTER TABLE ONLY public."Intro"
     ADD CONSTRAINT "Intro_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Message Message_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message"
+    ADD CONSTRAINT "Message_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2542,10 +2751,38 @@ CREATE UNIQUE INDEX "Category_name_key" ON public."Category" USING btree (name);
 
 
 --
+-- Name: ChatMember_chatId_userId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "ChatMember_chatId_userId_key" ON public."ChatMember" USING btree ("chatId", "userId");
+
+
+--
+-- Name: ChatMember_userId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ChatMember_userId_idx" ON public."ChatMember" USING btree ("userId");
+
+
+--
 -- Name: ChatMessage_actId_createdAt_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX "ChatMessage_actId_createdAt_idx" ON public."ChatMessage" USING btree ("actId", "createdAt");
+
+
+--
+-- Name: Chat_guildId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Chat_guildId_key" ON public."Chat" USING btree ("guildId");
+
+
+--
+-- Name: Chat_inviteCode_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Chat_inviteCode_key" ON public."Chat" USING btree ("inviteCode");
 
 
 --
@@ -2567,6 +2804,20 @@ CREATE UNIQUE INDEX "GuildJoinRequest_guildId_userId_key" ON public."GuildJoinRe
 --
 
 CREATE UNIQUE INDEX "Guild_name_key" ON public."Guild" USING btree (name);
+
+
+--
+-- Name: Message_chatId_createdAt_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Message_chatId_createdAt_idx" ON public."Message" USING btree ("chatId", "createdAt");
+
+
+--
+-- Name: Message_senderId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Message_senderId_idx" ON public."Message" USING btree ("senderId");
 
 
 --
@@ -2823,6 +3074,22 @@ ALTER TABLE ONLY public."Act"
 
 
 --
+-- Name: ChatMember ChatMember_chatId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ChatMember"
+    ADD CONSTRAINT "ChatMember_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES public."Chat"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ChatMember ChatMember_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ChatMember"
+    ADD CONSTRAINT "ChatMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: ChatMessage ChatMessage_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2836,6 +3103,14 @@ ALTER TABLE ONLY public."ChatMessage"
 
 ALTER TABLE ONLY public."ChatMessage"
     ADD CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Chat Chat_guildId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat"
+    ADD CONSTRAINT "Chat_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES public."Guild"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -2884,6 +3159,38 @@ ALTER TABLE ONLY public."GuildJoinRequest"
 
 ALTER TABLE ONLY public."Intro"
     ADD CONSTRAINT "Intro_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Message Message_chatId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message"
+    ADD CONSTRAINT "Message_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES public."Chat"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Message Message_forwardedFromId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message"
+    ADD CONSTRAINT "Message_forwardedFromId_fkey" FOREIGN KEY ("forwardedFromId") REFERENCES public."Message"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: Message Message_replyToId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message"
+    ADD CONSTRAINT "Message_replyToId_fkey" FOREIGN KEY ("replyToId") REFERENCES public."Message"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: Message Message_senderId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Message"
+    ADD CONSTRAINT "Message_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -3096,4 +3403,5 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
+
 

@@ -4,9 +4,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
+import { S3Module } from 'src/s3/s3.module';
 
 @Module({
   imports: [
+    S3Module,
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
