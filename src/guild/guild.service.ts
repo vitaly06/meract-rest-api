@@ -34,7 +34,7 @@ export class GuildService {
     file: Express.Multer.File | null,
     cover: Express.Multer.File | null,
   ) {
-    const { name, description } = { ...dto };
+    const { name, description, tags } = { ...dto };
 
     const checkGuild = await this.prisma.guild.findUnique({
       where: { name },
@@ -59,6 +59,7 @@ export class GuildService {
       data: {
         name,
         description,
+        tags: tags ?? [],
         logoFileName: photoS3Data?.url || null,
         coverFileName: coverS3Data?.url || null,
         ownerId: req.user.sub,

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsOptional, IsString, IsArray } from 'class-validator';
 
 export class CreateGuildRequest {
   @ApiProperty({
@@ -18,4 +19,24 @@ export class CreateGuildRequest {
   @IsOptional()
   @IsString({ message: 'description must be a string' })
   description?: string;
+
+  @ApiProperty({
+    description: 'Теги гильдии (JSON-массив строк в multipart)',
+    example: '["adventure", "quest"]',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return [value];
+      }
+    }
+    return value;
+  })
+  tags?: string[];
 }
