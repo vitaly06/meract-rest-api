@@ -36,6 +36,11 @@ export class GuildController {
       properties: {
         name: { type: 'string' },
         description: { type: 'string' },
+        tags: {
+          type: 'string',
+          description: 'JSON-массив тегов, напр. ["adventure","quest"]',
+          example: '["adventure","quest"]',
+        },
         photo: {
           type: 'string',
           format: 'binary',
