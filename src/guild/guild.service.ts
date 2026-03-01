@@ -78,9 +78,48 @@ export class GuildService {
   }
 
   async findAll() {
-    const guilds = await this.prisma.guild.findMany();
+    const guilds = await this.prisma.guild.findMany({
+      include: {
+        members: { select: { id: true } },
+        achievements: {
+          include: { achievement: true },
+          orderBy: { awardedAt: 'desc' },
+        },
+        _count: { select: { members: true } },
+      },
+    });
 
-    return guilds;
+    // Подсчёт актов для каждого владельца + участников гильдии
+    const result = await Promise.all(
+      guilds.map(async (guild) => {
+        const memberIds = guild.members.map((m) => m.id);
+        const actsCount = await this.prisma.act.count({
+          where: { userId: { in: memberIds } },
+        });
+
+        return {
+          id: guild.id,
+          name: guild.name,
+          description: guild.description,
+          logoFileName: guild.logoFileName,
+          coverFileName: guild.coverFileName,
+          tags: guild.tags,
+          ownerId: guild.ownerId,
+          membersCount: guild._count.members,
+          actsCount,
+          achievements: guild.achievements.map((ga) => ({
+            id: ga.achievement.id,
+            name: ga.achievement.name,
+            imageUrl: ga.achievement.imageUrl,
+            awardedAt: ga.awardedAt,
+          })),
+          createdAt: guild.createdAt,
+          updatedAt: guild.updatedAt,
+        };
+      }),
+    );
+
+    return result;
   }
 
   async findById(guildId: number) {

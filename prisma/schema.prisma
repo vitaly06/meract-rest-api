@@ -151,6 +151,7 @@ model Guild {
   description  String?
   logoFileName String?
   coverFileName String?
+  tags         String[] @default([])
 
   ownerId Int
 
@@ -158,6 +159,7 @@ model Guild {
   messages     GuildChatMessage[]
   joinRequests GuildJoinRequest[]
   chat         Chat?
+  achievements GuildAchievement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -422,7 +424,8 @@ model Achievement {
   name String @unique
   imageUrl String?
 
-  users UserAchievement[]
+  users  UserAchievement[]
+  guilds GuildAchievement[]
 
   createdAt DateTime @default(now())
 }
@@ -447,6 +450,19 @@ model UserAchievement {
 
   @@id([userId, achievementId])
   @@index([userId])
+}
+
+model GuildAchievement {
+  guild   Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guildId Int
+
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  achievementId Int
+
+  awardedAt DateTime @default(now())
+
+  @@id([guildId, achievementId])
+  @@index([guildId])
 }
 
 model UserRank {

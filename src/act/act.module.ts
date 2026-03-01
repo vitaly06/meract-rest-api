@@ -7,6 +7,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
 import { AgoraRecordingModule } from 'src/agora-recording/agora-recording.module';
+import { GeoModule } from 'src/geo/geo.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AgoraRecordingModule } from 'src/agora-recording/agora-recording.module
       }),
     }),
     AgoraRecordingModule,
+    GeoModule,
   ],
   controllers: [ActController],
   providers: [ActService, ActGateway],

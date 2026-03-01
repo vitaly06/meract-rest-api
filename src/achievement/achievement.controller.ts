@@ -14,6 +14,7 @@ import {
 import { AchievementService } from './achievement.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
 import { AwardAchievementDto } from './dto/award-achievement.dto';
+import { AwardGuildAchievementDto } from './dto/award-guild-achievement.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
@@ -122,5 +123,39 @@ export class AchievementController {
     @Req() req: RequestWithUser,
   ) {
     return await this.achievementService.revokeAchievement(dto, req.user.sub);
+  }
+
+  // ─── Guild achievements ───────────────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Выдать достижение гильдии' })
+  @UseGuards(JwtAuthGuard)
+  @Post('guild/award')
+  async awardGuildAchievement(
+    @Body() dto: AwardGuildAchievementDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.achievementService.awardGuildAchievement(
+      dto,
+      req.user.sub,
+    );
+  }
+
+  @ApiOperation({ summary: 'Достижения гильдии' })
+  @Get('guild/:guildId')
+  async getGuildAchievements(@Param('guildId') guildId: string) {
+    return await this.achievementService.getGuildAchievements(+guildId);
+  }
+
+  @ApiOperation({ summary: 'Забрать достижение у гильдии' })
+  @UseGuards(JwtAuthGuard)
+  @Post('guild/revoke')
+  async revokeGuildAchievement(
+    @Body() dto: AwardGuildAchievementDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.achievementService.revokeGuildAchievement(
+      dto,
+      req.user.sub,
+    );
   }
 }
