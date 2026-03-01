@@ -460,6 +460,8 @@ model GuildAchievement {
   achievementId Int
 
   awardedAt DateTime @default(now())
+  order     Int      @default(0)
+  featured  Boolean  @default(false)
 
   @@id([guildId, achievementId])
   @@index([guildId])

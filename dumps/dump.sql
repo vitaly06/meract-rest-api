@@ -756,7 +756,9 @@ ALTER TABLE public."Guild" OWNER TO postgres;
 CREATE TABLE public."GuildAchievement" (
     "guildId" integer NOT NULL,
     "achievementId" integer NOT NULL,
-    "awardedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    "awardedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    featured boolean DEFAULT false NOT NULL,
+    "order" integer DEFAULT 0 NOT NULL
 );
 
 
@@ -1994,7 +1996,7 @@ COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdA
 -- Data for Name: GuildAchievement; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."GuildAchievement" ("guildId", "achievementId", "awardedAt") FROM stdin;
+COPY public."GuildAchievement" ("guildId", "achievementId", "awardedAt", featured, "order") FROM stdin;
 \.
 
 

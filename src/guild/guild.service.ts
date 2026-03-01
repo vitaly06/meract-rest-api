@@ -127,7 +127,13 @@ export class GuildService {
     const guild = await this.prisma.guild.findUnique({
       where: { id: guildId },
       include: {
-        members: true,
+        members: {
+          select: { id: true, login: true, email: true, avatarUrl: true },
+        },
+        achievements: {
+          include: { achievement: true },
+          orderBy: { order: 'asc' },
+        },
       },
     });
 
@@ -135,26 +141,101 @@ export class GuildService {
       throw new NotFoundException('Guild not found');
     }
 
-    return guild;
-  }
-
-  async updateGuild(id: number, dto: UpdateGuildRequest, fileName?: string) {
-    const guild = await this.prisma.guild.findFirst({
-      where: {
-        id,
+    const memberIds = guild.members.map((m) => m.id);
+    const acts = await this.prisma.act.findMany({
+      where: { userId: { in: memberIds } },
+      select: {
+        id: true,
+        title: true,
+        previewFileName: true,
+        status: true,
+        startedAt: true,
+        endedAt: true,
+        user: { select: { id: true, login: true, email: true } },
+        category: { select: { id: true, name: true } },
       },
+      orderBy: { startedAt: 'desc' },
     });
 
-    let logoFileName = guild.logoFileName;
-    if (fileName) {
-      logoFileName = fileName;
+    const allAchievements = guild.achievements
+      .sort((a, b) => a.order - b.order)
+      .map((ga) => ({
+        id: ga.achievement.id,
+        name: ga.achievement.name,
+        imageUrl: ga.achievement.imageUrl,
+        awardedAt: ga.awardedAt,
+        order: ga.order,
+        featured: ga.featured,
+      }));
+
+    const featuredAchievements = allAchievements.filter((a) => a.featured);
+
+    return {
+      id: guild.id,
+      name: guild.name,
+      description: guild.description,
+      logoFileName: guild.logoFileName,
+      coverFileName: guild.coverFileName,
+      tags: guild.tags,
+      ownerId: guild.ownerId,
+      members: guild.members,
+      membersCount: guild.members.length,
+      acts: acts.map((act) => ({
+        id: act.id,
+        name: act.title || '',
+        previewFileName: act.previewFileName,
+        status: act.status || '',
+        startedAt: act.startedAt,
+        endedAt: act.endedAt,
+        user: act.user.login || act.user.email,
+        category: act.category?.name || '',
+        categoryId: act.category?.id,
+      })),
+      actsCount: acts.length,
+      achievements: allAchievements,
+      featuredAchievements,
+      createdAt: guild.createdAt,
+      updatedAt: guild.updatedAt,
+    };
+  }
+
+  async updateGuild(
+    id: number,
+    dto: UpdateGuildRequest,
+    photo: Express.Multer.File | null,
+    cover: Express.Multer.File | null,
+  ) {
+    const guild = await this.prisma.guild.findFirst({
+      where: { id },
+    });
+
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
     }
+
+    let logoFileName = guild.logoFileName;
+    let coverFileName = guild.coverFileName;
+
+    if (photo) {
+      const photoS3Data = await this.s3Service.uploadFile(photo);
+      logoFileName = photoS3Data?.url || logoFileName;
+    }
+
+    if (cover) {
+      const coverS3Data = await this.s3Service.uploadFile(cover);
+      coverFileName = coverS3Data?.url || coverFileName;
+    }
+
+    const tags = dto.tags !== undefined ? dto.tags : guild.tags;
+
     await this.prisma.guild.update({
       where: { id },
       data: {
-        name: dto.name,
-        description: dto.description,
-        ...(logoFileName && { logoFileName }),
+        ...(dto.name && { name: dto.name }),
+        ...(dto.description && { description: dto.description }),
+        tags,
+        logoFileName,
+        coverFileName,
       },
     });
 
@@ -505,5 +586,70 @@ export class GuildService {
     }
 
     return { message: 'Join request has been rejected' };
+  }
+
+  private async assertGuildAdminOrOwner(guildId: number, userId: number) {
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+    });
+    if (!guild) throw new NotFoundException('Guild not found');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+    const isAdmin = user?.role?.name === 'admin';
+    if (guild.ownerId !== userId && !isAdmin) {
+      throw new ForbiddenException(
+        'Only the guild owner or admin can manage achievements',
+      );
+    }
+    return guild;
+  }
+
+  async reorderAchievements(
+    guildId: number,
+    userId: number,
+    items: { achievementId: number; order: number }[],
+  ) {
+    await this.assertGuildAdminOrOwner(guildId, userId);
+
+    await Promise.all(
+      items.map((item) =>
+        this.prisma.guildAchievement.update({
+          where: {
+            guildId_achievementId: {
+              guildId,
+              achievementId: item.achievementId,
+            },
+          },
+          data: { order: item.order },
+        }),
+      ),
+    );
+
+    return { message: 'Achievements reordered' };
+  }
+
+  async toggleFeaturedAchievement(
+    guildId: number,
+    achievementId: number,
+    userId: number,
+    featured: boolean,
+  ) {
+    await this.assertGuildAdminOrOwner(guildId, userId);
+
+    await this.prisma.guildAchievement.update({
+      where: {
+        guildId_achievementId: { guildId, achievementId },
+      },
+      data: { featured },
+    });
+
+    return {
+      message: featured
+        ? 'Achievement marked as featured'
+        : 'Achievement unmarked from featured',
+    };
   }
 }
