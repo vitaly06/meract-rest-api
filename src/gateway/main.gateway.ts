@@ -647,6 +647,27 @@ export class MainGateway
   }
 
   // ============================================
+  // ПУБЛИЧНЫЕ МЕТОДЫ ДЛЯ POLL
+  // ============================================
+  broadcastPollNew(actId: number, poll: any) {
+    const chatNs = this.server.of('/chat');
+    chatNs.to(`stream_${actId}`).emit('poll:new', poll);
+    this.logger.log(`poll:new → stream_${actId} (pollId=${poll.id})`);
+  }
+
+  broadcastPollUpdate(actId: number, poll: any) {
+    const chatNs = this.server.of('/chat');
+    chatNs.to(`stream_${actId}`).emit('poll:update', poll);
+    this.logger.debug(`poll:update → stream_${actId} (pollId=${poll.id})`);
+  }
+
+  broadcastPollClosed(actId: number, pollId: number) {
+    const chatNs = this.server.of('/chat');
+    chatNs.to(`stream_${actId}`).emit('poll:closed', { pollId });
+    this.logger.log(`poll:closed → stream_${actId} (pollId=${pollId})`);
+  }
+
+  // ============================================
   // ПУБЛИЧНЫЕ МЕТОДЫ ДЛЯ GUILD CHAT
   // ============================================
   async sendGuildSystemMessage(guildId: number, message: string) {

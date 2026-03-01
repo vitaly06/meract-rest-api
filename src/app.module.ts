@@ -22,6 +22,7 @@ import { GatewayModule } from './gateway/gateway.module';
 import { S3Module } from './s3/s3.module';
 import { GeoModule } from './geo/geo.module';
 import { SecurityModule } from './security/security.module';
+import { PollModule } from './poll/poll.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { SecurityModule } from './security/security.module';
     S3Module,
     GeoModule,
     SecurityModule,
+    PollModule,
   ],
 })
 export class AppModule {}

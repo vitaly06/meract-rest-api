@@ -995,6 +995,118 @@ ALTER SEQUENCE public."Outro_id_seq" OWNED BY public."Outro".id;
 
 
 --
+-- Name: Poll; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Poll" (
+    id integer NOT NULL,
+    "actId" integer NOT NULL,
+    "creatorId" integer NOT NULL,
+    title text NOT NULL,
+    description text,
+    "endsAt" timestamp(3) without time zone NOT NULL,
+    "isActive" boolean DEFAULT true NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."Poll" OWNER TO postgres;
+
+--
+-- Name: PollOption; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."PollOption" (
+    id integer NOT NULL,
+    "pollId" integer NOT NULL,
+    text text NOT NULL
+);
+
+
+ALTER TABLE public."PollOption" OWNER TO postgres;
+
+--
+-- Name: PollOption_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."PollOption_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."PollOption_id_seq" OWNER TO postgres;
+
+--
+-- Name: PollOption_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."PollOption_id_seq" OWNED BY public."PollOption".id;
+
+
+--
+-- Name: PollVote; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."PollVote" (
+    id integer NOT NULL,
+    "pollId" integer NOT NULL,
+    "optionId" integer NOT NULL,
+    "userId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."PollVote" OWNER TO postgres;
+
+--
+-- Name: PollVote_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."PollVote_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."PollVote_id_seq" OWNER TO postgres;
+
+--
+-- Name: PollVote_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."PollVote_id_seq" OWNED BY public."PollVote".id;
+
+
+--
+-- Name: Poll_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Poll_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Poll_id_seq" OWNER TO postgres;
+
+--
+-- Name: Poll_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Poll_id_seq" OWNED BY public."Poll".id;
+
+
+--
 -- Name: Rank; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1602,6 +1714,27 @@ ALTER TABLE ONLY public."Outro" ALTER COLUMN id SET DEFAULT nextval('public."Out
 
 
 --
+-- Name: Poll id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Poll" ALTER COLUMN id SET DEFAULT nextval('public."Poll_id_seq"'::regclass);
+
+
+--
+-- Name: PollOption id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PollOption" ALTER COLUMN id SET DEFAULT nextval('public."PollOption_id_seq"'::regclass);
+
+
+--
+-- Name: PollVote id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PollVote" ALTER COLUMN id SET DEFAULT nextval('public."PollVote_id_seq"'::regclass);
+
+
+--
 -- Name: Rank id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1897,6 +2030,30 @@ COPY public."Outro" (id, "fileName", "userId") FROM stdin;
 
 
 --
+-- Data for Name: Poll; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Poll" (id, "actId", "creatorId", title, description, "endsAt", "isActive", "createdAt") FROM stdin;
+\.
+
+
+--
+-- Data for Name: PollOption; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."PollOption" (id, "pollId", text) FROM stdin;
+\.
+
+
+--
+-- Data for Name: PollVote; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."PollVote" (id, "pollId", "optionId", "userId", "createdAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: Rank; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -1969,7 +2126,7 @@ COPY public."TicketMessage" (id, text, "ticketId", "userId", "createdAt") FROM s
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage", points) FROM stdin;
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-02-28 12:13:47.406	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzIyODA4MjcsImV4cCI6MTc3Mjg4NTYyN30.iUWmGK7QdlXDhxsojWaKUlwJUYLCRmgMkP5Usp-ziBA	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	0
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-01 09:08:01.776	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzIzNTYwODEsImV4cCI6MTc3Mjk2MDg4MX0.fhpZhwWAIZKIrZDohxByrhg7O4dn7L642zsDeQy3WN0	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	0
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-02-24 21:48:25.41	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0
 8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-02-24 21:48:43.279	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0
@@ -2244,6 +2401,27 @@ SELECT pg_catalog.setval('public."Outro_id_seq"', 1, true);
 
 
 --
+-- Name: PollOption_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."PollOption_id_seq"', 1, false);
+
+
+--
+-- Name: PollVote_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."PollVote_id_seq"', 1, false);
+
+
+--
+-- Name: Poll_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Poll_id_seq"', 1, false);
+
+
+--
 -- Name: Rank_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -2503,6 +2681,30 @@ ALTER TABLE ONLY public."Music"
 
 ALTER TABLE ONLY public."Outro"
     ADD CONSTRAINT "Outro_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: PollOption PollOption_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PollOption"
+    ADD CONSTRAINT "PollOption_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: PollVote PollVote_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PollVote"
+    ADD CONSTRAINT "PollVote_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Poll Poll_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Poll"
+    ADD CONSTRAINT "Poll_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2818,6 +3020,34 @@ CREATE INDEX "Message_chatId_createdAt_idx" ON public."Message" USING btree ("ch
 --
 
 CREATE INDEX "Message_senderId_idx" ON public."Message" USING btree ("senderId");
+
+
+--
+-- Name: PollOption_pollId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "PollOption_pollId_idx" ON public."PollOption" USING btree ("pollId");
+
+
+--
+-- Name: PollVote_pollId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "PollVote_pollId_idx" ON public."PollVote" USING btree ("pollId");
+
+
+--
+-- Name: PollVote_pollId_userId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "PollVote_pollId_userId_key" ON public."PollVote" USING btree ("pollId", "userId");
+
+
+--
+-- Name: Poll_actId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Poll_actId_idx" ON public."Poll" USING btree ("actId");
 
 
 --
@@ -3210,6 +3440,54 @@ ALTER TABLE ONLY public."Outro"
 
 
 --
+-- Name: PollOption PollOption_pollId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PollOption"
+    ADD CONSTRAINT "PollOption_pollId_fkey" FOREIGN KEY ("pollId") REFERENCES public."Poll"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: PollVote PollVote_optionId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PollVote"
+    ADD CONSTRAINT "PollVote_optionId_fkey" FOREIGN KEY ("optionId") REFERENCES public."PollOption"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: PollVote PollVote_pollId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PollVote"
+    ADD CONSTRAINT "PollVote_pollId_fkey" FOREIGN KEY ("pollId") REFERENCES public."Poll"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: PollVote PollVote_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."PollVote"
+    ADD CONSTRAINT "PollVote_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Poll Poll_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Poll"
+    ADD CONSTRAINT "Poll_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Poll Poll_creatorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Poll"
+    ADD CONSTRAINT "Poll_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: RoleCandidate RoleCandidate_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3403,5 +3681,4 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
-
 
