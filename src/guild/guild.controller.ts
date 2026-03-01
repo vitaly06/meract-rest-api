@@ -4,21 +4,18 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
   Req,
-  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { GuildService } from './guild.service';
 import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
-import {
-  FileFieldsInterceptor,
-  FileInterceptor,
-} from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { CreateGuildRequest } from './dto/create-guild.dto';
 import { Multer } from 'multer';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
@@ -107,7 +104,16 @@ export class GuildController {
       properties: {
         name: { type: 'string' },
         description: { type: 'string' },
+        tags: {
+          type: 'string',
+          description: 'JSON-массив тегов, напр. ["adventure","quest"]',
+          example: '["adventure","quest"]',
+        },
         photo: {
+          type: 'string',
+          format: 'binary',
+        },
+        cover: {
           type: 'string',
           format: 'binary',
         },
@@ -115,14 +121,25 @@ export class GuildController {
     },
   })
   @Put(':id')
-  @UseInterceptors(FileInterceptor('photo'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'photo', maxCount: 1 },
+      { name: 'cover', maxCount: 1 },
+    ]),
+  )
   @UseGuards(JwtAuthGuard)
   async updateGuild(
     @Param('id') id: string,
     @Body() dto: UpdateGuildRequest,
-    @UploadedFile() photo?: Express.Multer.File,
+    @UploadedFiles()
+    files: { photo?: Express.Multer.File[]; cover?: Express.Multer.File[] },
   ) {
-    return await this.guildService.updateGuild(+id, dto, photo?.filename);
+    return await this.guildService.updateGuild(
+      +id,
+      dto,
+      files?.photo?.[0] || null,
+      files?.cover?.[0] || null,
+    );
   }
 
   @ApiTags('Guild requests')
@@ -211,6 +228,42 @@ export class GuildController {
     @Query('guildId') guildId: string,
   ) {
     return await this.guildService.kickOutUser(+userId, +guildId);
+  }
+
+  @ApiTags('Guild Achievements')
+  @ApiOperation({ summary: 'Reorder guild achievements (owner/admin)' })
+  @Patch(':guildId/achievements/reorder')
+  @UseGuards(JwtAuthGuard)
+  async reorderAchievements(
+    @Param('guildId') guildId: string,
+    @Req() req: RequestWithUser,
+    @Body() body: { items: { achievementId: number; order: number }[] },
+  ) {
+    return await this.guildService.reorderAchievements(
+      +guildId,
+      req.user.sub,
+      body.items,
+    );
+  }
+
+  @ApiTags('Guild Achievements')
+  @ApiOperation({
+    summary: 'Toggle featured status of guild achievement (owner/admin)',
+  })
+  @Patch(':guildId/achievements/:achievementId/featured')
+  @UseGuards(JwtAuthGuard)
+  async toggleFeaturedAchievement(
+    @Param('guildId') guildId: string,
+    @Param('achievementId') achievementId: string,
+    @Req() req: RequestWithUser,
+    @Body() body: { featured: boolean },
+  ) {
+    return await this.guildService.toggleFeaturedAchievement(
+      +guildId,
+      +achievementId,
+      req.user.sub,
+      body.featured,
+    );
   }
 
   @Delete(':id')

@@ -239,15 +239,25 @@ export class ActService {
     };
   }
 
-    async getActs(currentUserId?: number) {
+  async getActs(currentUserId?: number) {
     const streams = await this.prisma.act.findMany({
       include: {
         user: {
-          select: { id: true, login: true, email: true, city: true, country: true },
+          select: {
+            id: true,
+            login: true,
+            email: true,
+            city: true,
+            country: true,
+          },
         },
         category: true,
         tasks: { orderBy: { createdAt: 'asc' } },
         routePoints: { orderBy: { order: 'asc' } },
+        participants: {
+          where: { role: { in: ['hero', 'navigator'] } },
+          include: { user: { select: { login: true, email: true } } },
+        },
       },
     });
 
@@ -260,23 +270,35 @@ export class ActService {
         select: { city: true, country: true },
       });
       if (me?.city) {
-        currentUserCoords = await this.geoService.getCityCoordinates(me.city, me.country);
+        currentUserCoords = await this.geoService.getCityCoordinates(
+          me.city,
+          me.country,
+        );
       }
     }
 
-    const uniqueCityMap = new Map<string, { lat: number; lon: number } | null>();
+    const uniqueCityMap = new Map<
+      string,
+      { lat: number; lon: number } | null
+    >();
     for (const stream of streams) {
       const key = `${stream.user.city ?? ''}|${stream.user.country ?? ''}`;
-      if (stream.user.city && !uniqueCityMap.has(key)) uniqueCityMap.set(key, null);
+      if (stream.user.city && !uniqueCityMap.has(key))
+        uniqueCityMap.set(key, null);
     }
     for (const key of uniqueCityMap.keys()) {
       const [city, country] = key.split('|');
-      uniqueCityMap.set(key, await this.geoService.getCityCoordinates(city, country || undefined));
+      uniqueCityMap.set(
+        key,
+        await this.geoService.getCityCoordinates(city, country || undefined),
+      );
     }
 
     const result = streams.map((stream) => {
       const key = `${stream.user.city ?? ''}|${stream.user.country ?? ''}`;
-      const initiatorCoords = stream.user.city ? (uniqueCityMap.get(key) ?? null) : null;
+      const initiatorCoords = stream.user.city
+        ? (uniqueCityMap.get(key) ?? null)
+        : null;
       let distanceKm: number | null = null;
       if (currentUserCoords && initiatorCoords) {
         distanceKm = this.geoService.haversineKm(
@@ -286,18 +308,33 @@ export class ActService {
           initiatorCoords.lon,
         );
       }
+      const heroes = stream.participants
+        .filter((p) => p.role === 'hero')
+        .map((p) => p.user.login || p.user.email);
+      const navigators = stream.participants
+        .filter((p) => p.role === 'navigator')
+        .map((p) => p.user.login || p.user.email);
+
       return {
         id: stream.id,
         name: stream.title || '',
         previewFileName: `${this.baseUrl}${stream.previewFileName}`,
         user: stream.user.login || stream.user.email,
-        initiator: { city: stream.user.city ?? null, country: stream.user.country ?? null },
+        initiator: {
+          city: stream.user.city ?? null,
+          country: stream.user.country ?? null,
+        },
         distanceKm,
+        heroes,
+        navigators,
         category: stream.category?.name || '',
         categoryId: stream.category?.id,
         status: stream.status || '',
         spectators: 'Not implemented',
-        duration: this.formatTimeDifference(stream.startedAt, stream.endedAt || new Date()),
+        duration: this.formatTimeDifference(
+          stream.startedAt,
+          stream.endedAt || new Date(),
+        ),
         startDate: this.formatStartDate(stream.startedAt),
         liveIn: this.formatLiveIn(stream.startedAt),
       };
@@ -1490,4 +1527,3 @@ export class ActService {
     return candidates;
   }
 }
-
