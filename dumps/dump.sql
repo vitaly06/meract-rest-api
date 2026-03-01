@@ -742,11 +742,25 @@ CREATE TABLE public."Guild" (
     "ownerId" integer NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
-    "coverFileName" text
+    "coverFileName" text,
+    tags text[] DEFAULT ARRAY[]::text[]
 );
 
 
 ALTER TABLE public."Guild" OWNER TO postgres;
+
+--
+-- Name: GuildAchievement; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."GuildAchievement" (
+    "guildId" integer NOT NULL,
+    "achievementId" integer NOT NULL,
+    "awardedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."GuildAchievement" OWNER TO postgres;
 
 --
 -- Name: GuildChatMessage; Type: TABLE; Schema: public; Owner: postgres
@@ -1971,8 +1985,16 @@ COPY public."Effect" (id, "fileName", "userId") FROM stdin;
 -- Data for Name: Guild; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdAt", "updatedAt", "coverFileName") FROM stdin;
-4	Main guild	Lorem description pupupupupu	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771969320088-7ed7787453b296e18901b5c4830a3f7b5d97682a.png	1	2026-02-24 21:42:00.971	2026-02-24 21:42:00.971	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771969320525-133c1306c8789c6235c8d0006bb094cc32ca9721.png
+COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdAt", "updatedAt", "coverFileName", tags) FROM stdin;
+4	Main guild	Lorem description pupupupupu	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771969320088-7ed7787453b296e18901b5c4830a3f7b5d97682a.png	1	2026-02-24 21:42:00.971	2026-02-24 21:42:00.971	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771969320525-133c1306c8789c6235c8d0006bb094cc32ca9721.png	{}
+\.
+
+
+--
+-- Data for Name: GuildAchievement; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."GuildAchievement" ("guildId", "achievementId", "awardedAt") FROM stdin;
 \.
 
 
@@ -2628,6 +2650,14 @@ ALTER TABLE ONLY public."Effect"
 
 
 --
+-- Name: GuildAchievement GuildAchievement_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildAchievement"
+    ADD CONSTRAINT "GuildAchievement_pkey" PRIMARY KEY ("guildId", "achievementId");
+
+
+--
 -- Name: GuildChatMessage GuildChatMessage_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2985,6 +3015,13 @@ CREATE UNIQUE INDEX "Chat_guildId_key" ON public."Chat" USING btree ("guildId");
 --
 
 CREATE UNIQUE INDEX "Chat_inviteCode_key" ON public."Chat" USING btree ("inviteCode");
+
+
+--
+-- Name: GuildAchievement_guildId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "GuildAchievement_guildId_idx" ON public."GuildAchievement" USING btree ("guildId");
 
 
 --
@@ -3352,6 +3389,22 @@ ALTER TABLE ONLY public."Effect"
 
 
 --
+-- Name: GuildAchievement GuildAchievement_achievementId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildAchievement"
+    ADD CONSTRAINT "GuildAchievement_achievementId_fkey" FOREIGN KEY ("achievementId") REFERENCES public."Achievement"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: GuildAchievement GuildAchievement_guildId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildAchievement"
+    ADD CONSTRAINT "GuildAchievement_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES public."Guild"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: GuildChatMessage GuildChatMessage_guildId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3681,4 +3734,5 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
+
 

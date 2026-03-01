@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
 import { MainGateway } from '../gateway/main.gateway';
 import { AwardAchievementDto } from './dto/award-achievement.dto';
+import { AwardGuildAchievementDto } from './dto/award-guild-achievement.dto';
 import { S3Service } from 'src/s3/s3.service';
 
 @Injectable()
@@ -238,6 +239,93 @@ export class AchievementService {
     });
 
     return { message: 'Достижение успешно отозвано' };
+  }
+
+  // ─── Guild achievements ───────────────────────────────────────────────────────
+
+  async awardGuildAchievement(dto: AwardGuildAchievementDto, adminId: number) {
+    const checkRole = await this.isAdmin(adminId);
+    if (!checkRole) {
+      throw new ForbiddenException('Недостаточно прав для выдачи достижений');
+    }
+
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: dto.guildId },
+    });
+    if (!guild) throw new NotFoundException('Гильдия не найдена');
+
+    const achievement = await this.prisma.achievement.findUnique({
+      where: { id: dto.achievementId },
+    });
+    if (!achievement) throw new NotFoundException('Достижение не найдено');
+
+    const existing = await this.prisma.guildAchievement.findUnique({
+      where: {
+        guildId_achievementId: {
+          guildId: dto.guildId,
+          achievementId: dto.achievementId,
+        },
+      },
+    });
+    if (existing) {
+      throw new BadRequestException('Гильдия уже имеет это достижение');
+    }
+
+    const guildAchievement = await this.prisma.guildAchievement.create({
+      data: {
+        guildId: dto.guildId,
+        achievementId: dto.achievementId,
+      },
+      include: {
+        achievement: true,
+        guild: { select: { id: true, name: true } },
+      },
+    });
+
+    return { message: 'Достижение успешно выдано гильдии', guildAchievement };
+  }
+
+  async getGuildAchievements(guildId: number) {
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+    });
+    if (!guild) throw new NotFoundException('Гильдия не найдена');
+
+    return this.prisma.guildAchievement.findMany({
+      where: { guildId },
+      include: { achievement: true },
+      orderBy: { awardedAt: 'desc' },
+    });
+  }
+
+  async revokeGuildAchievement(dto: AwardGuildAchievementDto, adminId: number) {
+    const checkRole = await this.isAdmin(adminId);
+    if (!checkRole) {
+      throw new ForbiddenException('Недостаточно прав для отзыва достижений');
+    }
+
+    const existing = await this.prisma.guildAchievement.findUnique({
+      where: {
+        guildId_achievementId: {
+          guildId: dto.guildId,
+          achievementId: dto.achievementId,
+        },
+      },
+    });
+    if (!existing) {
+      throw new NotFoundException('Гильдия не имеет данного достижения');
+    }
+
+    await this.prisma.guildAchievement.delete({
+      where: {
+        guildId_achievementId: {
+          guildId: dto.guildId,
+          achievementId: dto.achievementId,
+        },
+      },
+    });
+
+    return { message: 'Достижение успешно отозвано у гильдии' };
   }
 
   private async isAdmin(userId: number) {

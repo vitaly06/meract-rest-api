@@ -14,6 +14,7 @@ import { UtilsService } from 'src/common/utils/utils.serivice';
 import { ConfigService } from '@nestjs/config';
 import { AgoraRecordingService } from 'src/agora-recording/agora-recording.service';
 import { SelectionMethods } from '@prisma/client';
+import { GeoService } from 'src/geo/geo.service';
 
 @Injectable()
 export class ActService {
@@ -25,6 +26,7 @@ export class ActService {
     private readonly utilsService: UtilsService,
     private readonly configService: ConfigService,
     private readonly agoraRecordingService: AgoraRecordingService,
+    private readonly geoService: GeoService,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
@@ -237,46 +239,69 @@ export class ActService {
     };
   }
 
-  async getActs() {
+    async getActs(currentUserId?: number) {
     const streams = await this.prisma.act.findMany({
       include: {
-        user: true,
+        user: {
+          select: { id: true, login: true, email: true, city: true, country: true },
+        },
         category: true,
-        tasks: {
-          orderBy: {
-            createdAt: 'asc',
-          },
-        },
-        routePoints: {
-          orderBy: {
-            order: 'asc',
-          },
-        },
+        tasks: { orderBy: { createdAt: 'asc' } },
+        routePoints: { orderBy: { order: 'asc' } },
       },
     });
 
-    if (!streams || streams.length === 0) {
-      return [];
+    if (!streams || streams.length === 0) return [];
+
+    let currentUserCoords: { lat: number; lon: number } | null = null;
+    if (currentUserId) {
+      const me = await this.prisma.user.findUnique({
+        where: { id: currentUserId },
+        select: { city: true, country: true },
+      });
+      if (me?.city) {
+        currentUserCoords = await this.geoService.getCityCoordinates(me.city, me.country);
+      }
     }
 
-    const result = streams.map((stream) => ({
-      id: stream.id,
-      name: stream.title || '',
-      previewFileName: `${this.baseUrl}${stream.previewFileName}`,
-      user: stream.user.login || stream.user.email,
-      category: stream.category?.name || '',
-      categoryId: stream.category?.id,
-      status: stream.status || '',
-      spectators: 'Not implemented', // Р—Р°РјРµРЅРёС‚Рµ, РµСЃР»Рё РµСЃС‚СЊ СЂРµР°Р»РёР·Р°С†РёСЏ
-      duration: this.formatTimeDifference(
-        stream.startedAt,
-        stream.endedAt || new Date(),
-      ),
-      // Р”Р°С‚Р° СЃС‚Р°СЂС‚Р° РІ С„РѕСЂРјР°С‚Рµ "21 Jan. 15:30"
-      startDate: this.formatStartDate(stream.startedAt),
-      // Р’СЂРµРјСЏ РґРѕ РЅР°С‡Р°Р»Р° С‚СЂР°РЅСЃР»СЏС†РёРё РІ С„РѕСЂРјР°С‚Рµ "Live in 2h 15m"
-      liveIn: this.formatLiveIn(stream.startedAt),
-    }));
+    const uniqueCityMap = new Map<string, { lat: number; lon: number } | null>();
+    for (const stream of streams) {
+      const key = `${stream.user.city ?? ''}|${stream.user.country ?? ''}`;
+      if (stream.user.city && !uniqueCityMap.has(key)) uniqueCityMap.set(key, null);
+    }
+    for (const key of uniqueCityMap.keys()) {
+      const [city, country] = key.split('|');
+      uniqueCityMap.set(key, await this.geoService.getCityCoordinates(city, country || undefined));
+    }
+
+    const result = streams.map((stream) => {
+      const key = `${stream.user.city ?? ''}|${stream.user.country ?? ''}`;
+      const initiatorCoords = stream.user.city ? (uniqueCityMap.get(key) ?? null) : null;
+      let distanceKm: number | null = null;
+      if (currentUserCoords && initiatorCoords) {
+        distanceKm = this.geoService.haversineKm(
+          currentUserCoords.lat,
+          currentUserCoords.lon,
+          initiatorCoords.lat,
+          initiatorCoords.lon,
+        );
+      }
+      return {
+        id: stream.id,
+        name: stream.title || '',
+        previewFileName: `${this.baseUrl}${stream.previewFileName}`,
+        user: stream.user.login || stream.user.email,
+        initiator: { city: stream.user.city ?? null, country: stream.user.country ?? null },
+        distanceKm,
+        category: stream.category?.name || '',
+        categoryId: stream.category?.id,
+        status: stream.status || '',
+        spectators: 'Not implemented',
+        duration: this.formatTimeDifference(stream.startedAt, stream.endedAt || new Date()),
+        startDate: this.formatStartDate(stream.startedAt),
+        liveIn: this.formatLiveIn(stream.startedAt),
+      };
+    });
 
     return result.sort((a, b) => (a.id > b.id ? 1 : -1));
   }
@@ -1465,3 +1490,4 @@ export class ActService {
     return candidates;
   }
 }
+

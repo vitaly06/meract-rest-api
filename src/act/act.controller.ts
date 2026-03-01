@@ -139,8 +139,9 @@ export class ActController {
     },
   })
   @Get('get-acts')
-  async getActs() {
-    return await this.actService.getActs();
+  @UseGuards(JwtAuthGuard)
+  async getActs(@Req() req: RequestWithUser) {
+    return await this.actService.getActs(req.user.sub);
   }
 
   @ApiOperation({
