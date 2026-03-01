@@ -24,7 +24,7 @@ export class UserService {
   async getCurrentUser(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      omit: { password: true, refreshToken: true },
+      omit: { refreshToken: true },
     });
 
     if (!user) {
