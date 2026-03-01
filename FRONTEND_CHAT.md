@@ -254,6 +254,80 @@ Response: { "chatId": 7, "type": "group", "name": "Команда А" }
 
 ---
 
+### 2.13 Опросы в стриме (Poll)
+
+> Namespace `/chat`, комната `stream_<actId>` — те же события, что и у чата стрима.
+
+**Создать опрос** _(только навигатор / владелец акта)_:
+
+```
+POST /poll/act/:actId
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Какой маршрут выбрать?",
+  "description": "Голосуйте!",       // опционально
+  "options": ["Налево", "Направо", "Прямо"],  // 2–5 вариантов
+  "biddingTime": 5                    // минут (1–60)
+}
+```
+
+**Ответ** — объект Poll с процентами:
+
+```json
+{
+  "id": 1,
+  "actId": 42,
+  "title": "Какой маршрут выбрать?",
+  "description": "Голосуйте!",
+  "endsAt": "2026-03-01T10:05:00Z",
+  "isActive": true,
+  "totalVotes": 0,
+  "creator": { "id": 7, "login": "navigator", "avatarUrl": "..." },
+  "options": [
+    { "id": 1, "text": "Налево", "votes": 0, "percent": 0 },
+    { "id": 2, "text": "Направо", "votes": 0, "percent": 0 },
+    { "id": 3, "text": "Прямо", "votes": 0, "percent": 0 }
+  ]
+}
+```
+
+**Проголосовать** _(один голос на пользователя)_:
+
+```
+POST /poll/:pollId/vote
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{ "optionId": 2 }
+```
+
+После успешного голосования сервер рассылает `poll:update` со свежими процентами.
+
+**Получить активные опросы стрима:**
+
+```
+GET /poll/act/:actId
+Authorization: Bearer <token>
+```
+
+**Получить один опрос:**
+
+```
+GET /poll/:pollId
+Authorization: Bearer <token>
+```
+
+**Закрыть опрос досрочно** _(навигатор / владелец)_:
+
+```
+PATCH /poll/:pollId/close
+Authorization: Bearer <token>
+```
+
+---
+
 ## 3. WebSocket — подключение
 
 Используется **Socket.io**. После логина подключитесь:
@@ -340,6 +414,45 @@ socket.on('chat:read', (data) => {
 
 ---
 
+## 4.2. WebSocket — события опросов в стриме
+
+> Используется namespace `/chat`, комната `stream_<actId>`.  
+> Подписаться нужно через `joinStream` — см. раздел 5 (флоу стрима).
+
+### Получить новый опрос
+
+```js
+socket.on('poll:new', (poll) => {
+  // poll — полный объект Poll с options и percent
+  showPollPopup(poll);
+});
+```
+
+### Обновление результатов в реальном времени
+
+Приходит каждый раз, когда кто-то голосует:
+
+```js
+socket.on('poll:update', (poll) => {
+  // Тот же формат Poll — обновите проценты в UI
+  updatePollResults(poll);
+});
+```
+
+### Опрос завершён
+
+```js
+socket.on('poll:closed', ({ pollId }) => {
+  // Заблокировать голосование, показать финальные результаты
+  closePollUI(pollId);
+});
+```
+
+> Опрос закрывается автоматически по истечении `biddingTime` минут,  
+> либо вручную через `PATCH /poll/:pollId/close`.
+
+---
+
 ## 5. Типичный UI-флоу
 
 ### Открытие приложения
@@ -417,6 +530,31 @@ const { chatId } = await fetch(`/chat/join/${code}`, {
 router.push(`/chat/${chatId}`);
 ```
 
+### Просмотр и голосование в опросе (для зрителя)
+
+1. При получении `poll:new` — показать всплывающий блок опроса поверх чата
+2. Пользователь нажимает на вариант → `POST /poll/:pollId/vote { optionId }`
+3. После ответа (или из `poll:update`) — обновить прогресс-бары с `%`
+4. При получении `poll:closed` — заблокировать кнопки, показать финальный результат
+
+### Создание опроса (для навигатора)
+
+```js
+await fetch(`/poll/act/${actId}`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    title: 'Какой маршрут?',
+    options: ['Налево', 'Направо'],
+    biddingTime: 5,
+  }),
+});
+// Все зрители получат poll:new через WebSocket автоматически
+```
+
 ---
 
 ## 6. Структура объекта Message
@@ -457,6 +595,37 @@ interface Message {
 
 ---
 
+## 6.2. Структура объекта Poll
+
+```ts
+interface PollOption {
+  id: number;
+  text: string;
+  votes: number;
+  percent: number; // 0–100, округлено до целых
+}
+
+interface Poll {
+  id: number;
+  actId: number;
+  title: string;
+  description: string | null;
+  endsAt: string; // ISO 8601 — когда истекает время
+  isActive: boolean;
+  totalVotes: number;
+  createdAt: string;
+  creator: {
+    id: number;
+    login: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+  options: PollOption[];
+}
+```
+
+---
+
 ## 7. Типы чатов
 
 | type   | name                      | imageUrl           | partner     | inviteCode |
@@ -469,11 +638,24 @@ interface Message {
 
 ## 8. Быстрый чеклист для фронта
 
+**Чат:**
+
 - [ ] Сохранить `accessToken` в localStorage / store
 - [ ] Подключить Socket.io с `auth: { token }`
 - [ ] При логауте: `socket.disconnect()`
 - [ ] При открытии чата — `chat:join`, при закрытии — `chat:leave`
-- [ ] При получении `chat:message` — если пользователь находится в этом чате, скроллить вниз и отметить как прочитанное
+- [ ] При получении `chat:message` — если пользователь в этом чате, скроллить вниз и отметить прочитанным
 - [ ] Файлы — только через REST (multipart); WS — только текст/reply/forward
 - [ ] Мягко удалённые сообщения: `isDeleted: true`, `text: null` → показывать placeholder
 - [ ] Для новых DM вызвать `POST /chat/direct/:userId` перед открытием чата
+
+**Опросы в стриме:**
+
+- [ ] При входе в стрим — `GET /poll/act/:actId` для загрузки уже активных опросов
+- [ ] Подписаться на `poll:new` → показывать всплывающий блок голосования
+- [ ] Подписаться на `poll:update` → обновлять прогресс-бары в реальном времени
+- [ ] Подписаться на `poll:closed` → блокировать UI, показывать финальный результат
+- [ ] Голосование — `POST /poll/:pollId/vote`, заблокировать кнопку после успешного ответа
+- [ ] Навигатор: форма создания опроса (title, 2–5 options, biddingTime в минутах)
+- [ ] Таймер обратного отсчёта на основе поля `endsAt` (сравнивайте с `Date.now()`)
+- [ ] После `poll:closed` или истечения `endsAt` — не давать голосовать повторно
