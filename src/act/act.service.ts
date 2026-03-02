@@ -318,6 +318,7 @@ export class ActService {
       return {
         id: stream.id,
         name: stream.title || '',
+        description: stream.description,
         previewFileName: `${this.baseUrl}${stream.previewFileName}`,
         user: stream.user.login || stream.user.email,
         initiator: {
