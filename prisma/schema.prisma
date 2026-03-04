@@ -137,6 +137,8 @@ model User {
 
   pollsCreated Poll[]     @relation("PollCreator")
   pollVotes    PollVote[] @relation("PollVotes")
+
+  notifications Notification[]
 }
 
 model Role {
@@ -721,4 +723,29 @@ model Message {
 
   @@index([chatId, createdAt])
   @@index([senderId])
+}
+
+// ─── Notification System ─────────────────────────────────────────────────────
+
+model Notification {
+  id      Int  @id @default(autoincrement())
+  userId  Int
+  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // new_message | guild_join_request | guild_join_approved | guild_join_rejected
+  // role_assigned | achievement_awarded | guild_invite
+  type    String
+
+  title   String
+  body    String
+  imageUrl String? // avatar or chat/guild image
+
+  // Extra context passed to frontend (chatId, actId, guildId, senderId, role, etc.)
+  metadata Json?
+
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, isRead])
 }

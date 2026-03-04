@@ -24,6 +24,8 @@ import { GeoModule } from './geo/geo.module';
 import { SecurityModule } from './security/security.module';
 import { PollModule } from './poll/poll.module';
 import { PresenceModule } from './presence/presence.module';
+import { NotificationModule } from './notification/notification.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { PresenceModule } from './presence/presence.module';
     SecurityModule,
     PollModule,
     PresenceModule,
+    NotificationModule,
+    EventEmitterModule.forRoot(),
   ],
 })
 export class AppModule {}

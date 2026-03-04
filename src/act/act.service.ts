@@ -15,6 +15,7 @@ import { ConfigService } from '@nestjs/config';
 import { AgoraRecordingService } from 'src/agora-recording/agora-recording.service';
 import { SelectionMethods } from '@prisma/client';
 import { GeoService } from 'src/geo/geo.service';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable()
 export class ActService {
@@ -27,6 +28,7 @@ export class ActService {
     private readonly configService: ConfigService,
     private readonly agoraRecordingService: AgoraRecordingService,
     private readonly geoService: GeoService,
+    private readonly notificationService: NotificationService,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
@@ -1427,7 +1429,13 @@ export class ActService {
   ) {
     const act = await this.prisma.act.findUnique({
       where: { id: actId },
-      select: { userId: true, heroMethods: true, navigatorMethods: true },
+      select: {
+        userId: true,
+        heroMethods: true,
+        navigatorMethods: true,
+        title: true,
+        previewFileName: true,
+      },
     });
 
     if (!act) throw new NotFoundException('Act not found');
@@ -1501,6 +1509,30 @@ export class ActService {
       where: { actId, roleType, userId: selectedUserId },
       data: { status: 'approved' },
     });
+
+    // Notify the assigned user
+    this.notificationService
+      .create({
+        userId: selectedUserId,
+        type: 'role_assigned',
+        title: `Вы назначены ${roleType === 'hero' ? 'Героем' : 'Навигатором'}`,
+        body: `Вы стали ${roleType === 'hero' ? 'Героем' : 'Навигатором'} в акте "${act.title}"`,
+        imageUrl: act.previewFileName ?? null,
+        metadata: { actId, role: roleType },
+      })
+      .catch(() => {});
+
+    // Notify the assigned user
+    this.notificationService
+      .create({
+        userId: selectedUserId,
+        type: 'role_assigned',
+        title: `Вы назначены ${roleType === 'hero' ? 'Героем' : 'Навигатором'}`,
+        body: `Вы стали ${roleType === 'hero' ? 'Героем' : 'Навигатором'} в акте "${act.title}"`,
+        imageUrl: act.previewFileName ?? null,
+        metadata: { actId, role: roleType },
+      })
+      .catch(() => {});
 
     return participant;
   }
