@@ -7,6 +7,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { PresenceService } from 'src/presence/presence.service';
 import { ChatService } from '../chat/chat.service';
@@ -63,12 +64,13 @@ export class MainGateway
     this.setupRankNamespace(rankNs);
     this.setupAchievementNamespace(achievementNs);
     this.setupActNamespace(actNs);
+    this.setupNotificationsNamespace(server.of('/notifications'));
 
     // Запускаем таймер для Acts
     this.startLiveTimer();
 
     this.logger.log(
-      'All namespaces initialized: /chat, /guild-chat, /ranks, /achievements, /acts',
+      'All namespaces initialized: /chat, /guild-chat, /ranks, /achievements, /acts, /notifications',
     );
   }
 
@@ -703,6 +705,45 @@ export class MainGateway
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
       this.logger.log('Live timer stopped');
+    }
+  }
+
+  // ============================================
+  // NOTIFICATIONS NAMESPACE (/notifications)
+  // ============================================
+  private setupNotificationsNamespace(ns: any) {
+    ns.on('connection', async (socket: AuthenticatedSocket) => {
+      const isAuthenticated = await this.authenticateSocket(socket);
+      if (!isAuthenticated) {
+        socket.disconnect();
+        return;
+      }
+
+      // Each user joins their personal room
+      socket.join(`user_${socket.userId}`);
+      this.logger.log(
+        `User ${socket.userId} connected to /notifications (${socket.id})`,
+      );
+
+      socket.on('disconnect', () => {
+        this.logger.log(
+          `User ${socket.userId} disconnected from /notifications`,
+        );
+      });
+    });
+  }
+
+  // Called by EventEmitter when NotificationService creates a notification
+  @OnEvent('notification.created')
+  handleNotificationCreated(notification: any) {
+    const notifNs = this.server?.of('/notifications');
+    if (notifNs) {
+      notifNs
+        .to(`user_${notification.userId}`)
+        .emit('notification:new', notification);
+      this.logger.debug(
+        `notification:new → user_${notification.userId} (type=${notification.type})`,
+      );
     }
   }
 }

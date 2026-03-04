@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { SendGuildMessageDto } from './dto/send-guild-message.dto';
 import { S3Service } from 'src/s3/s3.service';
 import { PresenceService } from 'src/presence/presence.service';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable()
 export class GuildService {
@@ -23,6 +24,7 @@ export class GuildService {
     private readonly configService: ConfigService,
     private readonly s3Service: S3Service,
     private readonly presenceService: PresenceService,
+    private readonly notificationService: NotificationService,
   ) {
     this.baseUrl = configService.get<string>(
       'BASE_URL',
@@ -507,6 +509,23 @@ export class GuildService {
       },
     });
 
+    // Notify guild owner about new join request
+    const requester = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { login: true, email: true, avatarUrl: true },
+    });
+    const requesterName = requester?.login || requester?.email || 'Someone';
+    this.notificationService
+      .create({
+        userId: guild.ownerId,
+        type: 'guild_join_request',
+        title: `Заявка в гильдию`,
+        body: `${requesterName} хочет вступить в "${guild.name}"`,
+        imageUrl: requester?.avatarUrl ?? null,
+        metadata: { guildId, requesterId: userId },
+      })
+      .catch(() => {});
+
     return { message: 'Join request submitted successfully' };
   }
 
@@ -587,8 +606,30 @@ export class GuildService {
         },
       });
 
+      this.notificationService
+        .create({
+          userId: request.userId,
+          type: 'guild_join_approved',
+          title: 'Заявка принята',
+          body: `Вы приняты в гильдию "${request.guild.name}"`,
+          imageUrl: request.guild.logoFileName ?? null,
+          metadata: { guildId: request.guildId },
+        })
+        .catch(() => {});
+
       return { message: 'User has been added to the guild' };
     }
+
+    this.notificationService
+      .create({
+        userId: request.userId,
+        type: 'guild_join_rejected',
+        title: 'Заявка отклонена',
+        body: `Ваша заявка в гильдию "${request.guild.name}" отклонена`,
+        imageUrl: request.guild.logoFileName ?? null,
+        metadata: { guildId: request.guildId },
+      })
+      .catch(() => {});
 
     return { message: 'Join request has been rejected' };
   }

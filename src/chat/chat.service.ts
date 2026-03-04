@@ -9,6 +9,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/s3/s3.service';
 import { CreateGroupChatDto } from './dto/create-chat.dto';
 import { SendMessageDto } from './dto/send-message.dto';
+import { NotificationService } from 'src/notification/notification.service';
 
 const userSelect = {
   id: true,
@@ -32,6 +33,7 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly s3: S3Service,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private formatMessage(msg: any) {
@@ -380,7 +382,58 @@ export class ChatService {
       data: { updatedAt: new Date() },
     });
 
+    // Send notifications to all other chat members (fire and forget)
+    this.sendNewMessageNotifications(chatId, userId, message).catch(() => {});
+
     return this.formatMessage(message);
+  }
+
+  private async sendNewMessageNotifications(
+    chatId: number,
+    senderId: number,
+    message: any,
+  ) {
+    const chat = await this.prisma.chat.findUnique({
+      where: { id: chatId },
+      include: {
+        members: { select: { userId: true } },
+      },
+    });
+    if (!chat) return;
+
+    const senderName =
+      message.sender.login || message.sender.email || 'Unknown';
+    const previewText = message.text
+      ? message.text.slice(0, 80)
+      : message.fileType === 'image'
+        ? '📷 Photo'
+        : message.fileType === 'video'
+          ? '🎥 Video'
+          : '📎 File';
+
+    const isDirect = chat.type === 'direct';
+    const title = isDirect ? senderName : chat.name || 'Chat';
+    const body = isDirect ? previewText : `${senderName}: ${previewText}`;
+    const imageUrl = isDirect ? message.sender.avatarUrl : chat.imageUrl;
+
+    const recipients = chat.members
+      .map((m) => m.userId)
+      .filter((id) => id !== senderId);
+
+    await this.notificationService.createMany(
+      recipients.map((userId) => ({
+        userId,
+        type: 'new_message',
+        title,
+        body,
+        imageUrl,
+        metadata: {
+          chatId,
+          chatType: chat.type,
+          senderId,
+        },
+      })),
+    );
   }
 
   // ─── Delete message ───────────────────────────────────────────────────────────

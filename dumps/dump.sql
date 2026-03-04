@@ -976,6 +976,47 @@ ALTER SEQUENCE public."Music_id_seq" OWNED BY public."Music".id;
 
 
 --
+-- Name: Notification; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Notification" (
+    id integer NOT NULL,
+    "userId" integer NOT NULL,
+    type text NOT NULL,
+    title text NOT NULL,
+    body text NOT NULL,
+    "imageUrl" text,
+    metadata jsonb,
+    "isRead" boolean DEFAULT false NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."Notification" OWNER TO postgres;
+
+--
+-- Name: Notification_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Notification_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Notification_id_seq" OWNER TO postgres;
+
+--
+-- Name: Notification_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Notification_id_seq" OWNED BY public."Notification".id;
+
+
+--
 -- Name: Outro; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1723,6 +1764,13 @@ ALTER TABLE ONLY public."Music" ALTER COLUMN id SET DEFAULT nextval('public."Mus
 
 
 --
+-- Name: Notification id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Notification" ALTER COLUMN id SET DEFAULT nextval('public."Notification_id_seq"'::regclass);
+
+
+--
 -- Name: Outro id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2045,6 +2093,14 @@ COPY public."Music" (id, "fileName", length, "userId") FROM stdin;
 
 
 --
+-- Data for Name: Notification; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Notification" (id, "userId", type, title, body, "imageUrl", metadata, "isRead", "createdAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: Outro; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -2150,7 +2206,7 @@ COPY public."TicketMessage" (id, text, "ticketId", "userId", "createdAt") FROM s
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage", points) FROM stdin;
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-01 09:08:01.776	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzIzNTYwODEsImV4cCI6MTc3Mjk2MDg4MX0.fhpZhwWAIZKIrZDohxByrhg7O4dn7L642zsDeQy3WN0	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	0
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-02 09:13:42.698	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzI0NDI4MjIsImV4cCI6MTc3MzA0NzYyMn0.3c6D7_opNfidUDTs0YAgmjueNEJZXmU57roEBdzdWk8	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	0
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-02-24 21:48:25.41	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0
 8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-02-24 21:48:43.279	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0
@@ -2415,6 +2471,13 @@ SELECT pg_catalog.setval('public."Message_id_seq"', 1, false);
 --
 
 SELECT pg_catalog.setval('public."Music_id_seq"', 3, true);
+
+
+--
+-- Name: Notification_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Notification_id_seq"', 1, false);
 
 
 --
@@ -2705,6 +2768,14 @@ ALTER TABLE ONLY public."Message"
 
 ALTER TABLE ONLY public."Music"
     ADD CONSTRAINT "Music_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Notification Notification_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Notification"
+    ADD CONSTRAINT "Notification_pkey" PRIMARY KEY (id);
 
 
 --
@@ -3059,6 +3130,20 @@ CREATE INDEX "Message_chatId_createdAt_idx" ON public."Message" USING btree ("ch
 --
 
 CREATE INDEX "Message_senderId_idx" ON public."Message" USING btree ("senderId");
+
+
+--
+-- Name: Notification_userId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Notification_userId_idx" ON public."Notification" USING btree ("userId");
+
+
+--
+-- Name: Notification_userId_isRead_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Notification_userId_isRead_idx" ON public."Notification" USING btree ("userId", "isRead");
 
 
 --
@@ -3484,6 +3569,14 @@ ALTER TABLE ONLY public."Message"
 
 ALTER TABLE ONLY public."Music"
     ADD CONSTRAINT "Music_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Notification Notification_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Notification"
+    ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
