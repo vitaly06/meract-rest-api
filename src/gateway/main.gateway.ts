@@ -8,6 +8,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { PresenceService } from 'src/presence/presence.service';
 import { ChatService } from '../chat/chat.service';
 import { GuildService } from '../guild/guild.service';
 import { ActService } from '../act/act.service';
@@ -43,6 +44,7 @@ export class MainGateway
     private readonly chatService: ChatService,
     private readonly guildService: GuildService,
     private readonly actService: ActService,
+    private readonly presenceService: PresenceService,
   ) {}
 
   afterInit(server: Server) {
@@ -152,6 +154,7 @@ export class MainGateway
       }
 
       this.connectedUsers.set(socket.id, socket);
+      this.presenceService.addSocket(socket.id, socket.userId);
       this.logger.log(
         `User ${socket.userId} connected to /chat (${socket.id})`,
       );
@@ -282,6 +285,7 @@ export class MainGateway
 
       socket.on('disconnect', () => {
         this.connectedUsers.delete(socket.id);
+        this.presenceService.removeSocket(socket.id);
         this.logger.log(`Client ${socket.id} disconnected from /chat`);
       });
     });
@@ -299,6 +303,7 @@ export class MainGateway
       }
 
       this.connectedUsers.set(socket.id, socket);
+      this.presenceService.addSocket(socket.id, socket.userId);
       this.logger.log(
         `User ${socket.userId} connected to /guild-chat (${socket.id})`,
       );
@@ -442,6 +447,7 @@ export class MainGateway
 
       socket.on('disconnect', () => {
         this.connectedUsers.delete(socket.id);
+        this.presenceService.removeSocket(socket.id);
         this.logger.log(`Client ${socket.id} disconnected from /guild-chat`);
       });
     });
