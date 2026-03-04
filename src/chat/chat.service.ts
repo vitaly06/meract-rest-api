@@ -273,19 +273,44 @@ export class ChatService {
   ) {
     await this.assertMember(chatId, userId);
 
-    const messages = await this.prisma.message.findMany({
-      where: { chatId, ...(before ? { id: { lt: before } } : {}) },
-      include: messageInclude,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+    const [messages, images, videos] = await Promise.all([
+      this.prisma.message.findMany({
+        where: { chatId, ...(before ? { id: { lt: before } } : {}) },
+        include: messageInclude,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      }),
+      this.prisma.message.findMany({
+        where: { chatId, fileType: 'image', isDeleted: false },
+        include: { sender: { select: userSelect } },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+      this.prisma.message.findMany({
+        where: { chatId, fileType: 'video', isDeleted: false },
+        include: { sender: { select: userSelect } },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+    ]);
 
     await this.prisma.chatMember.update({
       where: { chatId_userId: { chatId, userId } },
       data: { lastReadAt: new Date() },
     });
 
-    return messages.reverse().map((m) => this.formatMessage(m));
+    const formatMedia = (m: any) => ({
+      id: m.id,
+      fileUrl: m.fileUrl,
+      createdAt: m.createdAt,
+      sender: m.sender,
+    });
+
+    return {
+      messages: messages.reverse().map((m) => this.formatMessage(m)),
+      images: images.map(formatMedia),
+      videos: videos.map(formatMedia),
+    };
   }
 
   // ─── Send message ─────────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ import { S3Module } from './s3/s3.module';
 import { GeoModule } from './geo/geo.module';
 import { SecurityModule } from './security/security.module';
 import { PollModule } from './poll/poll.module';
+import { PresenceModule } from './presence/presence.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { PollModule } from './poll/poll.module';
     GeoModule,
     SecurityModule,
     PollModule,
+    PresenceModule,
   ],
 })
 export class AppModule {}

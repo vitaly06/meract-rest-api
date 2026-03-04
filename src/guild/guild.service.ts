@@ -12,6 +12,7 @@ import { UtilsService } from 'src/common/utils/utils.serivice';
 import { ConfigService } from '@nestjs/config';
 import { SendGuildMessageDto } from './dto/send-guild-message.dto';
 import { S3Service } from 'src/s3/s3.service';
+import { PresenceService } from 'src/presence/presence.service';
 
 @Injectable()
 export class GuildService {
@@ -21,6 +22,7 @@ export class GuildService {
     private readonly utilsSerivce: UtilsService,
     private readonly configService: ConfigService,
     private readonly s3Service: S3Service,
+    private readonly presenceService: PresenceService,
   ) {
     this.baseUrl = configService.get<string>(
       'BASE_URL',
@@ -178,7 +180,10 @@ export class GuildService {
       coverFileName: guild.coverFileName,
       tags: guild.tags,
       ownerId: guild.ownerId,
-      members: guild.members,
+      members: guild.members.map((m) => ({
+        ...m,
+        status: this.presenceService.isOnline(m.id) ? 'online' : 'offline',
+      })),
       membersCount: guild.members.length,
       acts: acts.map((act) => ({
         id: act.id,
