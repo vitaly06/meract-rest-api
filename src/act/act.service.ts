@@ -381,6 +381,18 @@ export class ActService {
           // recordingStatus РѕР±РЅРѕРІРёС‚СЃСЏ РїРѕР·Р¶Рµ С‡РµСЂРµР· webhook
         },
       });
+
+      // Award 500 points to initiator + all active participants
+      const participants = await this.prisma.actParticipant.findMany({
+        where: { actId: id },
+        select: { userId: true },
+      });
+      const participantIds = [...new Set([currentStream.userId, ...participants.map((p) => p.userId)])];
+      await this.prisma.user.updateMany({
+        where: { id: { in: participantIds } },
+        data: { points: { increment: 500 } },
+      });
+
       if (currentAdmin.id !== currentStream.userId) {
         // РЈРІРµР»РёС‡РёРІР°РµРј СЃС‡С‘С‚С‡РёРє РѕСЃС‚Р°РЅРѕРІРѕРє РґР»СЏ Р°РґРјРёРЅР°
         await this.prisma.user.update({

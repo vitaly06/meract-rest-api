@@ -210,6 +210,77 @@ export class RankService {
     return { message: 'Ранг успешно отозван' };
   }
 
+  // Таблица лидеров по очкам, сгруппированная по роли в актах
+  async getLeaderboard(role: 'initiator' | 'navigator' | 'hero', limit = 50) {
+    let users: any[];
+
+    if (role === 'initiator') {
+      // Пользователи, которые хоть раз были инициатором акта
+      users = await this.prisma.user.findMany({
+        where: { Act: { some: {} } },
+        select: {
+          id: true,
+          login: true,
+          email: true,
+          avatarUrl: true,
+          points: true,
+          _count: { select: { Act: true } },
+        },
+        orderBy: { points: 'desc' },
+        take: limit,
+      });
+
+      return users.map((u, i) => ({
+        rank: i + 1,
+        userId: u.id,
+        name: u.login || u.email,
+        avatarUrl: u.avatarUrl,
+        points: u.points,
+        actsCount: u._count.Act,
+      }));
+    } else {
+      // Для hero / navigator — через ActParticipant
+      users = await this.prisma.user.findMany({
+        where: {
+          ActParticipants: { some: { role } },
+        },
+        select: {
+          id: true,
+          login: true,
+          email: true,
+          avatarUrl: true,
+          points: true,
+          _count: {
+            select: {
+              ActParticipants: true,
+            },
+          },
+        },
+        orderBy: { points: 'desc' },
+        take: limit,
+      });
+
+      // Считаем только акты с нужной ролью
+      const withRoleCount = await Promise.all(
+        users.map(async (u) => {
+          const cnt = await this.prisma.actParticipant.count({
+            where: { userId: u.id, role },
+          });
+          return {
+            rank: 0,
+            userId: u.id,
+            name: u.login || u.email,
+            avatarUrl: u.avatarUrl,
+            points: u.points,
+            actsCount: cnt,
+          };
+        }),
+      );
+
+      return withRoleCount.map((u, i) => ({ ...u, rank: i + 1 }));
+    }
+  }
+
   private async isAdmin(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
