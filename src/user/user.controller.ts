@@ -208,7 +208,7 @@ export class UserController {
     summary: 'Get user by id',
   })
   @Get('get-user/:id')
-  async findById(@Param('id') id: string): Promise<User> {
+  async findById(@Param('id') id: string) {
     return await this.userService.findById(+id);
   }
 

@@ -139,6 +139,8 @@ model User {
   pollVotes    PollVote[] @relation("PollVotes")
 
   notifications Notification[]
+
+  lastSeenAt DateTime?
 }
 
 model Role {

@@ -12,6 +12,7 @@ import {
 import { UtilsService } from 'src/common/utils/utils.serivice';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/s3/s3.service';
+import { PresenceService } from 'src/presence/presence.service';
 
 @Injectable()
 export class UserService {
@@ -19,6 +20,7 @@ export class UserService {
     private readonly prisma: PrismaService,
     private readonly utilsService: UtilsService,
     private readonly s3Service: S3Service,
+    private readonly presenceService: PresenceService,
   ) {}
 
   async getCurrentUser(userId: number) {
@@ -282,14 +284,22 @@ export class UserService {
     return { message: 'Notification settings updated successfully' };
   }
 
-  async findById(id: number): Promise<User> {
+  async findById(id: number) {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      include: {
+        Act: { select: { id: true } },
+      },
     });
     if (!user) {
       throw new NotFoundException('User with this id not found');
     }
-    return user;
+    const { Act, lastSeenAt, ...rest } = user;
+    return {
+      ...rest,
+      onlineStatus: this.presenceService.formatPresence(id, lastSeenAt),
+      actIds: Act.map((a) => a.id),
+    };
   }
 
   async findByIdWithRole(id: number) {
