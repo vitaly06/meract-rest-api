@@ -34,6 +34,16 @@ enum SelectionMethods {
   MANUAL
 }
 
+enum TransactionType {
+  TRANSFER
+  PURCHASE
+}
+
+enum TransactionStatus {
+  COMPLETED
+  FAILED
+}
+
 model Ticket {
   id          Int             @id @default(autoincrement())
   title       String
@@ -75,6 +85,8 @@ model User {
   communicationLanguages String[] @default([])
   country String?
   city    String?
+
+  balance Int @default(0)
 
   tickets Ticket[] 
   ticketMessages TicketMessage[]
@@ -141,6 +153,9 @@ model User {
   notifications Notification[]
 
   lastSeenAt DateTime?
+
+  transactions              Transaction[] @relation("UserTransactions")
+  transactionsAsCounterpart Transaction[] @relation("TransactionCounterpart")
 }
 
 model Role {
@@ -750,4 +765,24 @@ model Notification {
 
   @@index([userId])
   @@index([userId, isRead])
+}
+
+model Transaction {
+  id     Int               @id @default(autoincrement())
+  type   TransactionType
+  status TransactionStatus @default(COMPLETED)
+  // signed: positive = funds received, negative = funds sent
+  amount Int
+
+  userId Int
+  user   User @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
+
+  // the other party in a TRANSFER (null for PURCHASE)
+  counterpartId Int?
+  counterpart   User? @relation("TransactionCounterpart", fields: [counterpartId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
 }

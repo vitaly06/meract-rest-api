@@ -83,6 +83,30 @@ CREATE TYPE public."SelectionMethods" AS ENUM (
 ALTER TYPE public."SelectionMethods" OWNER TO postgres;
 
 --
+-- Name: TransactionStatus; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."TransactionStatus" AS ENUM (
+    'COMPLETED',
+    'FAILED'
+);
+
+
+ALTER TYPE public."TransactionStatus" OWNER TO postgres;
+
+--
+-- Name: TransactionType; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."TransactionType" AS ENUM (
+    'TRANSFER',
+    'PURCHASE'
+);
+
+
+ALTER TYPE public."TransactionType" OWNER TO postgres;
+
+--
 -- Name: UserStatus; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -1463,6 +1487,45 @@ ALTER SEQUENCE public."Ticket_id_seq" OWNED BY public."Ticket".id;
 
 
 --
+-- Name: Transaction; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Transaction" (
+    id integer NOT NULL,
+    type public."TransactionType" NOT NULL,
+    status public."TransactionStatus" DEFAULT 'COMPLETED'::public."TransactionStatus" NOT NULL,
+    amount integer NOT NULL,
+    "userId" integer NOT NULL,
+    "counterpartId" integer,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."Transaction" OWNER TO postgres;
+
+--
+-- Name: Transaction_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Transaction_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Transaction_id_seq" OWNER TO postgres;
+
+--
+-- Name: Transaction_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Transaction_id_seq" OWNED BY public."Transaction".id;
+
+
+--
 -- Name: User; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1494,7 +1557,8 @@ CREATE TABLE public."User" (
     "twoFactorSecret" text,
     "whoCanMessage" text DEFAULT 'all'::text NOT NULL,
     points integer DEFAULT 0 NOT NULL,
-    "lastSeenAt" timestamp(3) without time zone
+    "lastSeenAt" timestamp(3) without time zone,
+    balance integer DEFAULT 0 NOT NULL
 );
 
 
@@ -1856,6 +1920,13 @@ ALTER TABLE ONLY public."TicketMessage" ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: Transaction id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Transaction" ALTER COLUMN id SET DEFAULT nextval('public."Transaction_id_seq"'::regclass);
+
+
+--
 -- Name: User id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2203,14 +2274,24 @@ COPY public."TicketMessage" (id, text, "ticketId", "userId", "createdAt") FROM s
 
 
 --
+-- Data for Name: Transaction; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Transaction" (id, type, status, amount, "userId", "counterpartId", "createdAt") FROM stdin;
+1	TRANSFER	COMPLETED	-500	1	2	2026-03-07 12:54:15.146
+2	TRANSFER	COMPLETED	500	2	1	2026-03-07 12:54:15.146
+\.
+
+
+--
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage", points, "lastSeenAt") FROM stdin;
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-07 02:54:21.558	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzI4NTE1OTgsImV4cCI6MTc3MzQ1NjM5OH0.qzTugbh3juSg-IlCxLx-0bby7foTMVaCQJRrih-4n78	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552
-4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-03-05 14:09:29.194	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N
-2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-03-05 14:09:29.194	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	1000	\N
-8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0	\N
+COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage", points, "lastSeenAt", balance) FROM stdin;
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-07 12:55:07.645	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzI4ODgxMDcsImV4cCI6MTc3MzQ5MjkwN30.iuu2gSLb1R2X4tOfhNIraCjg39oB3hk6SnalMY1AFv4	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500
+4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-03-05 14:09:29.194	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N	0
+2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-03-07 12:54:15.146	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	1000	\N	1000
+8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0	\N	0
 \.
 
 
@@ -2566,6 +2647,13 @@ SELECT pg_catalog.setval('public."Ticket_id_seq"', 1, false);
 
 
 --
+-- Name: Transaction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Transaction_id_seq"', 2, true);
+
+
+--
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -2873,6 +2961,14 @@ ALTER TABLE ONLY public."TicketMessage"
 
 ALTER TABLE ONLY public."Ticket"
     ADD CONSTRAINT "Ticket_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Transaction Transaction_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Transaction"
+    ADD CONSTRAINT "Transaction_pkey" PRIMARY KEY (id);
 
 
 --
@@ -3215,6 +3311,20 @@ CREATE UNIQUE INDEX "Role_name_key" ON public."Role" USING btree (name);
 --
 
 CREATE INDEX "RoutePoint_actId_order_idx" ON public."RoutePoint" USING btree ("actId", "order");
+
+
+--
+-- Name: Transaction_userId_createdAt_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Transaction_userId_createdAt_idx" ON public."Transaction" USING btree ("userId", "createdAt");
+
+
+--
+-- Name: Transaction_userId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Transaction_userId_idx" ON public."Transaction" USING btree ("userId");
 
 
 --
@@ -3722,6 +3832,22 @@ ALTER TABLE ONLY public."TicketMessage"
 
 ALTER TABLE ONLY public."Ticket"
     ADD CONSTRAINT "Ticket_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: Transaction Transaction_counterpartId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Transaction"
+    ADD CONSTRAINT "Transaction_counterpartId_fkey" FOREIGN KEY ("counterpartId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: Transaction Transaction_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Transaction"
+    ADD CONSTRAINT "Transaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

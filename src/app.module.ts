@@ -26,6 +26,7 @@ import { PollModule } from './poll/poll.module';
 import { PresenceModule } from './presence/presence.module';
 import { NotificationModule } from './notification/notification.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     PresenceModule,
     NotificationModule,
     EventEmitterModule.forRoot(),
+    PaymentModule,
   ],
 })
 export class AppModule {}
