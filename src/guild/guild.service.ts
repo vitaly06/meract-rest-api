@@ -132,7 +132,13 @@ export class GuildService {
       where: { id: guildId },
       include: {
         members: {
-          select: { id: true, login: true, email: true, avatarUrl: true },
+          select: {
+            id: true,
+            login: true,
+            email: true,
+            avatarUrl: true,
+            lastSeenAt: true,
+          },
         },
         achievements: {
           include: { achievement: true },
@@ -182,9 +188,9 @@ export class GuildService {
       coverFileName: guild.coverFileName,
       tags: guild.tags,
       ownerId: guild.ownerId,
-      members: guild.members.map((m) => ({
+      members: guild.members.map(({ lastSeenAt, ...m }) => ({
         ...m,
-        status: this.presenceService.isOnline(m.id) ? 'online' : 'offline',
+        status: this.presenceService.formatPresence(m.id, lastSeenAt),
       })),
       membersCount: guild.members.length,
       acts: acts.map((act) => ({
