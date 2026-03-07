@@ -10,12 +10,14 @@ import { S3Service } from 'src/s3/s3.service';
 import { CreateGroupChatDto } from './dto/create-chat.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { NotificationService } from 'src/notification/notification.service';
+import { PresenceService } from 'src/presence/presence.service';
 
 const userSelect = {
   id: true,
   login: true,
   email: true,
   avatarUrl: true,
+  lastSeenAt: true,
 } as const;
 
 const messageInclude = {
@@ -34,6 +36,7 @@ export class ChatService {
     private readonly prisma: PrismaService,
     private readonly s3: S3Service,
     private readonly notificationService: NotificationService,
+    private readonly presenceService: PresenceService,
   ) {}
 
   private formatMessage(msg: any) {
@@ -130,8 +133,18 @@ export class ChatService {
 
         let partner: any = null;
         if (chat.type === 'direct') {
-          partner =
+          const rawPartner =
             chat.members.find((mem) => mem.userId !== userId)?.user ?? null;
+          if (rawPartner) {
+            const { lastSeenAt, ...partnerRest } = rawPartner as any;
+            partner = {
+              ...partnerRest,
+              status: this.presenceService.formatPresence(
+                rawPartner.id,
+                lastSeenAt,
+              ),
+            };
+          }
         }
 
         return {
@@ -588,12 +601,18 @@ export class ChatService {
       include: { user: { select: userSelect } },
       orderBy: { joinedAt: 'asc' },
     });
-    return members.map((m) => ({
-      userId: m.userId,
-      joinedAt: m.joinedAt,
-      lastReadAt: m.lastReadAt,
-      user: m.user,
-    }));
+    return members.map((m) => {
+      const { lastSeenAt, ...userRest } = m.user as any;
+      return {
+        userId: m.userId,
+        joinedAt: m.joinedAt,
+        lastReadAt: m.lastReadAt,
+        user: {
+          ...userRest,
+          status: this.presenceService.formatPresence(m.userId, lastSeenAt),
+        },
+      };
+    });
   }
 
   // ─── Legacy: Act stream chat (ChatMessage model) ──────────────────────────────

@@ -218,14 +218,18 @@ export class ActService {
     return {
       // message: 'Stream launched successfully',
       ...resultStream,
-      intro: {
-        ...resultStream.intro,
-        fileName: `${this.baseUrl}/${resultStream.intro.fileName}`,
-      },
-      outro: {
-        ...resultStream.outro,
-        fileName: `${this.baseUrl}/${resultStream.outro.fileName}`,
-      },
+      intro: resultStream.intro
+        ? {
+            ...resultStream.intro,
+            fileName: `${this.baseUrl}/${resultStream.intro.fileName}`,
+          }
+        : null,
+      outro: resultStream.outro
+        ? {
+            ...resultStream.outro,
+            fileName: `${this.baseUrl}/${resultStream.outro.fileName}`,
+          }
+        : null,
       musics: resultStream.musics.map((actMusic) => ({
         ...actMusic.music,
         fileName: `${this.baseUrl}/${actMusic.music.fileName}`,
@@ -234,10 +238,14 @@ export class ActService {
       sequel: resultStream.sequel
         ? {
             ...resultStream.sequel,
-            coverFileName: `${this.baseUrl}/${resultStream.sequel.coverFileName}`,
+            coverFileName: resultStream.sequel.coverFileName
+              ? `${this.baseUrl}/${resultStream.sequel.coverFileName}`
+              : null,
           }
         : null,
-      previewFileName: `${this.baseUrl}${resultStream.previewFileName}`,
+      previewFileName: resultStream.previewFileName
+        ? `${this.baseUrl}${resultStream.previewFileName}`
+        : null,
     };
   }
 
@@ -387,7 +395,12 @@ export class ActService {
         where: { actId: id },
         select: { userId: true },
       });
-      const participantIds = [...new Set([currentStream.userId, ...participants.map((p) => p.userId)])];
+      const participantIds = [
+        ...new Set([
+          currentStream.userId,
+          ...participants.map((p) => p.userId),
+        ]),
+      ];
       await this.prisma.user.updateMany({
         where: { id: { in: participantIds } },
         data: { points: { increment: 500 } },
