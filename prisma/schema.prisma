@@ -78,6 +78,7 @@ model User {
   login          String?    @unique
   fullName String?
   password       String
+  phoneNumber String?
   email          String     @unique
   refreshToken             String?
   avatarUrl String?
@@ -661,6 +662,7 @@ model ChatMember {
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   lastReadAt DateTime?
+  isMuted    Boolean   @default(false)
   joinedAt   DateTime  @default(now())
 
   @@unique([chatId, userId])

@@ -607,12 +607,63 @@ export class ChatService {
         userId: m.userId,
         joinedAt: m.joinedAt,
         lastReadAt: m.lastReadAt,
+        isMuted: m.isMuted,
         user: {
           ...userRest,
           status: this.presenceService.formatPresence(m.userId, lastSeenAt),
         },
       };
     });
+  }
+
+  async deleteChat(chatId: number, userId: number) {
+    const chat = await this.prisma.chat.findUnique({
+      where: { id: chatId },
+      include: { members: { select: { userId: true } } },
+    });
+    if (!chat) throw new NotFoundException('Chat not found');
+
+    const isMember = chat.members.some((m) => m.userId === userId);
+    if (!isMember)
+      throw new ForbiddenException('You are not a member of this chat');
+
+    if (chat.type === 'guild') {
+      throw new ForbiddenException('Guild chats cannot be deleted manually');
+    }
+
+    if (chat.type === 'direct') {
+      // Just remove this user — the other side keeps the chat
+      await this.prisma.chatMember.delete({
+        where: { chatId_userId: { chatId, userId } },
+      });
+      return { message: 'Chat removed from your list' };
+    }
+
+    // group: owner deletes the whole chat, member just leaves
+    const isOwner = chat.members[0]?.userId === userId;
+    if (isOwner) {
+      await this.prisma.chat.delete({ where: { id: chatId } });
+      return { message: 'Chat deleted' };
+    }
+
+    await this.prisma.chatMember.delete({
+      where: { chatId_userId: { chatId, userId } },
+    });
+    return { message: 'You left the chat' };
+  }
+
+  async toggleMute(chatId: number, userId: number) {
+    const member = await this.prisma.chatMember.findUnique({
+      where: { chatId_userId: { chatId, userId } },
+    });
+    if (!member)
+      throw new ForbiddenException('You are not a member of this chat');
+
+    const updated = await this.prisma.chatMember.update({
+      where: { chatId_userId: { chatId, userId } },
+      data: { isMuted: !member.isMuted },
+    });
+    return { isMuted: updated.isMuted };
   }
 
   // ─── Legacy: Act stream chat (ChatMessage model) ──────────────────────────────

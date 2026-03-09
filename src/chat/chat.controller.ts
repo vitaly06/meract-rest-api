@@ -294,4 +294,29 @@ export class ChatController {
   ) {
     return this.chatService.getChatMembers(chatId, req.user.sub);
   }
+
+  // ─── Delete chat ───────────────────────────────────────────────────────────────
+
+  @ApiOperation({
+    summary:
+      'Удалить чат (direct — убрать из своего списка; group — покинуть или удалить если создатель)',
+  })
+  @Delete(':chatId')
+  async deleteChat(
+    @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+  ) {
+    return this.chatService.deleteChat(chatId, req.user.sub);
+  }
+
+  // ─── Mute / Unmute chat ────────────────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Включить / выключить уведомления чата' })
+  @Patch(':chatId/mute')
+  async toggleMute(
+    @Req() req: RequestWithUser,
+    @Param('chatId', ParseIntPipe) chatId: number,
+  ) {
+    return this.chatService.toggleMute(chatId, req.user.sub);
+  }
 }
