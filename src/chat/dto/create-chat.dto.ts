@@ -39,4 +39,15 @@ export class CreateGroupChatDto {
   @IsInt({ each: true })
   @IsPositive({ each: true })
   participantIds: number[];
+
+  @ApiProperty({
+    example: 5,
+    description: 'ID акта (для стрим-группы)',
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  actId?: number;
 }

@@ -87,7 +87,7 @@ model User {
   country String?
   city    String?
 
-  balance Int @default(0)
+  balance Float @default(0)
 
   tickets Ticket[] 
   ticketMessages TicketMessage[]
@@ -157,6 +157,7 @@ model User {
 
   transactions              Transaction[] @relation("UserTransactions")
   transactionsAsCounterpart Transaction[] @relation("TransactionCounterpart")
+  stripePayments            StripePayment[]
 }
 
 model Role {
@@ -269,6 +270,7 @@ model Act {
   teams ActTeam[]
 
   polls Poll[]
+  chats Chat[]
 }
 
 model ActParticipant {
@@ -647,6 +649,10 @@ model Chat {
   guildId Int?   @unique
   guild   Guild? @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
+  // For act stream group chats
+  actId Int?
+  act   Act?  @relation(fields: [actId], references: [id], onDelete: SetNull)
+
   members  ChatMember[]
   messages Message[]
 
@@ -787,4 +793,35 @@ model Transaction {
 
   @@index([userId])
   @@index([userId, createdAt])
+}
+
+model ShopProduct {
+  id       Int     @id @default(autoincrement())
+  price    Float
+  currency Float
+  imageUrl String?
+  oldPrice Float?
+  discount Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  payments StripePayment[]
+}
+
+model StripePayment {
+  id              Int         @id @default(autoincrement())
+  userId          Int
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId       Int
+  product         ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  paymentIntentId String      @unique
+  amount          Int         // cents
+  currency        String      @default("usd")
+  status          String      @default("pending") // pending | succeeded | failed
+  echoAwarded     Int         // кол-во echo начислено
+  createdAt       DateTime    @default(now())
+
+  @@index([userId])
+  @@index([paymentIntentId])
 }

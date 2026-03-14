@@ -233,6 +233,7 @@ export class ChatService {
         type: 'group',
         name: dto.name,
         imageUrl,
+        ...(dto.actId ? { actId: dto.actId } : {}),
         members: { create: allIds.map((id) => ({ userId: id })) },
       },
       include: { members: { include: { user: { select: userSelect } } } },

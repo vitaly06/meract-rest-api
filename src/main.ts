@@ -8,7 +8,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import type { Express } from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // WebSocket adapter
   app.useWebSocketAdapter(new IoAdapter(app));

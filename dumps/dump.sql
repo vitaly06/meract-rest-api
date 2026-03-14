@@ -617,7 +617,8 @@ CREATE TABLE public."Chat" (
     "guildId" integer,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
-    "inviteCode" text
+    "inviteCode" text,
+    "actId" integer
 );
 
 
@@ -1412,6 +1413,87 @@ ALTER SEQUENCE public."Sequel_id_seq" OWNED BY public."Sequel".id;
 
 
 --
+-- Name: ShopProduct; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ShopProduct" (
+    id integer NOT NULL,
+    price double precision NOT NULL,
+    currency double precision NOT NULL,
+    "imageUrl" text,
+    discount double precision,
+    "oldPrice" double precision,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."ShopProduct" OWNER TO postgres;
+
+--
+-- Name: ShopProduct_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ShopProduct_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ShopProduct_id_seq" OWNER TO postgres;
+
+--
+-- Name: ShopProduct_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ShopProduct_id_seq" OWNED BY public."ShopProduct".id;
+
+
+--
+-- Name: StripePayment; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."StripePayment" (
+    id integer NOT NULL,
+    "userId" integer NOT NULL,
+    "productId" integer NOT NULL,
+    "paymentIntentId" text NOT NULL,
+    amount integer NOT NULL,
+    currency text DEFAULT 'usd'::text NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    "echoAwarded" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."StripePayment" OWNER TO postgres;
+
+--
+-- Name: StripePayment_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."StripePayment_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."StripePayment_id_seq" OWNER TO postgres;
+
+--
+-- Name: StripePayment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."StripePayment_id_seq" OWNED BY public."StripePayment".id;
+
+
+--
 -- Name: Ticket; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1559,7 +1641,7 @@ CREATE TABLE public."User" (
     "whoCanMessage" text DEFAULT 'all'::text NOT NULL,
     points integer DEFAULT 0 NOT NULL,
     "lastSeenAt" timestamp(3) without time zone,
-    balance integer DEFAULT 0 NOT NULL,
+    balance double precision DEFAULT 0 NOT NULL,
     "phoneNumber" text
 );
 
@@ -1908,6 +1990,20 @@ ALTER TABLE ONLY public."Sequel" ALTER COLUMN id SET DEFAULT nextval('public."Se
 
 
 --
+-- Name: ShopProduct id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ShopProduct" ALTER COLUMN id SET DEFAULT nextval('public."ShopProduct_id_seq"'::regclass);
+
+
+--
+-- Name: StripePayment id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."StripePayment" ALTER COLUMN id SET DEFAULT nextval('public."StripePayment_id_seq"'::regclass);
+
+
+--
 -- Name: Ticket id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2077,7 +2173,7 @@ COPY public."Category" (id, name) FROM stdin;
 -- Data for Name: Chat; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Chat" (id, type, name, "imageUrl", "guildId", "createdAt", "updatedAt", "inviteCode") FROM stdin;
+COPY public."Chat" (id, type, name, "imageUrl", "guildId", "createdAt", "updatedAt", "inviteCode", "actId") FROM stdin;
 \.
 
 
@@ -2260,6 +2356,24 @@ COPY public."Sequel" (id, title, episodes, "coverFileName", "userId") FROM stdin
 
 
 --
+-- Data for Name: ShopProduct; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ShopProduct" (id, price, currency, "imageUrl", discount, "oldPrice", "createdAt", "updatedAt") FROM stdin;
+1	8.99	50	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1773336749572-427ffe06137a2a167a4e66d1e7f3ae17bddb594e.png	\N	\N	2026-03-13 09:39:19.214	2026-03-13 09:39:19.214
+5	38.99	250	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1773337194737-427ffe06137a2a167a4e66d1e7f3ae17bddb594e.png	35.01	59.99	2026-03-13 09:39:19.214	2026-03-13 09:39:19.214
+\.
+
+
+--
+-- Data for Name: StripePayment; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."StripePayment" (id, "userId", "productId", "paymentIntentId", amount, currency, status, "echoAwarded", "createdAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: Ticket; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -2290,10 +2404,10 @@ COPY public."Transaction" (id, type, status, amount, "userId", "counterpartId", 
 --
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage", points, "lastSeenAt", balance, "phoneNumber") FROM stdin;
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-09 13:16:15.623	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzMwNjIxNzUsImV4cCI6MTc3MzY2Njk3NX0.RcrKYV96zyYX3DkJYuPek_fSqKXcB2cfcBBai6uf_Lw	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-03-05 14:09:29.194	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N	0	\N
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-03-07 12:54:15.146	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	1000	\N	1000	\N
 8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0	\N	0	\N
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-12 17:27:50.493	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzMzMzY0NzAsImV4cCI6MTc3Mzk0MTI3MH0.XK96I044dt0cL31o2mrXhL4oceMxURJm13OTv4JsL8c	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
 \.
 
 
@@ -2635,6 +2749,20 @@ SELECT pg_catalog.setval('public."Sequel_id_seq"', 1, true);
 
 
 --
+-- Name: ShopProduct_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ShopProduct_id_seq"', 5, true);
+
+
+--
+-- Name: StripePayment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."StripePayment_id_seq"', 1, false);
+
+
+--
 -- Name: TicketMessage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -2947,6 +3075,22 @@ ALTER TABLE ONLY public."RoutePoint"
 
 ALTER TABLE ONLY public."Sequel"
     ADD CONSTRAINT "Sequel_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ShopProduct ShopProduct_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ShopProduct"
+    ADD CONSTRAINT "ShopProduct_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: StripePayment StripePayment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."StripePayment"
+    ADD CONSTRAINT "StripePayment_pkey" PRIMARY KEY (id);
 
 
 --
@@ -3316,6 +3460,27 @@ CREATE INDEX "RoutePoint_actId_order_idx" ON public."RoutePoint" USING btree ("a
 
 
 --
+-- Name: StripePayment_paymentIntentId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "StripePayment_paymentIntentId_idx" ON public."StripePayment" USING btree ("paymentIntentId");
+
+
+--
+-- Name: StripePayment_paymentIntentId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "StripePayment_paymentIntentId_key" ON public."StripePayment" USING btree ("paymentIntentId");
+
+
+--
+-- Name: StripePayment_userId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "StripePayment_userId_idx" ON public."StripePayment" USING btree ("userId");
+
+
+--
 -- Name: Transaction_userId_createdAt_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -3573,6 +3738,14 @@ ALTER TABLE ONLY public."ChatMessage"
 
 
 --
+-- Name: Chat Chat_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chat"
+    ADD CONSTRAINT "Chat_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
 -- Name: Chat Chat_guildId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3810,6 +3983,22 @@ ALTER TABLE ONLY public."RoutePoint"
 
 ALTER TABLE ONLY public."Sequel"
     ADD CONSTRAINT "Sequel_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: StripePayment StripePayment_productId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."StripePayment"
+    ADD CONSTRAINT "StripePayment_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."ShopProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: StripePayment StripePayment_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."StripePayment"
+    ADD CONSTRAINT "StripePayment_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

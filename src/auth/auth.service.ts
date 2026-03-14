@@ -85,7 +85,7 @@ export class AuthService {
       3600 * 1000,
     );
 
-    await this.sendVerificationEmail(
+    this.sendVerificationEmail(
       email,
       'Verify email',
       verifyCode,
@@ -116,7 +116,7 @@ export class AuthService {
       3600 * 1000,
     );
 
-    await this.sendVerificationEmail(
+    this.sendVerificationEmail(
       email,
       'Recovery Password',
       verifyCode,
@@ -315,24 +315,20 @@ export class AuthService {
     return Math.floor(1000 + Math.random() * 9000).toString(); // Generate 4 digits (1000-9999)
   }
 
-  private async sendVerificationEmail(
+  private sendVerificationEmail(
     email: string,
     text: string,
     code: string,
     template: string,
   ) {
-    try {
-      await this.mailerService.sendMail({
+    // Fire-and-forget: do not block the request on SMTP
+    this.mailerService
+      .sendMail({
         to: email,
         subject: text,
         template,
-        context: {
-          code,
-        },
-      });
-    } catch (error) {
-      console.error('Error sending email:', error);
-      throw new BadRequestException('Error sending confirmation email');
-    }
+        context: { code },
+      })
+      .catch((error) => console.error('Error sending email:', error));
   }
 }

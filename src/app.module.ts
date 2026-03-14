@@ -27,6 +27,7 @@ import { PresenceModule } from './presence/presence.module';
 import { NotificationModule } from './notification/notification.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PaymentModule } from './payment/payment.module';
+import { MeractShopModule } from './meract-shop/meract-shop.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { PaymentModule } from './payment/payment.module';
     NotificationModule,
     EventEmitterModule.forRoot(),
     PaymentModule,
+    MeractShopModule,
   ],
 })
 export class AppModule {}
