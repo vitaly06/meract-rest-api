@@ -91,9 +91,27 @@ export class ChatService {
     return 'file';
   }
 
+  private async logAction(
+    action: string,
+    userId: number,
+    actId?: number,
+    metadata?: any,
+  ) {
+    if (actId) {
+      // Логируем действие для аналитики
+      console.log(
+        `Action: ${action}, User: ${userId}, ActId: ${actId}`,
+        metadata,
+      );
+      // Здесь можно добавить сохранение в БД или отправку в аналитическую систему
+    }
+  }
+
   // ─── Chat list ───────────────────────────────────────────────────────────────
 
-  async getChats(userId: number) {
+  async getChats(userId: number, actId?: number) {
+    await this.logAction('GET_CHATS', userId, actId);
+
     const memberships = await this.prisma.chatMember.findMany({
       where: { userId },
       include: {
@@ -177,7 +195,15 @@ export class ChatService {
 
   // ─── Direct chat ─────────────────────────────────────────────────────────────
 
-  async getOrCreateDirectChat(userId: number, otherUserId: number) {
+  async getOrCreateDirectChat(
+    userId: number,
+    otherUserId: number,
+    actId?: number,
+  ) {
+    await this.logAction('GET_OR_CREATE_DIRECT_CHAT', userId, actId, {
+      otherUserId,
+    });
+
     if (userId === otherUserId) {
       throw new BadRequestException('Cannot create chat with yourself');
     }
@@ -233,10 +259,15 @@ export class ChatService {
         type: 'group',
         name: dto.name,
         imageUrl,
-        ...(dto.actId ? { actId: dto.actId } : {}),
         members: { create: allIds.map((id) => ({ userId: id })) },
+        actId: dto.actId || null,
       },
       include: { members: { include: { user: { select: userSelect } } } },
+    });
+
+    await this.logAction('CREATE_GROUP_CHAT', userId, dto.act_id, {
+      chatId: chat.id,
+      participantCount: allIds.length,
     });
 
     return chat;
@@ -244,7 +275,11 @@ export class ChatService {
 
   // ─── Guild chat ───────────────────────────────────────────────────────────────
 
-  async getOrCreateGuildChat(userId: number, guildId: number) {
+  async getOrCreateGuildChat(userId: number, guildId: number, actId?: number) {
+    await this.logAction('GET_OR_CREATE_GUILD_CHAT', userId, actId, {
+      guildId,
+    });
+
     const guild = await this.prisma.guild.findUnique({
       where: { id: guildId },
       include: { members: { select: { id: true } }, chat: true },
@@ -286,7 +321,13 @@ export class ChatService {
     userId: number,
     limit = 50,
     before?: number,
+    actId?: number,
   ) {
+    await this.logAction('GET_MESSAGES', userId, actId, {
+      chatId,
+      limit,
+      before,
+    });
     await this.assertMember(chatId, userId);
 
     const [messages, images, videos] = await Promise.all([
@@ -396,6 +437,13 @@ export class ChatService {
       data: { updatedAt: new Date() },
     });
 
+    await this.logAction('SEND_MESSAGE', userId, dto.act_id, {
+      chatId,
+      messageId: message.id,
+      hasFile: !!file,
+      fileType,
+    });
+
     // Send notifications to all other chat members (fire and forget)
     this.sendNewMessageNotifications(chatId, userId, message).catch(() => {});
 
@@ -452,7 +500,7 @@ export class ChatService {
 
   // ─── Delete message ───────────────────────────────────────────────────────────
 
-  async deleteMessage(messageId: number, userId: number) {
+  async deleteMessage(messageId: number, userId: number, actId?: number) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
     });
@@ -464,12 +512,20 @@ export class ChatService {
       where: { id: messageId },
       data: { isDeleted: true, text: null, fileUrl: null },
     });
+
+    await this.logAction('DELETE_MESSAGE', userId, actId, { messageId });
+
     return { success: true };
   }
 
   // ─── Add member ───────────────────────────────────────────────────────────────
 
-  async addMember(chatId: number, userId: number, targetUserId: number) {
+  async addMember(
+    chatId: number,
+    userId: number,
+    targetUserId: number,
+    actId?: number,
+  ) {
     const chat = await this.prisma.chat.findUnique({ where: { id: chatId } });
     if (!chat) throw new NotFoundException('Chat not found');
     if (chat.type === 'direct') {
@@ -487,23 +543,29 @@ export class ChatService {
       create: { chatId, userId: targetUserId },
       update: {},
     });
+
+    await this.logAction('ADD_MEMBER', userId, actId, { chatId, targetUserId });
+
     return { success: true };
   }
 
   // ─── Mark as read ─────────────────────────────────────────────────────────────
 
-  async markAsRead(chatId: number, userId: number) {
+  async markAsRead(chatId: number, userId: number, actId?: number) {
     await this.assertMember(chatId, userId);
     await this.prisma.chatMember.update({
       where: { chatId_userId: { chatId, userId } },
       data: { lastReadAt: new Date() },
     });
+
+    await this.logAction('MARK_AS_READ', userId, actId, { chatId });
+
     return { success: true };
   }
 
   // ─── Invite link ──────────────────────────────────────────────────────────────
 
-  async generateInviteCode(chatId: number, userId: number) {
+  async generateInviteCode(chatId: number, userId: number, actId?: number) {
     const chat = await this.prisma.chat.findUnique({ where: { id: chatId } });
     if (!chat) throw new NotFoundException('Chat not found');
     if (chat.type === 'direct') {
@@ -522,10 +584,13 @@ export class ChatService {
       where: { id: chatId },
       data: { inviteCode },
     });
+
+    await this.logAction('GENERATE_INVITE_CODE', userId, actId, { chatId });
+
     return { chatId, inviteCode };
   }
 
-  async joinByInviteCode(code: string, userId: number) {
+  async joinByInviteCode(code: string, userId: number, actId?: number) {
     const chat = await this.prisma.chat.findUnique({
       where: { inviteCode: code },
     });
@@ -536,6 +601,12 @@ export class ChatService {
       create: { chatId: chat.id, userId },
       update: {},
     });
+
+    await this.logAction('JOIN_BY_INVITE_CODE', userId, actId, {
+      chatId: chat.id,
+      code,
+    });
+
     return { chatId: chat.id, type: chat.type, name: chat.name };
   }
 
@@ -546,8 +617,15 @@ export class ChatService {
     userId: number,
     limit = 30,
     before?: number,
+    actId?: number,
   ) {
+    await this.logAction('GET_CHAT_IMAGES', userId, actId, {
+      chatId,
+      limit,
+      before,
+    });
     await this.assertMember(chatId, userId);
+
     const images = await this.prisma.message.findMany({
       where: {
         chatId,
@@ -559,6 +637,7 @@ export class ChatService {
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
+
     return images.map((m) => ({
       id: m.id,
       fileUrl: m.fileUrl,
@@ -572,8 +651,15 @@ export class ChatService {
     userId: number,
     limit = 30,
     before?: number,
+    actId?: number,
   ) {
+    await this.logAction('GET_CHAT_VIDEOS', userId, actId, {
+      chatId,
+      limit,
+      before,
+    });
     await this.assertMember(chatId, userId);
+
     const videos = await this.prisma.message.findMany({
       where: {
         chatId,
@@ -585,6 +671,7 @@ export class ChatService {
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
+
     return videos.map((m) => ({
       id: m.id,
       fileUrl: m.fileUrl,
@@ -595,13 +682,16 @@ export class ChatService {
 
   // ─── Members list ─────────────────────────────────────────────────────────────
 
-  async getChatMembers(chatId: number, userId: number) {
+  async getChatMembers(chatId: number, userId: number, actId?: number) {
+    await this.logAction('GET_CHAT_MEMBERS', userId, actId, { chatId });
     await this.assertMember(chatId, userId);
+
     const members = await this.prisma.chatMember.findMany({
       where: { chatId },
       include: { user: { select: userSelect } },
       orderBy: { joinedAt: 'asc' },
     });
+
     return members.map((m) => {
       const { lastSeenAt, ...userRest } = m.user as any;
       return {
@@ -617,7 +707,7 @@ export class ChatService {
     });
   }
 
-  async deleteChat(chatId: number, userId: number) {
+  async deleteChat(chatId: number, userId: number, actId?: number) {
     const chat = await this.prisma.chat.findUnique({
       where: { id: chatId },
       include: { members: { select: { userId: true } } },
@@ -631,6 +721,11 @@ export class ChatService {
     if (chat.type === 'guild') {
       throw new ForbiddenException('Guild chats cannot be deleted manually');
     }
+
+    await this.logAction('DELETE_CHAT', userId, actId, {
+      chatId,
+      chatType: chat.type,
+    });
 
     if (chat.type === 'direct') {
       // Just remove this user — the other side keeps the chat
@@ -653,7 +748,7 @@ export class ChatService {
     return { message: 'You left the chat' };
   }
 
-  async toggleMute(chatId: number, userId: number) {
+  async toggleMute(chatId: number, userId: number, actId?: number) {
     const member = await this.prisma.chatMember.findUnique({
       where: { chatId_userId: { chatId, userId } },
     });
@@ -664,6 +759,12 @@ export class ChatService {
       where: { chatId_userId: { chatId, userId } },
       data: { isMuted: !member.isMuted },
     });
+
+    await this.logAction('TOGGLE_MUTE', userId, actId, {
+      chatId,
+      isMuted: updated.isMuted,
+    });
+
     return { isMuted: updated.isMuted };
   }
 
@@ -692,6 +793,11 @@ export class ChatService {
         user: { select: { id: true, login: true, email: true, status: true } },
       },
     });
+
+    await this.logAction('SEND_STREAM_MESSAGE', userId, actId, {
+      messageId: msg.id,
+    });
+
     return {
       id: msg.id,
       message: msg.message,
@@ -743,6 +849,11 @@ export class ChatService {
     if (!canDelete)
       throw new ForbiddenException('No permission to delete this message');
     await this.prisma.chatMessage.delete({ where: { id: messageId } });
+
+    await this.logAction('DELETE_STREAM_MESSAGE', userId, msg.actId, {
+      messageId,
+    });
+
     return { message: 'Message deleted successfully' };
   }
 

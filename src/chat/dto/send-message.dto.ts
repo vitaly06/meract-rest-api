@@ -40,4 +40,16 @@ export class SendMessageDto {
   @IsInt()
   @IsPositive()
   forwardedFromId?: number;
+
+  // Добавляем поле act_id для аналитики (опционально)
+  @ApiProperty({
+    example: 123,
+    description: 'ID действия для аналитики',
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  act_id?: number;
 }

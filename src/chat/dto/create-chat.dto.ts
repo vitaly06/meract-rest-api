@@ -22,23 +22,13 @@ export class CreateGroupChatDto {
 
   @ApiProperty({
     example: [1, 2, 3],
-    description: 'ID участников (JSON-строка при multipart/form-data)',
+    description: 'ID участников',
     type: [Number],
-  })
-  @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      try {
-        return JSON.parse(value);
-      } catch {
-        return value;
-      }
-    }
-    return value;
   })
   @IsArray()
   @IsInt({ each: true })
   @IsPositive({ each: true })
-  participantIds: number[];
+  participantIds: number[]; 
 
   @ApiProperty({
     example: 5,
@@ -50,4 +40,15 @@ export class CreateGroupChatDto {
   @IsInt()
   @IsPositive()
   actId?: number;
+
+  @ApiProperty({
+    example: 123,
+    description: 'ID действия для аналитики',
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  act_id?: number;
 }
