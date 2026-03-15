@@ -265,7 +265,7 @@ export class ChatService {
       include: { members: { include: { user: { select: userSelect } } } },
     });
 
-    await this.logAction('CREATE_GROUP_CHAT', userId, dto.act_id, {
+    await this.logAction('CREATE_GROUP_CHAT', userId, dto.actId, {
       chatId: chat.id,
       participantCount: allIds.length,
     });
