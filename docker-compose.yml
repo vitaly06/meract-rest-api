@@ -37,10 +37,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./dumps/dump.sql:/docker-entrypoint-initdb.d/dump.sql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d Meract']
       interval: 5s
-      timeout: 5s
-      retries: 10
+      timeout: 10s
+      retries: 20
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
