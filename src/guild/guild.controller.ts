@@ -266,6 +266,19 @@ export class GuildController {
     );
   }
 
+  @ApiOperation({
+    summary: 'Включить/выключить уведомления гильдии',
+    description: 'Toggle. Возвращает { muted: true/false }',
+  })
+  @Patch(':id/notifications/toggle')
+  @UseGuards(JwtAuthGuard)
+  async toggleNotifications(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.toggleGuildNotifications(+id, req.user.sub);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async deleteGuild(@Param('id') id: string, @Req() req: RequestWithUser) {

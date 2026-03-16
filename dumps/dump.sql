@@ -252,6 +252,44 @@ ALTER SEQUENCE public."ActParticipant_id_seq" OWNED BY public."ActParticipant".i
 
 
 --
+-- Name: ActRating; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActRating" (
+    id integer NOT NULL,
+    value double precision NOT NULL,
+    "userId" integer NOT NULL,
+    "actId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."ActRating" OWNER TO postgres;
+
+--
+-- Name: ActRating_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ActRating_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ActRating_id_seq" OWNER TO postgres;
+
+--
+-- Name: ActRating_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ActRating_id_seq" OWNED BY public."ActRating".id;
+
+
+--
 -- Name: ActSpotAgent; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -618,7 +656,8 @@ CREATE TABLE public."Chat" (
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL,
     "inviteCode" text,
-    "actId" integer
+    "actId" integer,
+    "creatorId" integer
 );
 
 
@@ -864,6 +903,42 @@ ALTER SEQUENCE public."GuildJoinRequest_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."GuildJoinRequest_id_seq" OWNED BY public."GuildJoinRequest".id;
+
+
+--
+-- Name: GuildNotificationMute; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."GuildNotificationMute" (
+    id integer NOT NULL,
+    "userId" integer NOT NULL,
+    "guildId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."GuildNotificationMute" OWNER TO postgres;
+
+--
+-- Name: GuildNotificationMute_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."GuildNotificationMute_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."GuildNotificationMute_id_seq" OWNER TO postgres;
+
+--
+-- Name: GuildNotificationMute_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."GuildNotificationMute_id_seq" OWNED BY public."GuildNotificationMute".id;
 
 
 --
@@ -1780,6 +1855,13 @@ ALTER TABLE ONLY public."ActParticipant" ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: ActRating id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActRating" ALTER COLUMN id SET DEFAULT nextval('public."ActRating_id_seq"'::regclass);
+
+
+--
 -- Name: ActSpotAgent id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1889,6 +1971,13 @@ ALTER TABLE ONLY public."GuildChatMessage" ALTER COLUMN id SET DEFAULT nextval('
 --
 
 ALTER TABLE ONLY public."GuildJoinRequest" ALTER COLUMN id SET DEFAULT nextval('public."GuildJoinRequest_id_seq"'::regclass);
+
+
+--
+-- Name: GuildNotificationMute id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildNotificationMute" ALTER COLUMN id SET DEFAULT nextval('public."GuildNotificationMute_id_seq"'::regclass);
 
 
 --
@@ -2090,6 +2179,14 @@ COPY public."ActParticipant" (id, "actId", "userId", role, status, "joinedAt", "
 
 
 --
+-- Data for Name: ActRating; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActRating" (id, value, "userId", "actId", "createdAt", "updatedAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: ActSpotAgent; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -2173,7 +2270,7 @@ COPY public."Category" (id, name) FROM stdin;
 -- Data for Name: Chat; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Chat" (id, type, name, "imageUrl", "guildId", "createdAt", "updatedAt", "inviteCode", "actId") FROM stdin;
+COPY public."Chat" (id, type, name, "imageUrl", "guildId", "createdAt", "updatedAt", "inviteCode", "actId", "creatorId") FROM stdin;
 \.
 
 
@@ -2231,6 +2328,14 @@ COPY public."GuildChatMessage" (id, message, "createdAt", "userId", "guildId") F
 --
 
 COPY public."GuildJoinRequest" (id, "guildId", "userId", status, message, "createdAt", "updatedAt") FROM stdin;
+\.
+
+
+--
+-- Data for Name: GuildNotificationMute; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."GuildNotificationMute" (id, "userId", "guildId", "createdAt") FROM stdin;
 \.
 
 
@@ -2370,6 +2475,8 @@ COPY public."ShopProduct" (id, price, currency, "imageUrl", discount, "oldPrice"
 --
 
 COPY public."StripePayment" (id, "userId", "productId", "paymentIntentId", amount, currency, status, "echoAwarded", "createdAt") FROM stdin;
+1	1	1	pi_3TBP5cRIjBEJYSfY1T0fNy9F	899	usd	pending	50	2026-03-16 00:32:59.498
+2	1	1	pi_3TBP6VRIjBEJYSfY0IYAfTLp	899	usd	pending	50	2026-03-16 00:33:53.957
 \.
 
 
@@ -2407,7 +2514,7 @@ COPY public."User" (id, login, password, email, status, "warningCount", "roleId"
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-03-05 14:09:29.194	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N	0	\N
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-03-07 12:54:15.146	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	1000	\N	1000	\N
 8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0	\N	0	\N
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-12 17:27:50.493	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzMzMzY0NzAsImV4cCI6MTc3Mzk0MTI3MH0.XK96I044dt0cL31o2mrXhL4oceMxURJm13OTv4JsL8c	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-16 00:32:46.588	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzM2MjExNjYsImV4cCI6MTc3NDIyNTk2Nn0.Xr_8jXFSj4SmUCfsxhfQ2vnRTBI_VVIBXm2gl7NkIf0	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
 \.
 
 
@@ -2532,6 +2639,13 @@ SELECT pg_catalog.setval('public."ActParticipant_id_seq"', 1, false);
 
 
 --
+-- Name: ActRating_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ActRating_id_seq"', 1, false);
+
+
+--
 -- Name: ActSpotAgentCandidate_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -2641,6 +2755,13 @@ SELECT pg_catalog.setval('public."GuildChatMessage_id_seq"', 1, false);
 --
 
 SELECT pg_catalog.setval('public."GuildJoinRequest_id_seq"', 1, false);
+
+
+--
+-- Name: GuildNotificationMute_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."GuildNotificationMute_id_seq"', 1, false);
 
 
 --
@@ -2759,7 +2880,7 @@ SELECT pg_catalog.setval('public."ShopProduct_id_seq"', 5, true);
 -- Name: StripePayment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."StripePayment_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."StripePayment_id_seq"', 2, true);
 
 
 --
@@ -2819,6 +2940,14 @@ ALTER TABLE ONLY public."ActMusic"
 
 ALTER TABLE ONLY public."ActParticipant"
     ADD CONSTRAINT "ActParticipant_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ActRating ActRating_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActRating"
+    ADD CONSTRAINT "ActRating_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2955,6 +3084,14 @@ ALTER TABLE ONLY public."GuildChatMessage"
 
 ALTER TABLE ONLY public."GuildJoinRequest"
     ADD CONSTRAINT "GuildJoinRequest_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: GuildNotificationMute GuildNotificationMute_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildNotificationMute"
+    ADD CONSTRAINT "GuildNotificationMute_pkey" PRIMARY KEY (id);
 
 
 --
@@ -3194,6 +3331,20 @@ CREATE UNIQUE INDEX "ActParticipant_actId_userId_role_key" ON public."ActPartici
 
 
 --
+-- Name: ActRating_actId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ActRating_actId_idx" ON public."ActRating" USING btree ("actId");
+
+
+--
+-- Name: ActRating_userId_actId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "ActRating_userId_actId_key" ON public."ActRating" USING btree ("userId", "actId");
+
+
+--
 -- Name: ActSpotAgentCandidate_actId_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -3352,6 +3503,20 @@ CREATE INDEX "GuildChatMessage_guildId_createdAt_idx" ON public."GuildChatMessag
 --
 
 CREATE UNIQUE INDEX "GuildJoinRequest_guildId_userId_key" ON public."GuildJoinRequest" USING btree ("guildId", "userId");
+
+
+--
+-- Name: GuildNotificationMute_userId_guildId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "GuildNotificationMute_userId_guildId_key" ON public."GuildNotificationMute" USING btree ("userId", "guildId");
+
+
+--
+-- Name: GuildNotificationMute_userId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "GuildNotificationMute_userId_idx" ON public."GuildNotificationMute" USING btree ("userId");
 
 
 --
@@ -3559,6 +3724,22 @@ ALTER TABLE ONLY public."ActParticipant"
 
 ALTER TABLE ONLY public."ActParticipant"
     ADD CONSTRAINT "ActParticipant_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActRating ActRating_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActRating"
+    ADD CONSTRAINT "ActRating_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActRating ActRating_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActRating"
+    ADD CONSTRAINT "ActRating_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -3807,6 +3988,22 @@ ALTER TABLE ONLY public."GuildJoinRequest"
 
 ALTER TABLE ONLY public."GuildJoinRequest"
     ADD CONSTRAINT "GuildJoinRequest_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: GuildNotificationMute GuildNotificationMute_guildId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildNotificationMute"
+    ADD CONSTRAINT "GuildNotificationMute_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES public."Guild"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: GuildNotificationMute GuildNotificationMute_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."GuildNotificationMute"
+    ADD CONSTRAINT "GuildNotificationMute_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

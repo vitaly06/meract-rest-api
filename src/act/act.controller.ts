@@ -102,8 +102,9 @@ export class ActController {
     summary: 'Получение данных об акте по ID',
   })
   @Get('find-by-id/:id')
-  async getActById(@Param('id') id: string) {
-    return await this.actService.getActById(+id);
+  @UseGuards(JwtAuthGuard)
+  async getActById(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return await this.actService.getActById(+id, req.user.sub);
   }
 
   @ApiOperation({
@@ -167,6 +168,37 @@ export class ActController {
   @UseGuards(JwtAuthGuard)
   async stopAct(@Query('id') id: string, @Req() req: RequestWithUser) {
     return await this.actService.stopAct(+id, req);
+  }
+
+  @ApiOperation({ summary: 'Оценить акт (0–10, шаг 0.5)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['value'],
+      properties: {
+        value: {
+          type: 'number',
+          example: 8.5,
+          description: 'Оценка от 0 до 10 с шагом 0.5',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Рейтинг обновлён',
+    schema: {
+      example: { rating: 8.3, ratingsCount: 12, myRating: 8.5 },
+    },
+  })
+  @Post('rate/:id')
+  @UseGuards(JwtAuthGuard)
+  async rateAct(
+    @Param('id') id: string,
+    @Body('value') value: number,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.actService.rateAct(+id, req.user.sub, +value);
   }
 
   @ApiOperation({

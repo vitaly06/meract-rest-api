@@ -177,6 +177,11 @@ export class ChatService {
               ? (partner?.avatarUrl ?? null)
               : chat.imageUrl,
           partner: chat.type === 'direct' ? partner : null,
+          actId: chat.type !== 'direct' ? (chat.actId ?? null) : undefined,
+          creatorId:
+            chat.type !== 'direct' ? (chat.creatorId ?? null) : undefined,
+          membersCount:
+            chat.type !== 'direct' ? chat.members.length : undefined,
           unreadCount,
           lastMessage: last
             ? {
@@ -259,6 +264,7 @@ export class ChatService {
         type: 'group',
         name: dto.name,
         imageUrl,
+        creatorId: userId,
         members: { create: allIds.map((id) => ({ userId: id })) },
         actId: dto.actId || null,
       },

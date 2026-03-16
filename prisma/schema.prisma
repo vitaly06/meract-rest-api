@@ -44,6 +44,23 @@ enum TransactionStatus {
   FAILED
 }
 
+model ActRating {
+  id     Int   @id @default(autoincrement())
+  value  Float // 0..10, step 0.5
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  actId Int
+  act   Act  @relation(fields: [actId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, actId])
+  @@index([actId])
+}
+
 model Ticket {
   id          Int             @id @default(autoincrement())
   title       String
@@ -158,6 +175,8 @@ model User {
   transactions              Transaction[] @relation("UserTransactions")
   transactionsAsCounterpart Transaction[] @relation("TransactionCounterpart")
   stripePayments            StripePayment[]
+  actRatings                ActRating[]
+  guildNotificationMutes    GuildNotificationMute[]
 }
 
 model Role {
@@ -181,7 +200,7 @@ model Guild {
   joinRequests GuildJoinRequest[]
   chat         Chat?
   achievements GuildAchievement[]
-
+  notificationMutes GuildNotificationMute[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -199,6 +218,19 @@ model GuildJoinRequest {
   updatedAt DateTime @updatedAt
 
   @@unique([guildId, userId])
+}
+
+model GuildNotificationMute {
+  id      Int   @id @default(autoincrement())
+  userId  Int
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guildId Int
+  guild   Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, guildId])
+  @@index([userId])
 }
 
 model Act {
@@ -271,6 +303,7 @@ model Act {
 
   polls Poll[]
   chats Chat[]
+  ratings ActRating[]
 }
 
 model ActParticipant {
@@ -652,6 +685,9 @@ model Chat {
   // For act stream group chats
   actId Int?
   act   Act?  @relation(fields: [actId], references: [id], onDelete: SetNull)
+
+  // Creator of the chat (for group chats)
+  creatorId Int?
 
   members  ChatMember[]
   messages Message[]

@@ -163,9 +163,19 @@ export class GuildService {
         endedAt: true,
         user: { select: { id: true, login: true, email: true } },
         category: { select: { id: true, name: true } },
+        _count: { select: { ratings: true } },
       },
       orderBy: { startedAt: 'desc' },
     });
+
+    // Average ratings
+    const actIds = acts.map((a) => a.id);
+    const avgs = await this.prisma.actRating.groupBy({
+      by: ['actId'],
+      where: { actId: { in: actIds } },
+      _avg: { value: true },
+    });
+    const avgMap = new Map(avgs.map((a) => [a.actId, a._avg.value]));
 
     const allAchievements = guild.achievements
       .sort((a, b) => a.order - b.order)
@@ -203,6 +213,11 @@ export class GuildService {
         user: act.user.login || act.user.email,
         category: act.category?.name || '',
         categoryId: act.category?.id,
+        rating:
+          avgMap.get(act.id) != null
+            ? Math.round(avgMap.get(act.id)! * 10) / 10
+            : null,
+        ratingsCount: act._count.ratings,
       })),
       actsCount: acts.length,
       achievements: allAchievements,
@@ -521,16 +536,22 @@ export class GuildService {
       select: { login: true, email: true, avatarUrl: true },
     });
     const requesterName = requester?.login || requester?.email || 'Someone';
-    this.notificationService
-      .create({
-        userId: guild.ownerId,
-        type: 'guild_join_request',
-        title: `Заявка в гильдию`,
-        body: `${requesterName} хочет вступить в "${guild.name}"`,
-        imageUrl: requester?.avatarUrl ?? null,
-        metadata: { guildId, requesterId: userId },
-      })
-      .catch(() => {});
+    const ownerMuted = await this.isGuildNotificationMuted(
+      guild.ownerId,
+      guildId,
+    );
+    if (!ownerMuted) {
+      this.notificationService
+        .create({
+          userId: guild.ownerId,
+          type: 'guild_join_request',
+          title: `Заявка в гильдию`,
+          body: `${requesterName} хочет вступить в "${guild.name}"`,
+          imageUrl: requester?.avatarUrl ?? null,
+          metadata: { guildId, requesterId: userId },
+        })
+        .catch(() => {});
+    }
 
     return { message: 'Join request submitted successfully' };
   }
@@ -612,32 +633,80 @@ export class GuildService {
         },
       });
 
-      this.notificationService
-        .create({
-          userId: request.userId,
-          type: 'guild_join_approved',
-          title: 'Заявка принята',
-          body: `Вы приняты в гильдию "${request.guild.name}"`,
-          imageUrl: request.guild.logoFileName ?? null,
-          metadata: { guildId: request.guildId },
-        })
-        .catch(() => {});
+      const approvedMuted = await this.isGuildNotificationMuted(
+        request.userId,
+        request.guildId,
+      );
+      if (!approvedMuted) {
+        this.notificationService
+          .create({
+            userId: request.userId,
+            type: 'guild_join_approved',
+            title: 'Заявка принята',
+            body: `Вы приняты в гильдию "${request.guild.name}"`,
+            imageUrl: request.guild.logoFileName ?? null,
+            metadata: { guildId: request.guildId },
+          })
+          .catch(() => {});
+      }
 
       return { message: 'User has been added to the guild' };
     }
 
-    this.notificationService
-      .create({
-        userId: request.userId,
-        type: 'guild_join_rejected',
-        title: 'Заявка отклонена',
-        body: `Ваша заявка в гильдию "${request.guild.name}" отклонена`,
-        imageUrl: request.guild.logoFileName ?? null,
-        metadata: { guildId: request.guildId },
-      })
-      .catch(() => {});
+    const rejectedMuted = await this.isGuildNotificationMuted(
+      request.userId,
+      request.guildId,
+    );
+    if (!rejectedMuted) {
+      this.notificationService
+        .create({
+          userId: request.userId,
+          type: 'guild_join_rejected',
+          title: 'Заявка отклонена',
+          body: `Ваша заявка в гильдию "${request.guild.name}" отклонена`,
+          imageUrl: request.guild.logoFileName ?? null,
+          metadata: { guildId: request.guildId },
+        })
+        .catch(() => {});
+    }
 
     return { message: 'Join request has been rejected' };
+  }
+
+  async toggleGuildNotifications(
+    guildId: number,
+    userId: number,
+  ): Promise<{ muted: boolean }> {
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+    });
+    if (!guild) throw new NotFoundException('Guild not found');
+
+    const existing = await this.prisma.guildNotificationMute.findUnique({
+      where: { userId_guildId: { userId, guildId } },
+    });
+
+    if (existing) {
+      await this.prisma.guildNotificationMute.delete({
+        where: { userId_guildId: { userId, guildId } },
+      });
+      return { muted: false };
+    }
+
+    await this.prisma.guildNotificationMute.create({
+      data: { userId, guildId },
+    });
+    return { muted: true };
+  }
+
+  private async isGuildNotificationMuted(
+    userId: number,
+    guildId: number,
+  ): Promise<boolean> {
+    const mute = await this.prisma.guildNotificationMute.findUnique({
+      where: { userId_guildId: { userId, guildId } },
+    });
+    return !!mute;
   }
 
   private async assertGuildAdminOrOwner(guildId: number, userId: number) {

@@ -156,7 +156,7 @@ export class ActService {
     return act;
   }
 
-  async getActById(id: number) {
+  async getActById(id: number, currentUserId?: number) {
     const resultStream = await this.prisma.act.findUnique({
       where: { id },
       omit: {
@@ -208,6 +208,10 @@ export class ActService {
             order: 'asc',
           },
         },
+        ratings: currentUserId
+          ? { where: { userId: currentUserId }, select: { value: true } }
+          : false,
+        _count: { select: { ratings: true } },
       },
     });
 
@@ -215,8 +219,12 @@ export class ActService {
       throw new BadRequestException('Act with this id not found');
     }
 
+    const agg = await this.prisma.actRating.aggregate({
+      where: { actId: id },
+      _avg: { value: true },
+    });
+
     return {
-      // message: 'Stream launched successfully',
       ...resultStream,
       intro: resultStream.intro
         ? {
@@ -246,6 +254,43 @@ export class ActService {
       previewFileName: resultStream.previewFileName
         ? `${this.baseUrl}${resultStream.previewFileName}`
         : null,
+      rating:
+        agg._avg.value != null ? Math.round(agg._avg.value * 10) / 10 : null,
+      ratingsCount: resultStream._count.ratings,
+      myRating:
+        (resultStream.ratings as { value: number }[])?.[0]?.value ?? null,
+    };
+  }
+
+  async rateAct(
+    actId: number,
+    userId: number,
+    value: number,
+  ): Promise<{ rating: number; ratingsCount: number; myRating: number }> {
+    if (value < 0 || value > 10 || (value * 2) % 1 !== 0) {
+      throw new BadRequestException(
+        'Rating must be between 0 and 10 with step 0.5',
+      );
+    }
+    const act = await this.prisma.act.findUnique({ where: { id: actId } });
+    if (!act) throw new NotFoundException('Act not found');
+
+    await this.prisma.actRating.upsert({
+      where: { userId_actId: { userId, actId } },
+      create: { userId, actId, value },
+      update: { value },
+    });
+
+    const agg = await this.prisma.actRating.aggregate({
+      where: { actId },
+      _avg: { value: true },
+      _count: { value: true },
+    });
+
+    return {
+      rating: Math.round((agg._avg.value ?? 0) * 10) / 10,
+      ratingsCount: agg._count.value,
+      myRating: value,
     };
   }
 
@@ -268,6 +313,10 @@ export class ActService {
           where: { role: { in: ['hero', 'navigator'] } },
           include: { user: { select: { login: true, email: true } } },
         },
+        ratings: currentUserId
+          ? { where: { userId: currentUserId }, select: { value: true } }
+          : false,
+        _count: { select: { ratings: true } },
       },
     });
 
@@ -348,7 +397,23 @@ export class ActService {
         ),
         startDate: this.formatStartDate(stream.startedAt),
         liveIn: this.formatLiveIn(stream.startedAt),
+        rating: null as number | null, // filled below
+        ratingsCount: stream._count.ratings,
+        myRating: (stream.ratings as { value: number }[])?.[0]?.value ?? null,
       };
+    });
+
+    // Compute average ratings in one query
+    const actIds = result.map((s) => s.id);
+    const avgs = await this.prisma.actRating.groupBy({
+      by: ['actId'],
+      where: { actId: { in: actIds } },
+      _avg: { value: true },
+    });
+    const avgMap = new Map(avgs.map((a) => [a.actId, a._avg.value]));
+    result.forEach((s) => {
+      const avg = avgMap.get(s.id);
+      s.rating = avg != null ? Math.round(avg * 10) / 10 : null;
     });
 
     return result.sort((a, b) => (a.id > b.id ? 1 : -1));
