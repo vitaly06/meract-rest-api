@@ -501,6 +501,7 @@ model UserAchievement {
   achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
   achievementId Int
 
+  isBest    Boolean  @default(false)
   awardedAt DateTime @default(now())
 
   @@id([userId, achievementId])

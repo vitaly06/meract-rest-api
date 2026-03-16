@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Req,
@@ -111,6 +112,19 @@ export class AchievementController {
   @Get('user/:userId')
   async getUserAchievements(@Param('userId') userId: string) {
     return await this.achievementService.getUserAchievements(+userId);
+  }
+
+  @ApiOperation({ summary: 'Toggle isBest для достижения пользователя' })
+  @UseGuards(JwtAuthGuard)
+  @Patch('user/best/:achievementId')
+  async toggleBestAchievement(
+    @Param('achievementId') achievementId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.achievementService.toggleBestAchievement(
+      req.user.sub,
+      +achievementId,
+    );
   }
 
   @ApiOperation({

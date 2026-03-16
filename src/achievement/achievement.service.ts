@@ -202,10 +202,22 @@ export class AchievementService {
       include: {
         achievement: true,
       },
-      orderBy: {
-        awardedAt: 'desc',
-      },
+      orderBy: [{ isBest: 'desc' }, { awardedAt: 'desc' }],
     });
+  }
+
+  async toggleBestAchievement(userId: number, achievementId: number) {
+    const ua = await this.prisma.userAchievement.findUnique({
+      where: { userId_achievementId: { userId, achievementId } },
+    });
+    if (!ua) throw new NotFoundException('Achievement not found for this user');
+
+    const updated = await this.prisma.userAchievement.update({
+      where: { userId_achievementId: { userId, achievementId } },
+      data: { isBest: !ua.isBest },
+      include: { achievement: true },
+    });
+    return { isBest: updated.isBest };
   }
 
   // Отозвать достижение у пользователя
