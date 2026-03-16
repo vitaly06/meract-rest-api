@@ -149,9 +149,9 @@ export class ActService {
       [userId],
     );
 
-    this.startRecordingForAct(act.id, act.title, userId).catch((err) =>
-      console.error(`Не удалось запустить запись: ${err.message}`),
-    );
+    // this.startRecordingForAct(act.id, act.title, userId).catch((err) =>
+    //   console.error(`Не удалось запустить запись: ${err.message}`),
+    // );
 
     return act;
   }
