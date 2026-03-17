@@ -25,6 +25,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { CreateActRequest } from './dto/create-act.dto';
+import { UpdateActDto } from './dto/update-act.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { ApplySpotAgentDto } from './dto/apply-spot-agent.dto';
 import { VoteSpotAgentDto } from './dto/vote-spot-agent.dto';
@@ -96,6 +97,32 @@ export class ActController {
     @UploadedFile() photo?: Express.Multer.File,
   ) {
     return await this.actService.createAct(dto, req.user.sub, photo?.filename);
+  }
+
+  @ApiOperation({ summary: 'Редактировать акт' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', example: 'Новое название' },
+        description: { type: 'string' },
+        sequelId: { type: 'number' },
+        tags: { type: 'string', example: '["квест","улицы"]' },
+        photo: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('photo'))
+  async updateAct(
+    @Param('id') id: string,
+    @Body() dto: UpdateActDto,
+    @Req() req: RequestWithUser,
+    @UploadedFile() photo?: Express.Multer.File,
+  ) {
+    return await this.actService.updateAct(+id, req.user.sub, dto, photo);
   }
 
   @ApiOperation({

@@ -10,6 +10,7 @@ import moment from 'moment';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { RtcRole, RtcTokenBuilder } from 'agora-access-token';
 import { CreateActRequest } from './dto/create-act.dto';
+import { UpdateActDto } from './dto/update-act.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
 import { ConfigService } from '@nestjs/config';
 import { AgoraRecordingService } from 'src/agora-recording/agora-recording.service';
@@ -154,6 +155,55 @@ export class ActService {
     // );
 
     return act;
+  }
+
+  async updateAct(
+    id: number,
+    userId: number,
+    dto: UpdateActDto,
+    file?: Express.Multer.File,
+  ) {
+    const act = await this.prisma.act.findUnique({ where: { id } });
+    if (!act) throw new NotFoundException('Act not found');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+    const isAdmin = ['admin', 'main admin'].includes(user?.role?.name ?? '');
+    if (act.userId !== userId && !isAdmin) {
+      throw new ForbiddenException('You are not allowed to edit this act');
+    }
+
+    if (dto.sequelId) {
+      const sequel = await this.prisma.sequel.findUnique({
+        where: { id: dto.sequelId },
+      });
+      if (!sequel) throw new NotFoundException('Sequel not found');
+    }
+
+    const previewFileName = file ? `/uploads/acts/${file.filename}` : undefined;
+
+    return this.prisma.act.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.sequelId !== undefined && { sequelId: dto.sequelId }),
+        ...(dto.tags !== undefined && { tags: dto.tags }),
+        ...(previewFileName && { previewFileName }),
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        tags: true,
+        sequelId: true,
+        previewFileName: true,
+        status: true,
+        startedAt: true,
+      },
+    });
   }
 
   async getActById(id: number, currentUserId?: number) {
