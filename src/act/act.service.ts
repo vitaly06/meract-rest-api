@@ -265,6 +265,22 @@ export class ActService {
             order: 'asc',
           },
         },
+        teams: {
+          include: {
+            roleConfigs: {
+              include: {
+                candidates: {
+                  include: {
+                    user: {
+                      select: { id: true, login: true, avatarUrl: true },
+                    },
+                  },
+                },
+              },
+            },
+            tasks: { orderBy: { order: 'asc' } },
+          },
+        },
         ratings: currentUserId
           ? { where: { userId: currentUserId }, select: { value: true } }
           : false,
@@ -1685,25 +1701,49 @@ export class ActService {
   }
 
   async getCandidates(actId: number, roleType: 'hero' | 'navigator') {
-    // Р’РјРµСЃС‚Рѕ orderBy СЃ _count
-    const candidates = await this.prisma.roleCandidate.findMany({
-      where: { actId, roleType, method: SelectionMethods.VOTING },
+    const act = await this.prisma.act.findUnique({ where: { id: actId } });
+    if (!act) throw new NotFoundException('Act not found');
+
+    // Candidates from the team system (pre-assigned at act creation)
+    const teamCandidates = await this.prisma.actTeamCandidate.findMany({
+      where: {
+        config: {
+          role: roleType,
+          team: { actId },
+        },
+      },
       include: {
-        user: { select: { id: true, login: true, email: true } },
-        votes: true,
-        _count: { select: { votes: true } },
+        user: {
+          select: { id: true, login: true, email: true, avatarUrl: true },
+        },
+        config: {
+          select: {
+            role: true,
+            openVoting: true,
+            votingStartAt: true,
+            votingDurationHours: true,
+            team: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 
-    // РЎРѕСЂС‚РёСЂСѓРµРј РІСЂСѓС‡РЅСѓСЋ РїРѕ РєРѕР»РёС‡РµСЃС‚РІСѓ РіРѕР»РѕСЃРѕРІ
-    candidates.sort((a, b) => b._count.votes - a._count.votes);
+    // Candidates from the manual apply-for-role flow
+    const roleCandidates = await this.prisma.roleCandidate.findMany({
+      where: { actId, roleType },
+      include: {
+        user: {
+          select: { id: true, login: true, email: true, avatarUrl: true },
+        },
+        votes: true,
+        _count: { select: { votes: true } },
+      },
+      orderBy: { votes: { _count: 'desc' } },
+    });
 
-    if (candidates.length === 0 || candidates[0]._count.votes === 0) {
-      throw new BadRequestException('No candidates with votes for this role');
-    }
-
-    const topCandidate = candidates[0];
-
-    return candidates;
+    return {
+      teamCandidates,
+      roleCandidates,
+    };
   }
 }
