@@ -51,7 +51,8 @@ ALTER TYPE public."ActFormat" OWNER TO postgres;
 
 CREATE TYPE public."ActStatus" AS ENUM (
     'ONLINE',
-    'OFFLINE'
+    'OFFLINE',
+    'PLANNED'
 );
 
 
@@ -193,7 +194,9 @@ CREATE TABLE public."Act" (
     "spotAgentMethods" public."SelectionMethods" DEFAULT 'VOTING'::public."SelectionMethods" NOT NULL,
     "biddingTime" timestamp(3) without time zone,
     description text,
-    tags text[] DEFAULT ARRAY[]::text[]
+    tags text[] DEFAULT ARRAY[]::text[],
+    "chapterId" integer,
+    "scheduledAt" timestamp(3) without time zone
 );
 
 
@@ -641,6 +644,43 @@ ALTER SEQUENCE public."Category_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."Category_id_seq" OWNED BY public."Category".id;
+
+
+--
+-- Name: Chapter; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Chapter" (
+    id integer NOT NULL,
+    title text NOT NULL,
+    "order" integer DEFAULT 0 NOT NULL,
+    "sequelId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."Chapter" OWNER TO postgres;
+
+--
+-- Name: Chapter_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Chapter_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Chapter_id_seq" OWNER TO postgres;
+
+--
+-- Name: Chapter_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Chapter_id_seq" OWNED BY public."Chapter".id;
 
 
 --
@@ -1926,6 +1966,13 @@ ALTER TABLE ONLY public."Category" ALTER COLUMN id SET DEFAULT nextval('public."
 
 
 --
+-- Name: Chapter id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chapter" ALTER COLUMN id SET DEFAULT nextval('public."Chapter_id_seq"'::regclass);
+
+
+--
 -- Name: Chat id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2143,15 +2190,15 @@ COPY public."Achievement" (id, name, "createdAt", "imageUrl") FROM stdin;
 -- Data for Name: Act; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes, "effectId", "spotAgentCount", "spotAgentMethods", "biddingTime", description, tags) FROM stdin;
-24	апавпапав	/uploads/acts/1771704054788-50599762.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:00:54.897	2026-02-21 20:01:28.094	\N	1	hxihVkPdE2RrsklnoWVPfPNlV9R6gLAkNrFcodp0TGzl-B0jcgTv2gd1vJQ9TmzwxqyLt-8KAIX2CPciZwe2-7aOvxOlIhoS0rlni9rBgtZQauDfwa0x8RAthA7uRDLhpglest_BHW410ivTGc-an4MLfTSsQtSDR8ODYHGsS7q7c9mvPN5topY8G356mZWG	43f51ee73b4b8e3a5ab00bb5b66022b4	failed	\N	55.74914429386128	37.59964370714443	\N	\N	0	\N	1	VOTING	2026-02-21 20:05:54.693	\N	{}
-20	gfgdggfdgf	/uploads/acts/1771601735501-908500336.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:35:35.619	2026-02-20 15:36:19.183	\N	8	_BDv6sMSOoNBditCLXy8OMGp3iHo_26T4ymZvbVqkUL-CQ_XHsUtHxepUQp0VdFyrSBugDVceJ2khqAnw2i6TnyHWXflrVHNVYsLiY2NgJms5qLjligGKwjdAjKShRxTvH_qv4xdbuNxxPTF8EiDivjl03aFAKOqeOSgjhQiICKH6rZrQYn7venU9mUeo8U0	73b5645f54453275a44009917affcb4d	failed	\N	55.74131777590301	37.63689422594326	\N	\N	0	\N	1	VOTING	2026-02-20 15:40:35.419	\N	{}
-25	fgfgfd	/uploads/acts/1771704591660-890934921.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:09:51.711	2026-02-21 20:10:27.057	\N	1	roAtozmtBkVxSbALApH1q6jEj8MJamTnrF4qyTRuV5g2M5cQkJEeZ18dk87XKdWlahs_eh8Zmr-XKduVpRU0kI1m21tUIranerDX96o5m39xgw1RbwDdFF3CRCuvXKNLUxfd3d0TW8r4IaQTbG6LOazq3TZjuMqjOUHz88-IAscEejs3uHa6fAipLPVhIT_c	6ddb98ca3c47aab8c9b4dca6251a1ab7	failed	\N	55.74759843942743	37.60822677599209	\N	\N	0	\N	1	VOTING	2026-02-21 20:14:51.611	\N	{}
-21	gfgfgf	/uploads/acts/1771601895116-731875344.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:38:15.209	2026-02-20 15:38:47.131	\N	8	2NrOxwNZv1rKBV3784aUbVA2NO888e9B_EUiaMr7Fw9uC2kxjkRCPzACNTfuHnbYBmC4wHM_fq6qMt_9CocdwOYQC9y2EVGPOZALPCXmuPAhQObxxS_jGyuIhCcXgpaD6mtnFzEs58wGT9FoOzVw9kTpR7JTBUAsEk4NKfeY7YSM77vBUuUGhStCve6DLYBE	e4c0c792494b3254ebf7a6828e3666cb	failed	\N	55.75088330688495	37.61354827867763	\N	\N	0	\N	1	VOTING	2026-02-20 15:43:15.004	\N	{}
-26	title	/uploads/acts/1771919465806-474854330.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-02-24 07:51:05.833	\N	\N	1	46eyU5df1pp9Z5NVX3787EBAllRCTlaRSwyGV72MghPDPpvOX-Bn-lmDWzhskDW1-_IxgIX9xAHumBvl0sHUkDyCgu0jyXfkHbSBgw8lg3ZzTAUJexQiDMx83l-n2hdAkgE1vSUx54qo9PVNGfpNdX18rxVrB-gZoLryA1Fvj4dhsaLp2FrGwBLJaHW5td5W	35c6bf06a14c64925a311ab01d9b5eae	recording	\N	55.74721196624832	37.59998702989834	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:05.737	\N	{}
-22	tgfdgfgfd	/uploads/acts/1771616825855-662215036.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 19:47:05.872	2026-02-20 19:47:46.04	\N	1	Ljr56LzivhEPgJ-rJpDxcubDhOUx2DRmdIbFXrD_GFbN-cE2rAYR-dO1bleVsra2DGB3D2EjVYJCGliilr2VHXlAIzZPs0F5P2BaI07KnR2EOKGJ4zxTIW-dCNY0Usowg5LuYo1Qg-UCocbE5j9c58BiTSVcgKPM-OUslxpvFAJc0hNXNr3C-HR8TvewByuV	52ac907a0449887ac1491ab40861fffc	failed	\N	55.74102787471819	37.60239028917568	\N	\N	0	\N	1	VOTING	2026-02-20 19:52:05.809	\N	{}
-23	titllee	/uploads/acts/1771703743355-353591108.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 19:55:43.45	2026-02-21 19:56:13.62	\N	1	HrA20628gWxFgePtSvC7U6JC479bErXUwdU1ervkE_fa__5a8w88psqJEgz44RE_BPIceT1T_4nQcLlrMwnjlhIoPqrPQTAeTrhcRG3QxmRReHIzgz_3xkS8xd1Teq4RZnHCNkE4P1zL3jfZhyxK1bEFhtARFEbvwdgJiQZH9MLYNqI8S7woEaTJOsguwzK_	20f406f8da4080e49d38fa9c6a386357	failed	\N	55.75803176823725	37.62487792955654	\N	\N	0	\N	1	VOTING	2026-02-21 20:00:43.28	\N	{}
-27	title	/uploads/acts/1771919517267-320857045.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-24 07:51:57.281	2026-02-24 07:52:30.469	\N	1	wNTCdqyZpKLwysHmhSKDamICnXc6rEWkQPHx-m9nlxgDlFKu_DeoniblQu_Le9n3VSNHi-7dMajT40ZLNPb5TurDirt5rFU1hfj9gMDCTBTNbRWqMfK4uJg4GCJGxZERpNxIsMqrb2xh4rPgu5N-dSRRCKYW2Cgd5EvkcScpZduiWyInXewJAh8Z2YWU_iFn	5de551d80c4bb25c8413f886675211ec	recording	\N	\N	\N	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:57.242	\N	{}
+COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes, "effectId", "spotAgentCount", "spotAgentMethods", "biddingTime", description, tags, "chapterId", "scheduledAt") FROM stdin;
+24	апавпапав	/uploads/acts/1771704054788-50599762.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:00:54.897	2026-02-21 20:01:28.094	\N	1	hxihVkPdE2RrsklnoWVPfPNlV9R6gLAkNrFcodp0TGzl-B0jcgTv2gd1vJQ9TmzwxqyLt-8KAIX2CPciZwe2-7aOvxOlIhoS0rlni9rBgtZQauDfwa0x8RAthA7uRDLhpglest_BHW410ivTGc-an4MLfTSsQtSDR8ODYHGsS7q7c9mvPN5topY8G356mZWG	43f51ee73b4b8e3a5ab00bb5b66022b4	failed	\N	55.74914429386128	37.59964370714443	\N	\N	0	\N	1	VOTING	2026-02-21 20:05:54.693	\N	{}	\N	\N
+20	gfgdggfdgf	/uploads/acts/1771601735501-908500336.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:35:35.619	2026-02-20 15:36:19.183	\N	8	_BDv6sMSOoNBditCLXy8OMGp3iHo_26T4ymZvbVqkUL-CQ_XHsUtHxepUQp0VdFyrSBugDVceJ2khqAnw2i6TnyHWXflrVHNVYsLiY2NgJms5qLjligGKwjdAjKShRxTvH_qv4xdbuNxxPTF8EiDivjl03aFAKOqeOSgjhQiICKH6rZrQYn7venU9mUeo8U0	73b5645f54453275a44009917affcb4d	failed	\N	55.74131777590301	37.63689422594326	\N	\N	0	\N	1	VOTING	2026-02-20 15:40:35.419	\N	{}	\N	\N
+25	fgfgfd	/uploads/acts/1771704591660-890934921.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:09:51.711	2026-02-21 20:10:27.057	\N	1	roAtozmtBkVxSbALApH1q6jEj8MJamTnrF4qyTRuV5g2M5cQkJEeZ18dk87XKdWlahs_eh8Zmr-XKduVpRU0kI1m21tUIranerDX96o5m39xgw1RbwDdFF3CRCuvXKNLUxfd3d0TW8r4IaQTbG6LOazq3TZjuMqjOUHz88-IAscEejs3uHa6fAipLPVhIT_c	6ddb98ca3c47aab8c9b4dca6251a1ab7	failed	\N	55.74759843942743	37.60822677599209	\N	\N	0	\N	1	VOTING	2026-02-21 20:14:51.611	\N	{}	\N	\N
+21	gfgfgf	/uploads/acts/1771601895116-731875344.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:38:15.209	2026-02-20 15:38:47.131	\N	8	2NrOxwNZv1rKBV3784aUbVA2NO888e9B_EUiaMr7Fw9uC2kxjkRCPzACNTfuHnbYBmC4wHM_fq6qMt_9CocdwOYQC9y2EVGPOZALPCXmuPAhQObxxS_jGyuIhCcXgpaD6mtnFzEs58wGT9FoOzVw9kTpR7JTBUAsEk4NKfeY7YSM77vBUuUGhStCve6DLYBE	e4c0c792494b3254ebf7a6828e3666cb	failed	\N	55.75088330688495	37.61354827867763	\N	\N	0	\N	1	VOTING	2026-02-20 15:43:15.004	\N	{}	\N	\N
+26	title	/uploads/acts/1771919465806-474854330.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-02-24 07:51:05.833	\N	\N	1	46eyU5df1pp9Z5NVX3787EBAllRCTlaRSwyGV72MghPDPpvOX-Bn-lmDWzhskDW1-_IxgIX9xAHumBvl0sHUkDyCgu0jyXfkHbSBgw8lg3ZzTAUJexQiDMx83l-n2hdAkgE1vSUx54qo9PVNGfpNdX18rxVrB-gZoLryA1Fvj4dhsaLp2FrGwBLJaHW5td5W	35c6bf06a14c64925a311ab01d9b5eae	recording	\N	55.74721196624832	37.59998702989834	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:05.737	\N	{}	\N	\N
+22	tgfdgfgfd	/uploads/acts/1771616825855-662215036.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 19:47:05.872	2026-02-20 19:47:46.04	\N	1	Ljr56LzivhEPgJ-rJpDxcubDhOUx2DRmdIbFXrD_GFbN-cE2rAYR-dO1bleVsra2DGB3D2EjVYJCGliilr2VHXlAIzZPs0F5P2BaI07KnR2EOKGJ4zxTIW-dCNY0Usowg5LuYo1Qg-UCocbE5j9c58BiTSVcgKPM-OUslxpvFAJc0hNXNr3C-HR8TvewByuV	52ac907a0449887ac1491ab40861fffc	failed	\N	55.74102787471819	37.60239028917568	\N	\N	0	\N	1	VOTING	2026-02-20 19:52:05.809	\N	{}	\N	\N
+23	titllee	/uploads/acts/1771703743355-353591108.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 19:55:43.45	2026-02-21 19:56:13.62	\N	1	HrA20628gWxFgePtSvC7U6JC479bErXUwdU1ervkE_fa__5a8w88psqJEgz44RE_BPIceT1T_4nQcLlrMwnjlhIoPqrPQTAeTrhcRG3QxmRReHIzgz_3xkS8xd1Teq4RZnHCNkE4P1zL3jfZhyxK1bEFhtARFEbvwdgJiQZH9MLYNqI8S7woEaTJOsguwzK_	20f406f8da4080e49d38fa9c6a386357	failed	\N	55.75803176823725	37.62487792955654	\N	\N	0	\N	1	VOTING	2026-02-21 20:00:43.28	\N	{}	\N	\N
+27	title	/uploads/acts/1771919517267-320857045.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-24 07:51:57.281	2026-02-24 07:52:30.469	\N	1	wNTCdqyZpKLwysHmhSKDamICnXc6rEWkQPHx-m9nlxgDlFKu_DeoniblQu_Le9n3VSNHi-7dMajT40ZLNPb5TurDirt5rFU1hfj9gMDCTBTNbRWqMfK4uJg4GCJGxZERpNxIsMqrb2xh4rPgu5N-dSRRCKYW2Cgd5EvkcScpZduiWyInXewJAh8Z2YWU_iFn	5de551d80c4bb25c8413f886675211ec	recording	\N	\N	\N	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:57.242	\N	{}	\N	\N
 \.
 
 
@@ -2264,6 +2311,14 @@ COPY public."ActTeamTask" (id, "teamId", "imageUrl", description, address, "orde
 --
 
 COPY public."Category" (id, name) FROM stdin;
+\.
+
+
+--
+-- Data for Name: Chapter; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Chapter" (id, title, "order", "sequelId", "createdAt") FROM stdin;
 \.
 
 
@@ -2719,6 +2774,13 @@ SELECT pg_catalog.setval('public."Category_id_seq"', 1, false);
 
 
 --
+-- Name: Chapter_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Chapter_id_seq"', 1, false);
+
+
+--
 -- Name: ChatMember_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -3031,6 +3093,14 @@ ALTER TABLE ONLY public."Act"
 
 ALTER TABLE ONLY public."Category"
     ADD CONSTRAINT "Category_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Chapter Chapter_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chapter"
+    ADD CONSTRAINT "Chapter_pkey" PRIMARY KEY (id);
 
 
 --
@@ -3453,6 +3523,13 @@ CREATE UNIQUE INDEX "Category_name_key" ON public."Category" USING btree (name);
 
 
 --
+-- Name: Chapter_sequelId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Chapter_sequelId_idx" ON public."Chapter" USING btree ("sequelId");
+
+
+--
 -- Name: ChatMember_chatId_userId_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -3850,6 +3927,14 @@ ALTER TABLE ONLY public."Act"
 
 
 --
+-- Name: Act Act_chapterId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Act"
+    ADD CONSTRAINT "Act_chapterId_fkey" FOREIGN KEY ("chapterId") REFERENCES public."Chapter"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
 -- Name: Act Act_effectId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3887,6 +3972,14 @@ ALTER TABLE ONLY public."Act"
 
 ALTER TABLE ONLY public."Act"
     ADD CONSTRAINT "Act_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Chapter Chapter_sequelId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Chapter"
+    ADD CONSTRAINT "Chapter_sequelId_fkey" FOREIGN KEY ("sequelId") REFERENCES public."Sequel"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

@@ -190,7 +190,12 @@ export class ActService {
         ...(dto.title !== undefined && { title: dto.title }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.sequelId !== undefined && { sequelId: dto.sequelId }),
+        ...(dto.chapterId !== undefined && { chapterId: dto.chapterId }),
         ...(dto.tags !== undefined && { tags: dto.tags }),
+        ...(dto.scheduledAt !== undefined && {
+          scheduledAt: new Date(dto.scheduledAt),
+          status: 'PLANNED',
+        }),
         ...(previewFileName && { previewFileName }),
       },
       select: {
@@ -199,6 +204,8 @@ export class ActService {
         description: true,
         tags: true,
         sequelId: true,
+        chapterId: true,
+        scheduledAt: true,
         previewFileName: true,
         status: true,
         startedAt: true,

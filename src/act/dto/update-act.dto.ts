@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsDateString,
   IsInt,
   IsOptional,
   IsPositive,
@@ -28,6 +29,26 @@ export class UpdateActDto {
   @IsInt()
   @IsPositive()
   sequelId?: number;
+
+  @ApiProperty({
+    example: 2,
+    required: false,
+    description: 'ID главы (Chapter)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  chapterId?: number;
+
+  @ApiProperty({
+    example: '2026-05-05T15:00:00Z',
+    required: false,
+    description: 'Запланированная дата акта. Переводит статус в PLANNED.',
+  })
+  @IsOptional()
+  @IsDateString()
+  scheduledAt?: string;
 
   @ApiProperty({
     example: ['приключение', 'квест'],

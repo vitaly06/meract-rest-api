@@ -16,6 +16,7 @@ enum UserStatus {
 enum ActStatus {
   ONLINE
   OFFLINE
+  PLANNED
 }
 
 enum ActType {
@@ -239,7 +240,12 @@ model Act {
   description     String?
   previewFileName String?
   sequelId        Int?
-  sequel          Sequel? @relation(fields: [sequelId], references: [id], onDelete: Cascade)
+  sequel          Sequel?  @relation(fields: [sequelId], references: [id], onDelete: Cascade)
+
+  chapterId       Int?
+  chapter         Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  scheduledAt     DateTime?  // planned date for PLANNED acts
 
   type             ActType          @default(SINGLE)
   format           ActFormat        @default(SINGLE)
@@ -380,13 +386,29 @@ model Category {
 }
 
 model Sequel {
-  id            Int     @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   title         String
   episodes      Int
   coverFileName String?
   userId        Int
   acts          Act[]
-  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapters      Chapter[]
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Chapter {
+  id       Int    @id @default(autoincrement())
+  title    String
+  order    Int    @default(0)
+
+  sequelId Int
+  sequel   Sequel @relation(fields: [sequelId], references: [id], onDelete: Cascade)
+
+  acts Act[]
+
+  createdAt DateTime @default(now())
+
+  @@index([sequelId])
 }
 
 model Intro {
