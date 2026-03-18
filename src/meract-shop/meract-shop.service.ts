@@ -139,6 +139,7 @@ export class MeractShopService {
     const paymentIntent = await this.stripe.paymentIntents.create({
       amount: amountCents,
       currency: 'usd',
+      payment_method_types: ['card'],
       metadata: {
         userId: String(userId),
         productId: String(productId),
