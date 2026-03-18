@@ -1,5 +1,5 @@
 ﻿import { ApiProperty } from '@nestjs/swagger';
-import { Type, Transform } from 'class-transformer';
+import { plainToInstance, Type, Transform } from 'class-transformer';
 import {
   IsString,
   IsNotEmpty,
@@ -160,14 +160,18 @@ export class CreateActRequest {
       '[{"name":"Команда 1","roles":[{"role":"hero","openVoting":false,"candidateUserIds":[1,2]},{"role":"navigator","openVoting":true,"votingStartAt":"2026-03-01T10:00:00Z","votingDurationHours":24},{"role":"spot_agent","openVoting":false,"candidateUserIds":[3]}],"tasks":[{"description":"Задание 1","address":"ул. Ленина, 1"}]}]',
   })
   @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      try {
-        return JSON.parse(value);
-      } catch {
-        return value;
-      }
-    }
-    return value;
+    const raw =
+      typeof value === 'string'
+        ? (() => {
+            try {
+              return JSON.parse(value);
+            } catch {
+              return value;
+            }
+          })()
+        : value;
+    if (Array.isArray(raw)) return plainToInstance(ActTeamDto, raw);
+    return raw;
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -184,4 +188,9 @@ export class CreateActRequest {
   @IsString({ each: true })
   @MaxLength(50, { each: true })
   tags?: string[];
+
+  // multer убирает файл до валидации, но некоторые клиенты могут прислать photo как text-поле
+  @IsOptional()
+  @Transform(() => undefined)
+  photo?: any;
 }
