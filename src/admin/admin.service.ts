@@ -1,10 +1,14 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
+import * as fs from 'fs';
+import * as path from 'path';
 import { CreateAdminRequest } from './dto/create-admin.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateAdminRequest } from './dto/update-admin.dto';
@@ -20,6 +24,7 @@ export class AdminService {
     private readonly utilsService: UtilsService,
     private readonly mainGateway: MainGateway,
     private readonly chatService: ChatService,
+    private readonly configService: ConfigService,
   ) {}
 
   async findAll() {
@@ -289,6 +294,262 @@ export class AdminService {
   }
 
   /**
+   * Список админов для связи (main admin видит всех admin, admin видит main admin)
+   */
+  async getAdminContacts(requesterId: number) {
+    const requester = await this.prisma.user.findUnique({
+      where: { id: requesterId },
+      include: { role: true },
+    });
+    if (!requester) throw new NotFoundException('Пользователь не найден');
+
+    const isMainAdmin = requester.role.name === 'main admin';
+    const isAdmin = requester.role.name === 'admin';
+
+    if (!isMainAdmin && !isAdmin) {
+      throw new BadRequestException('Доступно только администраторам');
+    }
+
+    const targetRoleName = isMainAdmin ? 'admin' : 'main admin';
+
+    return this.prisma.user.findMany({
+      where: {
+        id: { not: requesterId },
+        role: { name: targetRoleName },
+      },
+      select: { id: true, login: true, email: true, avatarUrl: true },
+    });
+  }
+
+  /**
+   * Открыть/создать личный чат между admin и main admin
+   */
+  async openChatWithAdmin(requesterId: number, targetAdminId: number) {
+    const [requester, target] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: requesterId },
+        include: { role: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: targetAdminId },
+        include: { role: true },
+      }),
+    ]);
+
+    if (!requester) throw new NotFoundException('Пользователь не найден');
+    if (!target) throw new NotFoundException('Администратор не найден');
+
+    const allowedRoles = ['admin', 'main admin'];
+    if (!allowedRoles.includes(requester.role.name)) {
+      throw new BadRequestException('Доступно только администраторам');
+    }
+    if (!allowedRoles.includes(target.role.name)) {
+      throw new BadRequestException(
+        'Целевой пользователь не является администратором',
+      );
+    }
+
+    return this.chatService.getOrCreateDirectChat(requesterId, targetAdminId);
+  }
+
+  // ============================================
+  // ЗАДАЧИ (ADMIN TASKS)
+  // ============================================
+
+  private readonly taskInclude = {
+    creator: {
+      select: { id: true, login: true, email: true, avatarUrl: true },
+    },
+    assignee: {
+      select: { id: true, login: true, email: true, avatarUrl: true },
+    },
+  } as const;
+
+  private async checkMainAdmin(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+    if (!user || user.role.name !== 'main admin') {
+      throw new ForbiddenException(
+        'Только главный администратор может управлять задачами',
+      );
+    }
+    return user;
+  }
+
+  /** Создать задачу и назначить admin */
+  async createAdminTask(
+    creatorId: number,
+    dto: {
+      title: string;
+      description?: string;
+      deadline?: string;
+      assigneeId: number;
+    },
+  ) {
+    await this.checkMainAdmin(creatorId);
+
+    const assignee = await this.prisma.user.findUnique({
+      where: { id: dto.assigneeId },
+      include: { role: true },
+    });
+    if (!assignee) throw new NotFoundException('Администратор не найден');
+    if (!['admin', 'main admin'].includes(assignee.role.name)) {
+      throw new BadRequestException(
+        'Задачу можно назначить только администратору',
+      );
+    }
+
+    return this.prisma.adminTask.create({
+      data: {
+        title: dto.title,
+        description: dto.description ?? null,
+        deadline: dto.deadline ? new Date(dto.deadline) : null,
+        creatorId,
+        assigneeId: dto.assigneeId,
+      },
+      include: this.taskInclude,
+    });
+  }
+
+  /** Получить все задачи (только main admin) */
+  async getAllAdminTasks(requesterId: number) {
+    await this.checkMainAdmin(requesterId);
+    return this.prisma.adminTask.findMany({
+      include: this.taskInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** Получить задачи, назначенные конкретному admin */
+  async getMyAdminTasks(assigneeId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: assigneeId },
+      include: { role: true },
+    });
+    if (!user || !['admin', 'main admin'].includes(user.role.name)) {
+      throw new ForbiddenException('Доступно только администраторам');
+    }
+    return this.prisma.adminTask.findMany({
+      where: { assigneeId },
+      include: this.taskInclude,
+      orderBy: [{ isDone: 'asc' }, { deadline: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  /** Отметить задачу выполненной / снять отметку (assignee или main admin) */
+  async toggleAdminTask(taskId: number, userId: number) {
+    const task = await this.prisma.adminTask.findUnique({
+      where: { id: taskId },
+    });
+    if (!task) throw new NotFoundException('Задача не найдена');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+    if (!user) throw new NotFoundException('Пользователь не найден');
+
+    const isMainAdmin = user.role.name === 'main admin';
+    const isAssignee = task.assigneeId === userId;
+    if (!isMainAdmin && !isAssignee) {
+      throw new ForbiddenException('Нет прав на изменение этой задачи');
+    }
+
+    const newDone = !task.isDone;
+    return this.prisma.adminTask.update({
+      where: { id: taskId },
+      data: { isDone: newDone, doneAt: newDone ? new Date() : null },
+      include: this.taskInclude,
+    });
+  }
+
+  /** Удалить задачу (только main admin) */
+  async deleteAdminTask(taskId: number, requesterId: number) {
+    await this.checkMainAdmin(requesterId);
+    const task = await this.prisma.adminTask.findUnique({
+      where: { id: taskId },
+    });
+    if (!task) throw new NotFoundException('Задача не найдена');
+    await this.prisma.adminTask.delete({ where: { id: taskId } });
+    return { message: 'Задача удалена' };
+  }
+
+  /**
+   * Изменить импульсы (points) пользователя
+   */
+  async adjustPoints(userId: number, amount: number, adminId: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Пользователь не найден');
+
+    const newPoints = user.points + amount;
+    if (newPoints < 0)
+      throw new BadRequestException('Импульсы не могут быть отрицательными');
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { points: newPoints },
+      select: { id: true, login: true, email: true, points: true },
+    });
+
+    const admin = await this.findById(adminId);
+    await this.utilsService.addRecordToActivityJournal(
+      `Администратор ${admin.login || admin.email} изменил импульсы пользователя ${user.login || user.email}: ${amount > 0 ? '+' : ''}${amount} (было: ${user.points}, стало: ${newPoints})`,
+      [admin.id, userId],
+    );
+
+    return {
+      userId,
+      previousPoints: user.points,
+      newPoints,
+      delta: amount,
+      user: updated,
+    };
+  }
+
+  /**
+   * Изменить баланс (echo) пользователя
+   */
+  async adjustBalance(userId: number, amount: number, adminId: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Пользователь не найден');
+
+    const newBalance = user.balance + amount;
+    if (newBalance < 0)
+      throw new BadRequestException('Баланс не может быть отрицательным');
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { balance: newBalance },
+      select: { id: true, login: true, email: true, balance: true },
+    });
+
+    await this.prisma.transaction.create({
+      data: {
+        type: 'PURCHASE',
+        amount,
+        userId,
+        status: 'COMPLETED',
+      },
+    });
+
+    const admin = await this.findById(adminId);
+    await this.utilsService.addRecordToActivityJournal(
+      `Администратор ${admin.login || admin.email} изменил баланс пользователя ${user.login || user.email}: ${amount > 0 ? '+' : ''}${amount} echo (было: ${user.balance}, стало: ${newBalance})`,
+      [admin.id, userId],
+    );
+
+    return {
+      userId,
+      previousBalance: user.balance,
+      newBalance,
+      delta: amount,
+      user: updated,
+    };
+  }
+
+  /**
    * Добавить лайки стриму (накрутка)
    */
   async addLikesToStream(actId: number, count: number, adminId: number) {
@@ -335,5 +596,219 @@ export class AdminService {
       previousLikes: currentLikes,
       currentLikes: newLikes,
     };
+  }
+
+  // ============================================
+  // УПРАВЛЕНИЕ ИНТРО
+  // ============================================
+
+  /** Получить все интро */
+  async getAdminIntros() {
+    const baseUrl = this.configService.get<string>(
+      'BASE_URL',
+      'http://localhost:3000',
+    );
+    const intros = await this.prisma.intro.findMany({
+      include: {
+        user: { select: { id: true, login: true, email: true } },
+      },
+      orderBy: { id: 'desc' },
+    });
+    return intros.map((intro) => ({
+      ...intro,
+      fileName: `${baseUrl}/${intro.fileName}`,
+    }));
+  }
+
+  /** Загрузить интро (userId = null → глобальное, доступное всем) */
+  async uploadAdminIntro(filename: string, targetUserId?: number) {
+    const intro = await this.prisma.intro.create({
+      data: {
+        fileName: `uploads/intros/${filename}`,
+        userId: targetUserId ?? null,
+      },
+      include: {
+        user: { select: { id: true, login: true, email: true } },
+      },
+    });
+    const baseUrl = this.configService.get<string>(
+      'BASE_URL',
+      'http://localhost:3000',
+    );
+    return { ...intro, fileName: `${baseUrl}/${intro.fileName}` };
+  }
+
+  /** Удалить интро по id */
+  async deleteAdminIntro(introId: number) {
+    const intro = await this.prisma.intro.findUnique({
+      where: { id: introId },
+    });
+    if (!intro) throw new NotFoundException('Интро не найдено');
+
+    const filePath = path.join(process.cwd(), intro.fileName);
+    try {
+      await fs.promises.unlink(filePath);
+    } catch {
+      // файл мог быть уже удалён
+    }
+
+    await this.prisma.intro.delete({ where: { id: introId } });
+    return { message: 'Интро удалено' };
+  }
+
+  // ============================================
+  // ПОЛИТИКИ
+  // ============================================
+
+  async getPolicies() {
+    return this.prisma.policy.findMany({
+      include: {
+        updatedBy: { select: { id: true, login: true, email: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  async createPolicy(
+    adminId: number,
+    dto: {
+      slug: string;
+      title: string;
+      content: string;
+      isPublished?: boolean;
+    },
+  ) {
+    await this.checkMainAdmin(adminId);
+    const exists = await this.prisma.policy.findUnique({
+      where: { slug: dto.slug },
+    });
+    if (exists)
+      throw new BadRequestException('Политика с таким slug уже существует');
+
+    return this.prisma.policy.create({
+      data: {
+        slug: dto.slug,
+        title: dto.title,
+        content: dto.content,
+        isPublished: dto.isPublished ?? true,
+        updatedById: adminId,
+      },
+      include: {
+        updatedBy: { select: { id: true, login: true, email: true } },
+      },
+    });
+  }
+
+  async updatePolicy(
+    adminId: number,
+    policyId: number,
+    dto: { title?: string; content?: string; isPublished?: boolean },
+  ) {
+    await this.checkMainAdmin(adminId);
+    const policy = await this.prisma.policy.findUnique({
+      where: { id: policyId },
+    });
+    if (!policy) throw new NotFoundException('Политика не найдена');
+
+    return this.prisma.policy.update({
+      where: { id: policyId },
+      data: { ...dto, updatedById: adminId },
+      include: {
+        updatedBy: { select: { id: true, login: true, email: true } },
+      },
+    });
+  }
+
+  async deletePolicy(adminId: number, policyId: number) {
+    await this.checkMainAdmin(adminId);
+    const policy = await this.prisma.policy.findUnique({
+      where: { id: policyId },
+    });
+    if (!policy) throw new NotFoundException('Политика не найдена');
+    await this.prisma.policy.delete({ where: { id: policyId } });
+    return { message: 'Политика удалена' };
+  }
+
+  // ============================================
+  // СОГЛАСИЯ
+  // ============================================
+
+  async getConsents() {
+    return this.prisma.consent.findMany({
+      include: {
+        updatedBy: { select: { id: true, login: true, email: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  async createConsent(
+    adminId: number,
+    dto: {
+      slug: string;
+      title: string;
+      description?: string;
+      isRequired?: boolean;
+      version?: string;
+      isActive?: boolean;
+    },
+  ) {
+    await this.checkMainAdmin(adminId);
+    const exists = await this.prisma.consent.findUnique({
+      where: { slug: dto.slug },
+    });
+    if (exists)
+      throw new BadRequestException('Согласие с таким slug уже существует');
+
+    return this.prisma.consent.create({
+      data: {
+        slug: dto.slug,
+        title: dto.title,
+        description: dto.description ?? null,
+        isRequired: dto.isRequired ?? false,
+        version: dto.version ?? '1.0',
+        isActive: dto.isActive ?? true,
+        updatedById: adminId,
+      },
+      include: {
+        updatedBy: { select: { id: true, login: true, email: true } },
+      },
+    });
+  }
+
+  async updateConsent(
+    adminId: number,
+    consentId: number,
+    dto: {
+      title?: string;
+      description?: string;
+      isRequired?: boolean;
+      version?: string;
+      isActive?: boolean;
+    },
+  ) {
+    await this.checkMainAdmin(adminId);
+    const consent = await this.prisma.consent.findUnique({
+      where: { id: consentId },
+    });
+    if (!consent) throw new NotFoundException('Согласие не найдено');
+
+    return this.prisma.consent.update({
+      where: { id: consentId },
+      data: { ...dto, updatedById: adminId },
+      include: {
+        updatedBy: { select: { id: true, login: true, email: true } },
+      },
+    });
+  }
+
+  async deleteConsent(adminId: number, consentId: number) {
+    await this.checkMainAdmin(adminId);
+    const consent = await this.prisma.consent.findUnique({
+      where: { id: consentId },
+    });
+    if (!consent) throw new NotFoundException('Согласие не найдено');
+    await this.prisma.consent.delete({ where: { id: consentId } });
+    return { message: 'Согласие удалено' };
   }
 }

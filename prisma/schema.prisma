@@ -178,6 +178,10 @@ model User {
   stripePayments            StripePayment[]
   actRatings                ActRating[]
   guildNotificationMutes    GuildNotificationMute[]
+  adminTasksCreated         AdminTask[]   @relation("AdminTaskCreator")
+  adminTasksAssigned        AdminTask[]   @relation("AdminTaskAssignee")
+  policiesUpdated           Policy[]      @relation("PolicyUpdatedBy")
+  consentsUpdated           Consent[]     @relation("ConsentUpdatedBy")
 }
 
 model Role {
@@ -883,4 +887,70 @@ model StripePayment {
 
   @@index([userId])
   @@index([paymentIntentId])
+}
+
+// Singleton: главное видео на главной странице (только одна запись)
+model HeroVideo {
+  id        Int      @id @default(autoincrement())
+  url       String   // S3 URL
+  s3Key     String   // ключ файла в S3 для удаления
+  mimeType  String   @default("video/mp4")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Задачи от главного админа — назначаются конкретному admin
+model AdminTask {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?   @db.Text
+  deadline    DateTime?
+  isDone      Boolean   @default(false)
+  doneAt      DateTime?
+
+  // Кто создал (main admin)
+  creatorId Int
+  creator   User @relation("AdminTaskCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Кому назначена задача (admin)
+  assigneeId Int
+  assignee   User @relation("AdminTaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assigneeId])
+  @@index([creatorId])
+}
+
+// Политики (privacy policy, terms of service и др.)
+model Policy {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique // e.g. "privacy-policy", "terms-of-service"
+  title       String
+  content     String   @db.Text
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedById Int?
+  updatedBy   User?    @relation("PolicyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([slug])
+}
+
+// Согласия пользователей (cookies, маркетинг и др.)
+model Consent {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique // e.g. "cookies", "marketing-emails"
+  title       String
+  description String?  @db.Text
+  isRequired  Boolean  @default(false)
+  version     String   @default("1.0")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedById Int?
+  updatedBy   User?    @relation("ConsentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([slug])
 }

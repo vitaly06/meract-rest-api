@@ -613,6 +613,48 @@ ALTER SEQUENCE public."Act_id_seq" OWNED BY public."Act".id;
 
 
 --
+-- Name: AdminTask; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."AdminTask" (
+    id integer NOT NULL,
+    title text NOT NULL,
+    description text,
+    deadline timestamp(3) without time zone,
+    "isDone" boolean DEFAULT false NOT NULL,
+    "doneAt" timestamp(3) without time zone,
+    "creatorId" integer NOT NULL,
+    "assigneeId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."AdminTask" OWNER TO postgres;
+
+--
+-- Name: AdminTask_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."AdminTask_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."AdminTask_id_seq" OWNER TO postgres;
+
+--
+-- Name: AdminTask_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."AdminTask_id_seq" OWNED BY public."AdminTask".id;
+
+
+--
 -- Name: Category; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -798,6 +840,48 @@ ALTER SEQUENCE public."Chat_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."Chat_id_seq" OWNED BY public."Chat".id;
+
+
+--
+-- Name: Consent; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Consent" (
+    id integer NOT NULL,
+    slug text NOT NULL,
+    title text NOT NULL,
+    description text,
+    "isRequired" boolean DEFAULT false NOT NULL,
+    version text DEFAULT '1.0'::text NOT NULL,
+    "isActive" boolean DEFAULT true NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "updatedById" integer
+);
+
+
+ALTER TABLE public."Consent" OWNER TO postgres;
+
+--
+-- Name: Consent_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Consent_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Consent_id_seq" OWNER TO postgres;
+
+--
+-- Name: Consent_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Consent_id_seq" OWNED BY public."Consent".id;
 
 
 --
@@ -1004,6 +1088,44 @@ ALTER SEQUENCE public."Guild_id_seq" OWNED BY public."Guild".id;
 
 
 --
+-- Name: HeroVideo; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."HeroVideo" (
+    id integer NOT NULL,
+    url text NOT NULL,
+    "s3Key" text NOT NULL,
+    "mimeType" text DEFAULT 'video/mp4'::text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."HeroVideo" OWNER TO postgres;
+
+--
+-- Name: HeroVideo_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."HeroVideo_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."HeroVideo_id_seq" OWNER TO postgres;
+
+--
+-- Name: HeroVideo_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."HeroVideo_id_seq" OWNED BY public."HeroVideo".id;
+
+
+--
 -- Name: Intro; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1190,6 +1312,46 @@ ALTER SEQUENCE public."Outro_id_seq" OWNER TO postgres;
 --
 
 ALTER SEQUENCE public."Outro_id_seq" OWNED BY public."Outro".id;
+
+
+--
+-- Name: Policy; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Policy" (
+    id integer NOT NULL,
+    slug text NOT NULL,
+    title text NOT NULL,
+    content text NOT NULL,
+    "isPublished" boolean DEFAULT true NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "updatedById" integer
+);
+
+
+ALTER TABLE public."Policy" OWNER TO postgres;
+
+--
+-- Name: Policy_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."Policy_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."Policy_id_seq" OWNER TO postgres;
+
+--
+-- Name: Policy_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."Policy_id_seq" OWNED BY public."Policy".id;
 
 
 --
@@ -1959,6 +2121,13 @@ ALTER TABLE ONLY public."ActTeamTask" ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
+-- Name: AdminTask id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."AdminTask" ALTER COLUMN id SET DEFAULT nextval('public."AdminTask_id_seq"'::regclass);
+
+
+--
 -- Name: Category id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1991,6 +2160,13 @@ ALTER TABLE ONLY public."ChatMember" ALTER COLUMN id SET DEFAULT nextval('public
 --
 
 ALTER TABLE ONLY public."ChatMessage" ALTER COLUMN id SET DEFAULT nextval('public."ChatMessage_id_seq"'::regclass);
+
+
+--
+-- Name: Consent id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Consent" ALTER COLUMN id SET DEFAULT nextval('public."Consent_id_seq"'::regclass);
 
 
 --
@@ -2029,6 +2205,13 @@ ALTER TABLE ONLY public."GuildNotificationMute" ALTER COLUMN id SET DEFAULT next
 
 
 --
+-- Name: HeroVideo id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."HeroVideo" ALTER COLUMN id SET DEFAULT nextval('public."HeroVideo_id_seq"'::regclass);
+
+
+--
 -- Name: Intro id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2061,6 +2244,13 @@ ALTER TABLE ONLY public."Notification" ALTER COLUMN id SET DEFAULT nextval('publ
 --
 
 ALTER TABLE ONLY public."Outro" ALTER COLUMN id SET DEFAULT nextval('public."Outro_id_seq"'::regclass);
+
+
+--
+-- Name: Policy id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Policy" ALTER COLUMN id SET DEFAULT nextval('public."Policy_id_seq"'::regclass);
 
 
 --
@@ -2307,6 +2497,15 @@ COPY public."ActTeamTask" (id, "teamId", "imageUrl", description, address, "orde
 
 
 --
+-- Data for Name: AdminTask; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."AdminTask" (id, title, description, deadline, "isDone", "doneAt", "creatorId", "assigneeId", "createdAt", "updatedAt") FROM stdin;
+1	check 5 acts	исправь, задачи можно на	2026-03-27 02:18:00	f	\N	1	2	2026-03-20 22:15:47.484	2026-03-20 22:15:49.652
+\.
+
+
+--
 -- Data for Name: Category; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -2327,6 +2526,7 @@ COPY public."Chapter" (id, title, "order", "sequelId", "createdAt") FROM stdin;
 --
 
 COPY public."Chat" (id, type, name, "imageUrl", "guildId", "createdAt", "updatedAt", "inviteCode", "actId", "creatorId") FROM stdin;
+1	direct	\N	\N	\N	2026-03-20 21:13:00.357	2026-03-20 21:15:48.267	\N	\N	\N
 \.
 
 
@@ -2335,6 +2535,8 @@ COPY public."Chat" (id, type, name, "imageUrl", "guildId", "createdAt", "updated
 --
 
 COPY public."ChatMember" (id, "chatId", "userId", "lastReadAt", "joinedAt", "isMuted") FROM stdin;
+2	1	2	\N	2026-03-20 21:13:00.357	f
+1	1	1	2026-03-20 21:17:26.051	2026-03-20 21:13:00.357	f
 \.
 
 
@@ -2343,6 +2545,14 @@ COPY public."ChatMember" (id, "chatId", "userId", "lastReadAt", "joinedAt", "isM
 --
 
 COPY public."ChatMessage" (id, message, "createdAt", "userId", "actId") FROM stdin;
+\.
+
+
+--
+-- Data for Name: Consent; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Consent" (id, slug, title, description, "isRequired", version, "isActive", "createdAt", "updatedAt", "updatedById") FROM stdin;
 \.
 
 
@@ -2396,6 +2606,15 @@ COPY public."GuildNotificationMute" (id, "userId", "guildId", "createdAt") FROM 
 
 
 --
+-- Data for Name: HeroVideo; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."HeroVideo" (id, url, "s3Key", "mimeType", "createdAt", "updatedAt") FROM stdin;
+1	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1774040264446-social_u5252916246_Close-up_of_Kakashi_Hatakes_eye_age_30_mature_rea_98d065fa-2364-4995-a2f1-13ef79291384_0.mp4	1774040264446-social_u5252916246_Close-up_of_Kakashi_Hatakes_eye_age_30_mature_rea_98d065fa-2364-4995-a2f1-13ef79291384_0.mp4	video/mp4	2026-03-20 20:57:48.94	2026-03-20 20:57:48.94
+\.
+
+
+--
 -- Data for Name: Intro; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -2409,6 +2628,7 @@ COPY public."Intro" (id, "fileName", "userId") FROM stdin;
 --
 
 COPY public."Message" (id, "chatId", "senderId", text, "fileUrl", "fileType", "replyToId", "forwardedFromId", "isDeleted", "createdAt") FROM stdin;
+1	1	1	test message	\N	\N	\N	\N	f	2026-03-20 21:15:48.252
 \.
 
 
@@ -2428,6 +2648,7 @@ COPY public."Music" (id, "fileName", length, "userId") FROM stdin;
 --
 
 COPY public."Notification" (id, "userId", type, title, body, "imageUrl", metadata, "isRead", "createdAt") FROM stdin;
+1	2	new_message	sadikov.vd2194	test message	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	{"chatId": 1, "chatType": "direct", "senderId": 1}	f	2026-03-20 21:15:48.274
 \.
 
 
@@ -2437,6 +2658,14 @@ COPY public."Notification" (id, "userId", type, title, body, "imageUrl", metadat
 
 COPY public."Outro" (id, "fileName", "userId") FROM stdin;
 1	uploads/outros/1764162796083-644659628.mp4	\N
+\.
+
+
+--
+-- Data for Name: Policy; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Policy" (id, slug, title, content, "isPublished", "createdAt", "updatedAt", "updatedById") FROM stdin;
 \.
 
 
@@ -2533,6 +2762,8 @@ COPY public."ShopProduct" (id, price, currency, "imageUrl", discount, "oldPrice"
 COPY public."StripePayment" (id, "userId", "productId", "paymentIntentId", amount, currency, status, "echoAwarded", "createdAt") FROM stdin;
 1	1	1	pi_3TBP5cRIjBEJYSfY1T0fNy9F	899	usd	pending	50	2026-03-16 00:32:59.498
 2	1	1	pi_3TBP6VRIjBEJYSfY0IYAfTLp	899	usd	pending	50	2026-03-16 00:33:53.957
+3	1	5	pi_3TCNTeRIjBEJYSfY1FCugF1K	3899	usd	pending	250	2026-03-18 17:01:49.695
+4	1	5	pi_3TCNqIRIjBEJYSfY1DaK0XA5	3899	usd	pending	250	2026-03-18 17:25:14.411
 \.
 
 
@@ -2559,6 +2790,7 @@ COPY public."TicketMessage" (id, text, "ticketId", "userId", "createdAt") FROM s
 COPY public."Transaction" (id, type, status, amount, "userId", "counterpartId", "createdAt") FROM stdin;
 1	TRANSFER	COMPLETED	-500	1	2	2026-03-07 12:54:15.146
 2	TRANSFER	COMPLETED	500	2	1	2026-03-07 12:54:15.146
+3	PURCHASE	COMPLETED	30	8	\N	2026-03-19 22:01:20.171
 \.
 
 
@@ -2568,9 +2800,9 @@ COPY public."Transaction" (id, type, status, amount, "userId", "counterpartId", 
 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage", points, "lastSeenAt", balance, "phoneNumber") FROM stdin;
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-03-05 14:09:29.194	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N	0	\N
-2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	1	\N	2025-11-26 13:35:49.708	2026-03-07 12:54:15.146	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	1000	\N	1000	\N
-8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-02-24 21:48:35.839	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	0	\N	0	\N
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-16 12:16:36.374	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzM2NjMzOTYsImV4cCI6MTc3NDI2ODE5Nn0.spRv3aSzDoQgBvcS-ll8UXxVQGfLbIHoTtIPrsJ9fCA	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
+2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	2	\N	2025-11-26 13:35:49.708	2026-03-20 21:12:56.964	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	1000	\N	1000	\N
+8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-03-19 22:01:40.245	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N	30	\N
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-20 22:44:20.251	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzQwNDY2NjAsImV4cCI6MTc3NDY1MTQ2MH0.C0y7QuwkoNwkQczA3WL3VXHF2p8DEi52CrK-Xwi61FY	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
 \.
 
 
@@ -2581,6 +2813,7 @@ COPY public."User" (id, login, password, email, status, "warningCount", "roleId"
 COPY public."UserAchievement" ("userId", "achievementId", "awardedAt", "isBest") FROM stdin;
 4	1	2026-03-16 12:16:58.437	f
 1	1	2026-03-16 12:21:31.449	t
+4	3	2026-03-19 22:05:55.738	f
 \.
 
 
@@ -2622,6 +2855,8 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 31	Admin vitaly.sadikov1@yandex.ru created guild: 'Main guild'	\N	2026-02-24 21:34:16.234	\N	\N
 32	Admin vitaly.sadikov1@yandex.ru created guild: 'Main guild'	\N	2026-02-24 21:36:18.868	\N	\N
 33	Admin vitaly.sadikov1@yandex.ru created guild: 'Main guild'	\N	2026-02-24 21:42:00.98	\N	\N
+34	Администратор sadikov.vd2194 изменил баланс пользователя vitaly.sadikov1: +30 echo (было: 0, стало: 30)	\N	2026-03-19 22:01:20.216	\N	\N
+35	Администратор sadikov.vd2194 изменил импульсы пользователя vitaly.sadikov1: +500 (было: 0, стало: 500)	\N	2026-03-19 22:01:40.255	\N	\N
 \.
 
 
@@ -2663,6 +2898,10 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 1	31	initiator
 1	32	initiator
 1	33	initiator
+1	34	initiator
+8	34	target
+1	35	initiator
+8	35	target
 \.
 
 
@@ -2767,6 +3006,13 @@ SELECT pg_catalog.setval('public."Act_id_seq"', 27, true);
 
 
 --
+-- Name: AdminTask_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."AdminTask_id_seq"', 1, true);
+
+
+--
 -- Name: Category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -2784,7 +3030,7 @@ SELECT pg_catalog.setval('public."Chapter_id_seq"', 1, false);
 -- Name: ChatMember_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."ChatMember_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."ChatMember_id_seq"', 2, true);
 
 
 --
@@ -2798,7 +3044,14 @@ SELECT pg_catalog.setval('public."ChatMessage_id_seq"', 1, false);
 -- Name: Chat_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Chat_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Chat_id_seq"', 1, true);
+
+
+--
+-- Name: Consent_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Consent_id_seq"', 1, false);
 
 
 --
@@ -2837,6 +3090,13 @@ SELECT pg_catalog.setval('public."Guild_id_seq"', 4, true);
 
 
 --
+-- Name: HeroVideo_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."HeroVideo_id_seq"', 1, true);
+
+
+--
 -- Name: Intro_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -2847,7 +3107,7 @@ SELECT pg_catalog.setval('public."Intro_id_seq"', 1, true);
 -- Name: Message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Message_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Message_id_seq"', 1, true);
 
 
 --
@@ -2861,7 +3121,7 @@ SELECT pg_catalog.setval('public."Music_id_seq"', 3, true);
 -- Name: Notification_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Notification_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Notification_id_seq"', 1, true);
 
 
 --
@@ -2869,6 +3129,13 @@ SELECT pg_catalog.setval('public."Notification_id_seq"', 1, false);
 --
 
 SELECT pg_catalog.setval('public."Outro_id_seq"', 1, true);
+
+
+--
+-- Name: Policy_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."Policy_id_seq"', 1, false);
 
 
 --
@@ -2945,7 +3212,7 @@ SELECT pg_catalog.setval('public."ShopProduct_id_seq"', 5, true);
 -- Name: StripePayment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."StripePayment_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."StripePayment_id_seq"', 4, true);
 
 
 --
@@ -2966,14 +3233,14 @@ SELECT pg_catalog.setval('public."Ticket_id_seq"', 1, false);
 -- Name: Transaction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Transaction_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."Transaction_id_seq"', 3, true);
 
 
 --
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 33, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 35, true);
 
 
 --
@@ -3088,6 +3355,14 @@ ALTER TABLE ONLY public."Act"
 
 
 --
+-- Name: AdminTask AdminTask_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."AdminTask"
+    ADD CONSTRAINT "AdminTask_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: Category Category_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3125,6 +3400,14 @@ ALTER TABLE ONLY public."ChatMessage"
 
 ALTER TABLE ONLY public."Chat"
     ADD CONSTRAINT "Chat_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Consent Consent_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Consent"
+    ADD CONSTRAINT "Consent_pkey" PRIMARY KEY (id);
 
 
 --
@@ -3176,6 +3459,14 @@ ALTER TABLE ONLY public."Guild"
 
 
 --
+-- Name: HeroVideo HeroVideo_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."HeroVideo"
+    ADD CONSTRAINT "HeroVideo_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: Intro Intro_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3213,6 +3504,14 @@ ALTER TABLE ONLY public."Notification"
 
 ALTER TABLE ONLY public."Outro"
     ADD CONSTRAINT "Outro_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Policy Policy_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Policy"
+    ADD CONSTRAINT "Policy_pkey" PRIMARY KEY (id);
 
 
 --
@@ -3516,6 +3815,20 @@ CREATE INDEX "ActTeam_actId_idx" ON public."ActTeam" USING btree ("actId");
 
 
 --
+-- Name: AdminTask_assigneeId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "AdminTask_assigneeId_idx" ON public."AdminTask" USING btree ("assigneeId");
+
+
+--
+-- Name: AdminTask_creatorId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "AdminTask_creatorId_idx" ON public."AdminTask" USING btree ("creatorId");
+
+
+--
 -- Name: Category_name_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -3562,6 +3875,20 @@ CREATE UNIQUE INDEX "Chat_guildId_key" ON public."Chat" USING btree ("guildId");
 --
 
 CREATE UNIQUE INDEX "Chat_inviteCode_key" ON public."Chat" USING btree ("inviteCode");
+
+
+--
+-- Name: Consent_slug_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Consent_slug_idx" ON public."Consent" USING btree (slug);
+
+
+--
+-- Name: Consent_slug_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Consent_slug_key" ON public."Consent" USING btree (slug);
 
 
 --
@@ -3632,6 +3959,20 @@ CREATE INDEX "Notification_userId_idx" ON public."Notification" USING btree ("us
 --
 
 CREATE INDEX "Notification_userId_isRead_idx" ON public."Notification" USING btree ("userId", "isRead");
+
+
+--
+-- Name: Policy_slug_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "Policy_slug_idx" ON public."Policy" USING btree (slug);
+
+
+--
+-- Name: Policy_slug_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Policy_slug_key" ON public."Policy" USING btree (slug);
 
 
 --
@@ -3975,6 +4316,22 @@ ALTER TABLE ONLY public."Act"
 
 
 --
+-- Name: AdminTask AdminTask_assigneeId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."AdminTask"
+    ADD CONSTRAINT "AdminTask_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: AdminTask AdminTask_creatorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."AdminTask"
+    ADD CONSTRAINT "AdminTask_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: Chapter Chapter_sequelId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4028,6 +4385,14 @@ ALTER TABLE ONLY public."Chat"
 
 ALTER TABLE ONLY public."Chat"
     ADD CONSTRAINT "Chat_guildId_fkey" FOREIGN KEY ("guildId") REFERENCES public."Guild"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Consent Consent_updatedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Consent"
+    ADD CONSTRAINT "Consent_updatedById_fkey" FOREIGN KEY ("updatedById") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
@@ -4164,6 +4529,14 @@ ALTER TABLE ONLY public."Notification"
 
 ALTER TABLE ONLY public."Outro"
     ADD CONSTRAINT "Outro_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Policy Policy_updatedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Policy"
+    ADD CONSTRAINT "Policy_updatedById_fkey" FOREIGN KEY ("updatedById") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
