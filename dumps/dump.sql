@@ -71,6 +71,18 @@ CREATE TYPE public."ActType" AS ENUM (
 ALTER TYPE public."ActType" OWNER TO postgres;
 
 --
+-- Name: IconPackType; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."IconPackType" AS ENUM (
+    'ACHIEVEMENT',
+    'RANK'
+);
+
+
+ALTER TYPE public."IconPackType" OWNER TO postgres;
+
+--
 -- Name: SelectionMethods; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -82,6 +94,19 @@ CREATE TYPE public."SelectionMethods" AS ENUM (
 
 
 ALTER TYPE public."SelectionMethods" OWNER TO postgres;
+
+--
+-- Name: TicketStatus; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public."TicketStatus" AS ENUM (
+    'OPEN',
+    'IN_PROGRESS',
+    'CLOSED'
+);
+
+
+ALTER TYPE public."TicketStatus" OWNER TO postgres;
 
 --
 -- Name: TransactionStatus; Type: TYPE; Schema: public; Owner: postgres
@@ -660,7 +685,12 @@ ALTER SEQUENCE public."AdminTask_id_seq" OWNED BY public."AdminTask".id;
 
 CREATE TABLE public."Category" (
     id integer NOT NULL,
-    name text NOT NULL
+    name text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    description text,
+    "isActive" boolean DEFAULT true NOT NULL,
+    "order" integer DEFAULT 0 NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
 );
 
 
@@ -1126,6 +1156,82 @@ ALTER SEQUENCE public."HeroVideo_id_seq" OWNED BY public."HeroVideo".id;
 
 
 --
+-- Name: IconPack; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."IconPack" (
+    id integer NOT NULL,
+    name text NOT NULL,
+    type public."IconPackType" NOT NULL,
+    "isActive" boolean DEFAULT false NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."IconPack" OWNER TO postgres;
+
+--
+-- Name: IconPackItem; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."IconPackItem" (
+    id integer NOT NULL,
+    name text NOT NULL,
+    url text NOT NULL,
+    "s3Key" text NOT NULL,
+    "packId" integer NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."IconPackItem" OWNER TO postgres;
+
+--
+-- Name: IconPackItem_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."IconPackItem_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."IconPackItem_id_seq" OWNER TO postgres;
+
+--
+-- Name: IconPackItem_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."IconPackItem_id_seq" OWNED BY public."IconPackItem".id;
+
+
+--
+-- Name: IconPack_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."IconPack_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."IconPack_id_seq" OWNER TO postgres;
+
+--
+-- Name: IconPack_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."IconPack_id_seq" OWNED BY public."IconPack".id;
+
+
+--
 -- Name: Intro; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1473,7 +1579,8 @@ ALTER SEQUENCE public."Poll_id_seq" OWNED BY public."Poll".id;
 CREATE TABLE public."Rank" (
     id integer NOT NULL,
     name text NOT NULL,
-    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "imageUrl" text
 );
 
 
@@ -1781,7 +1888,8 @@ CREATE TABLE public."Ticket" (
     img text,
     "userId" integer NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    status public."TicketStatus" DEFAULT 'OPEN'::public."TicketStatus" NOT NULL
 );
 
 
@@ -2212,6 +2320,20 @@ ALTER TABLE ONLY public."HeroVideo" ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: IconPack id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."IconPack" ALTER COLUMN id SET DEFAULT nextval('public."IconPack_id_seq"'::regclass);
+
+
+--
+-- Name: IconPackItem id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."IconPackItem" ALTER COLUMN id SET DEFAULT nextval('public."IconPackItem_id_seq"'::regclass);
+
+
+--
 -- Name: Intro id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2370,9 +2492,7 @@ ALTER TABLE ONLY public."UserActivity" ALTER COLUMN id SET DEFAULT nextval('publ
 --
 
 COPY public."Achievement" (id, name, "createdAt", "imageUrl") FROM stdin;
-1	Набрать 100 просмотров	2025-11-26 12:49:07.856	\N
-2	Набрать 500 просмотров	2025-11-26 15:27:21.906	\N
-3	Act master	2026-02-28 12:15:40.217	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772280936458-c5fa02a9bba44b136980625ed7efc2e7489f20cc.png
+4	500 subscribers	2026-03-22 22:35:51.448	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1774218903028-Property 1=Variant2.png
 \.
 
 
@@ -2381,11 +2501,10 @@ COPY public."Achievement" (id, name, "createdAt", "imageUrl") FROM stdin;
 --
 
 COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "heroMethods", "navigatorMethods", "introId", "outroId", status, "startedAt", "endedAt", "categoryId", "userId", "recordingResourceId", "recordingSid", "recordingStatus", "recordingUrl", "destinationLatitude", "destinationLongitude", "startLatitude", "startLongitude", likes, "effectId", "spotAgentCount", "spotAgentMethods", "biddingTime", description, tags, "chapterId", "scheduledAt") FROM stdin;
+20	gfgdggfdgf	/uploads/acts/1771601735501-908500336.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-02-20 15:35:35.619	2026-02-20 15:36:19.183	1	8	_BDv6sMSOoNBditCLXy8OMGp3iHo_26T4ymZvbVqkUL-CQ_XHsUtHxepUQp0VdFyrSBugDVceJ2khqAnw2i6TnyHWXflrVHNVYsLiY2NgJms5qLjligGKwjdAjKShRxTvH_qv4xdbuNxxPTF8EiDivjl03aFAKOqeOSgjhQiICKH6rZrQYn7venU9mUeo8U0	73b5645f54453275a44009917affcb4d	failed	\N	55.74131777590301	37.63689422594326	\N	\N	100105	\N	1	VOTING	2026-02-20 15:40:35.419	\N	{}	\N	\N
 24	апавпапав	/uploads/acts/1771704054788-50599762.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:00:54.897	2026-02-21 20:01:28.094	\N	1	hxihVkPdE2RrsklnoWVPfPNlV9R6gLAkNrFcodp0TGzl-B0jcgTv2gd1vJQ9TmzwxqyLt-8KAIX2CPciZwe2-7aOvxOlIhoS0rlni9rBgtZQauDfwa0x8RAthA7uRDLhpglest_BHW410ivTGc-an4MLfTSsQtSDR8ODYHGsS7q7c9mvPN5topY8G356mZWG	43f51ee73b4b8e3a5ab00bb5b66022b4	failed	\N	55.74914429386128	37.59964370714443	\N	\N	0	\N	1	VOTING	2026-02-21 20:05:54.693	\N	{}	\N	\N
-20	gfgdggfdgf	/uploads/acts/1771601735501-908500336.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:35:35.619	2026-02-20 15:36:19.183	\N	8	_BDv6sMSOoNBditCLXy8OMGp3iHo_26T4ymZvbVqkUL-CQ_XHsUtHxepUQp0VdFyrSBugDVceJ2khqAnw2i6TnyHWXflrVHNVYsLiY2NgJms5qLjligGKwjdAjKShRxTvH_qv4xdbuNxxPTF8EiDivjl03aFAKOqeOSgjhQiICKH6rZrQYn7venU9mUeo8U0	73b5645f54453275a44009917affcb4d	failed	\N	55.74131777590301	37.63689422594326	\N	\N	0	\N	1	VOTING	2026-02-20 15:40:35.419	\N	{}	\N	\N
 25	fgfgfd	/uploads/acts/1771704591660-890934921.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 20:09:51.711	2026-02-21 20:10:27.057	\N	1	roAtozmtBkVxSbALApH1q6jEj8MJamTnrF4qyTRuV5g2M5cQkJEeZ18dk87XKdWlahs_eh8Zmr-XKduVpRU0kI1m21tUIranerDX96o5m39xgw1RbwDdFF3CRCuvXKNLUxfd3d0TW8r4IaQTbG6LOazq3TZjuMqjOUHz88-IAscEejs3uHa6fAipLPVhIT_c	6ddb98ca3c47aab8c9b4dca6251a1ab7	failed	\N	55.74759843942743	37.60822677599209	\N	\N	0	\N	1	VOTING	2026-02-21 20:14:51.611	\N	{}	\N	\N
 21	gfgfgf	/uploads/acts/1771601895116-731875344.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 15:38:15.209	2026-02-20 15:38:47.131	\N	8	2NrOxwNZv1rKBV3784aUbVA2NO888e9B_EUiaMr7Fw9uC2kxjkRCPzACNTfuHnbYBmC4wHM_fq6qMt_9CocdwOYQC9y2EVGPOZALPCXmuPAhQObxxS_jGyuIhCcXgpaD6mtnFzEs58wGT9FoOzVw9kTpR7JTBUAsEk4NKfeY7YSM77vBUuUGhStCve6DLYBE	e4c0c792494b3254ebf7a6828e3666cb	failed	\N	55.75088330688495	37.61354827867763	\N	\N	0	\N	1	VOTING	2026-02-20 15:43:15.004	\N	{}	\N	\N
-26	title	/uploads/acts/1771919465806-474854330.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	ONLINE	2026-02-24 07:51:05.833	\N	\N	1	46eyU5df1pp9Z5NVX3787EBAllRCTlaRSwyGV72MghPDPpvOX-Bn-lmDWzhskDW1-_IxgIX9xAHumBvl0sHUkDyCgu0jyXfkHbSBgw8lg3ZzTAUJexQiDMx83l-n2hdAkgE1vSUx54qo9PVNGfpNdX18rxVrB-gZoLryA1Fvj4dhsaLp2FrGwBLJaHW5td5W	35c6bf06a14c64925a311ab01d9b5eae	recording	\N	55.74721196624832	37.59998702989834	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:05.737	\N	{}	\N	\N
 22	tgfdgfgfd	/uploads/acts/1771616825855-662215036.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-20 19:47:05.872	2026-02-20 19:47:46.04	\N	1	Ljr56LzivhEPgJ-rJpDxcubDhOUx2DRmdIbFXrD_GFbN-cE2rAYR-dO1bleVsra2DGB3D2EjVYJCGliilr2VHXlAIzZPs0F5P2BaI07KnR2EOKGJ4zxTIW-dCNY0Usowg5LuYo1Qg-UCocbE5j9c58BiTSVcgKPM-OUslxpvFAJc0hNXNr3C-HR8TvewByuV	52ac907a0449887ac1491ab40861fffc	failed	\N	55.74102787471819	37.60239028917568	\N	\N	0	\N	1	VOTING	2026-02-20 19:52:05.809	\N	{}	\N	\N
 23	titllee	/uploads/acts/1771703743355-353591108.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-21 19:55:43.45	2026-02-21 19:56:13.62	\N	1	HrA20628gWxFgePtSvC7U6JC479bErXUwdU1ervkE_fa__5a8w88psqJEgz44RE_BPIceT1T_4nQcLlrMwnjlhIoPqrPQTAeTrhcRG3QxmRReHIzgz_3xkS8xd1Teq4RZnHCNkE4P1zL3jfZhyxK1bEFhtARFEbvwdgJiQZH9MLYNqI8S7woEaTJOsguwzK_	20f406f8da4080e49d38fa9c6a386357	failed	\N	55.75803176823725	37.62487792955654	\N	\N	0	\N	1	VOTING	2026-02-21 20:00:43.28	\N	{}	\N	\N
 27	title	/uploads/acts/1771919517267-320857045.png	\N	SINGLE	SINGLE	VOTING	VOTING	1	1	OFFLINE	2026-02-24 07:51:57.281	2026-02-24 07:52:30.469	\N	1	wNTCdqyZpKLwysHmhSKDamICnXc6rEWkQPHx-m9nlxgDlFKu_DeoniblQu_Le9n3VSNHi-7dMajT40ZLNPb5TurDirt5rFU1hfj9gMDCTBTNbRWqMfK4uJg4GCJGxZERpNxIsMqrb2xh4rPgu5N-dSRRCKYW2Cgd5EvkcScpZduiWyInXewJAh8Z2YWU_iFn	5de551d80c4bb25c8413f886675211ec	recording	\N	\N	\N	\N	\N	0	\N	1	VOTING	2026-02-24 07:56:57.242	\N	{}	\N	\N
@@ -2403,7 +2522,6 @@ COPY public."ActMusic" ("actId", "musicId", "order") FROM stdin;
 23	2	0
 24	2	0
 25	2	0
-26	2	0
 27	2	0
 \.
 
@@ -2460,7 +2578,6 @@ COPY public."ActTask" (id, title, "isCompleted", "createdAt", "completedAt", "ac
 17	fdfdfd	f	2026-02-21 19:55:43.963	\N	23
 18	папаа	f	2026-02-21 20:00:55.468	\N	24
 19	fdgfgdf	f	2026-02-21 20:09:52.084	\N	25
-20	dsdssdsds	f	2026-02-24 07:51:05.988	\N	26
 \.
 
 
@@ -2509,7 +2626,8 @@ COPY public."AdminTask" (id, title, description, deadline, "isDone", "doneAt", "
 -- Data for Name: Category; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Category" (id, name) FROM stdin;
+COPY public."Category" (id, name, "createdAt", description, "isActive", "order", "updatedAt") FROM stdin;
+1	Popular	2026-03-23 19:13:25.928	most popular acts	t	0	2026-03-23 19:13:25.928
 \.
 
 
@@ -2615,6 +2733,25 @@ COPY public."HeroVideo" (id, url, "s3Key", "mimeType", "createdAt", "updatedAt")
 
 
 --
+-- Data for Name: IconPack; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."IconPack" (id, name, type, "isActive", "createdAt", "updatedAt") FROM stdin;
+1	first pack	ACHIEVEMENT	t	2026-03-22 22:33:48.693	2026-03-22 22:33:53.487
+\.
+
+
+--
+-- Data for Name: IconPackItem; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."IconPackItem" (id, name, url, "s3Key", "packId", "createdAt") FROM stdin;
+1	c5fa02a9bba44b136980625ed7efc2e7489f20cc (1).png	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1774218895981-c5fa02a9bba44b136980625ed7efc2e7489f20cc (1).png	1774218895981-c5fa02a9bba44b136980625ed7efc2e7489f20cc (1).png	1	2026-03-22 22:34:58.883
+2	Property 1=Variant2.png	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1774218903028-Property 1=Variant2.png	1774218903028-Property 1=Variant2.png	1	2026-03-22 22:35:03.095
+\.
+
+
+--
 -- Data for Name: Intro; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -2697,7 +2834,7 @@ COPY public."PollVote" (id, "pollId", "optionId", "userId", "createdAt") FROM st
 -- Data for Name: Rank; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Rank" (id, name, "createdAt") FROM stdin;
+COPY public."Rank" (id, name, "createdAt", "imageUrl") FROM stdin;
 \.
 
 
@@ -2771,7 +2908,7 @@ COPY public."StripePayment" (id, "userId", "productId", "paymentIntentId", amoun
 -- Data for Name: Ticket; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Ticket" (id, title, description, img, "userId", "createdAt", "updatedAt") FROM stdin;
+COPY public."Ticket" (id, title, description, img, "userId", "createdAt", "updatedAt", status) FROM stdin;
 \.
 
 
@@ -2801,8 +2938,8 @@ COPY public."Transaction" (id, type, status, amount, "userId", "counterpartId", 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage", points, "lastSeenAt", balance, "phoneNumber") FROM stdin;
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-03-05 14:09:29.194	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N	0	\N
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	2	\N	2025-11-26 13:35:49.708	2026-03-20 21:12:56.964	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	1000	\N	1000	\N
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-23 19:12:50.147	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzQyOTMxNzAsImV4cCI6MTc3NDg5Nzk3MH0.6HAa_ZOkiCLKJwJswTKPH9Cez6mOGt7n9iOrv3vS6yo	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
 8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-03-19 22:01:40.245	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N	30	\N
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-03-20 22:44:20.251	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzQwNDY2NjAsImV4cCI6MTc3NDY1MTQ2MH0.C0y7QuwkoNwkQczA3WL3VXHF2p8DEi52CrK-Xwi61FY	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
 \.
 
 
@@ -2811,9 +2948,6 @@ COPY public."User" (id, login, password, email, status, "warningCount", "roleId"
 --
 
 COPY public."UserAchievement" ("userId", "achievementId", "awardedAt", "isBest") FROM stdin;
-4	1	2026-03-16 12:16:58.437	f
-1	1	2026-03-16 12:21:31.449	t
-4	3	2026-03-19 22:05:55.738	f
 \.
 
 
@@ -2857,6 +2991,8 @@ COPY public."UserActivity" (id, action, details, "createdAt", "userId", "streamI
 33	Admin vitaly.sadikov1@yandex.ru created guild: 'Main guild'	\N	2026-02-24 21:42:00.98	\N	\N
 34	Администратор sadikov.vd2194 изменил баланс пользователя vitaly.sadikov1: +30 echo (было: 0, стало: 30)	\N	2026-03-19 22:01:20.216	\N	\N
 35	Администратор sadikov.vd2194 изменил импульсы пользователя vitaly.sadikov1: +500 (было: 0, стало: 500)	\N	2026-03-19 22:01:40.255	\N	\N
+36	Администратор sadikov.vd2194 добавил 100100 лайков стриму "gfgdggfdgf" (стример: vitaly.sadikov1). Было: 0, стало: 100100	\N	2026-03-23 16:09:07.625	\N	\N
+37	Администратор sadikov.vd2194 добавил 5 лайков стриму "gfgdggfdgf" (стример: vitaly.sadikov1). Было: 100100, стало: 100105	\N	2026-03-23 16:10:08.104	\N	\N
 \.
 
 
@@ -2902,6 +3038,10 @@ COPY public."UserActivityParticipants" ("userId", "activityId", role) FROM stdin
 8	34	target
 1	35	initiator
 8	35	target
+1	36	initiator
+8	36	target
+1	37	initiator
+8	37	target
 \.
 
 
@@ -2925,7 +3065,7 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 -- Name: Achievement_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Achievement_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."Achievement_id_seq"', 4, true);
 
 
 --
@@ -3016,7 +3156,7 @@ SELECT pg_catalog.setval('public."AdminTask_id_seq"', 1, true);
 -- Name: Category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Category_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Category_id_seq"', 1, true);
 
 
 --
@@ -3094,6 +3234,20 @@ SELECT pg_catalog.setval('public."Guild_id_seq"', 4, true);
 --
 
 SELECT pg_catalog.setval('public."HeroVideo_id_seq"', 1, true);
+
+
+--
+-- Name: IconPackItem_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."IconPackItem_id_seq"', 2, true);
+
+
+--
+-- Name: IconPack_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."IconPack_id_seq"', 1, true);
 
 
 --
@@ -3240,7 +3394,7 @@ SELECT pg_catalog.setval('public."Transaction_id_seq"', 3, true);
 -- Name: UserActivity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."UserActivity_id_seq"', 35, true);
+SELECT pg_catalog.setval('public."UserActivity_id_seq"', 37, true);
 
 
 --
@@ -3464,6 +3618,22 @@ ALTER TABLE ONLY public."Guild"
 
 ALTER TABLE ONLY public."HeroVideo"
     ADD CONSTRAINT "HeroVideo_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: IconPackItem IconPackItem_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."IconPackItem"
+    ADD CONSTRAINT "IconPackItem_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: IconPack IconPack_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."IconPack"
+    ADD CONSTRAINT "IconPack_pkey" PRIMARY KEY (id);
 
 
 --
@@ -3931,6 +4101,20 @@ CREATE INDEX "GuildNotificationMute_userId_idx" ON public."GuildNotificationMute
 --
 
 CREATE UNIQUE INDEX "Guild_name_key" ON public."Guild" USING btree (name);
+
+
+--
+-- Name: IconPackItem_packId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "IconPackItem_packId_idx" ON public."IconPackItem" USING btree ("packId");
+
+
+--
+-- Name: IconPack_type_isActive_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "IconPack_type_isActive_idx" ON public."IconPack" USING btree (type, "isActive");
 
 
 --
@@ -4465,6 +4649,14 @@ ALTER TABLE ONLY public."GuildNotificationMute"
 
 ALTER TABLE ONLY public."GuildNotificationMute"
     ADD CONSTRAINT "GuildNotificationMute_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: IconPackItem IconPackItem_packId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."IconPackItem"
+    ADD CONSTRAINT "IconPackItem_packId_fkey" FOREIGN KEY ("packId") REFERENCES public."IconPack"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

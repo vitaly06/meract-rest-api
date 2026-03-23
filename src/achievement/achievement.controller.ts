@@ -58,19 +58,37 @@ export class AchievementController {
   }
 
   @ApiOperation({
-    summary: 'Обновить достижение',
+    summary: 'Обновить достижение (название и/или иконка)',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Act master' },
+        iconPackItemId: {
+          type: 'number',
+          example: 42,
+          description: 'ID иконки из активного пака',
+        },
+        photo: { type: 'string', format: 'binary', description: 'Новое фото' },
+      },
+    },
   })
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('photo'))
   @Put('update-achievement/:id')
   async updateAchievement(
     @Body() dto: CreateAchievementDto,
     @Param('id') id: string,
     @Req() req: RequestWithUser,
+    @UploadedFile() photo?: Express.Multer.File,
   ) {
     return await this.achievementService.updateAchievement(
       +id,
       dto,
       req.user.sub,
+      photo,
     );
   }
 

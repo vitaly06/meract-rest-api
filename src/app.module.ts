@@ -29,6 +29,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PaymentModule } from './payment/payment.module';
 import { MeractShopModule } from './meract-shop/meract-shop.module';
 import { HeroVideoModule } from './hero-video/hero-video.module';
+import { TicketModule } from './tickets/ticket.module';
+import { IconPackModule } from './icon-pack/icon-pack.module';
 
 @Module({
   imports: [
@@ -68,6 +70,8 @@ import { HeroVideoModule } from './hero-video/hero-video.module';
     PaymentModule,
     MeractShopModule,
     HeroVideoModule,
+    TicketModule,
+    IconPackModule,
   ],
 })
 export class AppModule {}

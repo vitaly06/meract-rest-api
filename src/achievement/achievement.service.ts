@@ -10,6 +10,7 @@ import { MainGateway } from '../gateway/main.gateway';
 import { AwardAchievementDto } from './dto/award-achievement.dto';
 import { AwardGuildAchievementDto } from './dto/award-guild-achievement.dto';
 import { S3Service } from 'src/s3/s3.service';
+import { IconPackService } from 'src/icon-pack/icon-pack.service';
 
 @Injectable()
 export class AchievementService {
@@ -17,12 +18,13 @@ export class AchievementService {
     private readonly prisma: PrismaService,
     private readonly mainGateway: MainGateway,
     private readonly s3Service: S3Service,
+    private readonly iconPackService: IconPackService,
   ) {}
 
   async createAchievement(
     dto: CreateAchievementDto,
     userId: number,
-    photo: Express.Multer.File,
+    photo?: Express.Multer.File,
   ) {
     const checkRole = await this.isAdmin(userId);
 
@@ -40,16 +42,26 @@ export class AchievementService {
       );
     }
 
-    let s3Data = null;
-    // Load avatar to S3
+    let imageUrl: string | null = null;
+
     if (photo) {
-      s3Data = await this.s3Service.uploadFile(photo);
+      // Загрузка нового файла в S3
+      const s3Data = await this.s3Service.uploadFile(photo);
+      imageUrl = s3Data.url;
+    } else if (dto.iconPackItemId) {
+      // Иконка из активного пака
+      const icon = await this.iconPackService.getIconById(+dto.iconPackItemId);
+      imageUrl = icon.url;
+    } else {
+      throw new BadRequestException(
+        'Необходимо передать фото или выбрать иконку из пака (iconPackItemId)',
+      );
     }
 
     return await this.prisma.achievement.create({
       data: {
         name: dto.name,
-        imageUrl: s3Data?.url || null,
+        imageUrl,
       },
     });
   }
@@ -58,6 +70,7 @@ export class AchievementService {
     id: number,
     dto: CreateAchievementDto,
     userId: number,
+    photo?: Express.Multer.File,
   ) {
     const checkRole = await this.isAdmin(userId);
 
@@ -69,22 +82,42 @@ export class AchievementService {
       where: { id },
     });
 
-    const checkAchievement = await this.prisma.achievement.findUnique({
-      where: { name: dto.name },
-    });
+    if (!nowAchievement) {
+      throw new NotFoundException('Достижение не найдено');
+    }
 
-    if (checkAchievement && nowAchievement.name != dto.name) {
-      throw new BadRequestException(
-        'Достижение с таким названием уже существует',
-      );
+    if (dto.name && dto.name !== nowAchievement.name) {
+      const duplicate = await this.prisma.achievement.findUnique({
+        where: { name: dto.name },
+      });
+      if (duplicate) {
+        throw new BadRequestException(
+          'Достижение с таким названием уже существует',
+        );
+      }
+    }
+
+    let imageUrl: string | undefined = undefined;
+
+    if (photo) {
+      // Удаляем старую иконку из S3
+      if (nowAchievement.imageUrl) {
+        await this.s3Service
+          .deleteFile(nowAchievement.imageUrl)
+          .catch(() => null);
+      }
+      const s3Data = await this.s3Service.uploadFile(photo);
+      imageUrl = s3Data.url;
+    } else if (dto.iconPackItemId) {
+      const icon = await this.iconPackService.getIconById(+dto.iconPackItemId);
+      imageUrl = icon.url;
     }
 
     return await this.prisma.achievement.update({
-      where: {
-        id,
-      },
+      where: { id },
       data: {
-        name: dto.name,
+        ...(dto.name && { name: dto.name }),
+        ...(imageUrl !== undefined && { imageUrl }),
       },
     });
   }

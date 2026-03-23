@@ -8,15 +8,23 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRankDto } from './dto/create-rank.dto';
 import { AwardRankDto } from './dto/award-rank.dto';
 import { MainGateway } from '../gateway/main.gateway';
+import { S3Service } from 'src/s3/s3.service';
+import { IconPackService } from 'src/icon-pack/icon-pack.service';
 
 @Injectable()
 export class RankService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mainGateway: MainGateway,
+    private readonly s3Service: S3Service,
+    private readonly iconPackService: IconPackService,
   ) {}
 
-  async createRank(dto: CreateRankDto, userId: number) {
+  async createRank(
+    dto: CreateRankDto,
+    userId: number,
+    photo?: Express.Multer.File,
+  ) {
     const checkRole = await this.isAdmin(userId);
 
     if (!checkRole) {
@@ -31,9 +39,24 @@ export class RankService {
       throw new BadRequestException('Ранг с таким названием уже существует');
     }
 
+    let imageUrl: string | null = null;
+
+    if (photo) {
+      const s3Data = await this.s3Service.uploadFile(photo);
+      imageUrl = s3Data.url;
+    } else if (dto.iconPackItemId) {
+      const icon = await this.iconPackService.getIconById(+dto.iconPackItemId);
+      imageUrl = icon.url;
+    } else {
+      throw new BadRequestException(
+        'Необходимо передать фото или выбрать иконку из пака (iconPackItemId)',
+      );
+    }
+
     return await this.prisma.rank.create({
       data: {
         name: dto.name,
+        imageUrl,
       },
     });
   }

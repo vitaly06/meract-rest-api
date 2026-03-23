@@ -65,6 +65,7 @@ export class MainGateway
     this.setupAchievementNamespace(achievementNs);
     this.setupActNamespace(actNs);
     this.setupNotificationsNamespace(server.of('/notifications'));
+    this.setupSupportNamespace(server.of('/support'));
 
     // Запускаем таймер для Acts
     this.startLiveTimer();
@@ -744,6 +745,55 @@ export class MainGateway
       this.logger.debug(
         `notification:new → user_${notification.userId} (type=${notification.type})`,
       );
+    }
+  }
+
+  // ============================================
+  // SUPPORT NAMESPACE (/support)
+  // ============================================
+  private setupSupportNamespace(ns: any) {
+    ns.on('connection', async (socket: AuthenticatedSocket) => {
+      const isAuthenticated = await this.authenticateSocket(socket);
+      if (!isAuthenticated) {
+        socket.disconnect();
+        return;
+      }
+
+      this.logger.log(
+        `User ${socket.userId} connected to /support (${socket.id})`,
+      );
+
+      // Client joins a specific ticket room: { ticketId: number }
+      socket.on('ticket:join', (data: { ticketId: number }) => {
+        socket.join(`ticket_${data.ticketId}`);
+        this.logger.log(
+          `User ${socket.userId} joined support room ticket_${data.ticketId}`,
+        );
+      });
+
+      socket.on('ticket:leave', (data: { ticketId: number }) => {
+        socket.leave(`ticket_${data.ticketId}`);
+      });
+
+      socket.on('disconnect', () => {
+        this.logger.log(`User ${socket.userId} disconnected from /support`);
+      });
+    });
+  }
+
+  /** Called by TicketService after a message is saved */
+  sendTicketMessage(ticketId: number, message: any) {
+    const ns = this.server?.of('/support');
+    if (ns) {
+      ns.to(`ticket_${ticketId}`).emit('ticket:message', message);
+    }
+  }
+
+  /** Called by TicketService after status is changed */
+  sendTicketStatusChange(ticketId: number, status: string) {
+    const ns = this.server?.of('/support');
+    if (ns) {
+      ns.to(`ticket_${ticketId}`).emit('ticket:status', { ticketId, status });
     }
   }
 }

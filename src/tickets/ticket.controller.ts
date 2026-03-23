@@ -1,26 +1,28 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Param, 
-  Query, 
-  Req, 
-  UseGuards, 
-  HttpStatus 
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  HttpStatus,
 } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
-  ApiParam, 
-  ApiBearerAuth 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { TicketService } from './ticket.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { JwtAuthGuard } from '../common/guards/jwt.guard'; 
+import { JwtAuthGuard } from '../common/guards/jwt.guard';
 import { RequestWithUser } from '../auth/interfaces/request-with-user.dto';
+import { TicketStatus } from '@prisma/client';
 
 @ApiTags('Support')
 @Controller('support')
@@ -32,7 +34,7 @@ export class TicketController {
   @UseGuards(JwtAuthGuard)
   @Post('tickets')
   async createTicket(
-    @Body() dto: CreateTicketDto, 
+    @Body() dto: CreateTicketDto,
     @Req() req: RequestWithUser,
   ) {
     return await this.ticketService.createTicket(req.user.sub, dto);
@@ -51,7 +53,7 @@ export class TicketController {
     return await this.ticketService.sendMessage(+ticketId, req.user.sub, dto);
   }
 
-    @ApiOperation({ summary: 'Get my tickets' })
+  @ApiOperation({ summary: 'Get my tickets' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('tickets/my')
@@ -78,6 +80,33 @@ export class TicketController {
   async getAllTickets(@Req() req: RequestWithUser) {
     return await this.ticketService.getAllTickets(req.user.sub);
   }
-}
-  
 
+  @ApiOperation({ summary: 'Get single ticket with messages' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('tickets/:ticketId')
+  async getTicketById(
+    @Param('ticketId') ticketId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.ticketService.getTicketById(+ticketId, req.user.sub);
+  }
+
+  @ApiOperation({
+    summary: 'Set ticket status (Admin only): OPEN | IN_PROGRESS | CLOSED',
+  })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('tickets/:ticketId/status')
+  async setTicketStatus(
+    @Param('ticketId') ticketId: string,
+    @Body('status') status: TicketStatus,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.ticketService.setTicketStatus(
+      +ticketId,
+      req.user.sub,
+      status,
+    );
+  }
+}

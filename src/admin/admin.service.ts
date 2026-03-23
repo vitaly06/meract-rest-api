@@ -811,4 +811,189 @@ export class AdminService {
     await this.prisma.consent.delete({ where: { id: consentId } });
     return { message: 'Согласие удалено' };
   }
+
+  // ============================================
+  // КАТЕГОРИИ АКТОВ
+  // ============================================
+
+  /** Все категории (публично, с кол-вом актов) */
+  async getCategories() {
+    return this.prisma.category.findMany({
+      include: {
+        _count: { select: { Act: true } },
+      },
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  /** Категория + её акты */
+  async getCategoryWithActs(categoryId: number) {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      include: {
+        Act: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            previewFileName: true,
+            scheduledAt: true,
+            startedAt: true,
+            user: { select: { id: true, login: true, email: true } },
+          },
+          orderBy: { startedAt: 'desc' },
+        },
+      },
+    });
+    if (!category) throw new NotFoundException('Категория не найдена');
+    return category;
+  }
+
+  /** Создать категорию (main admin) */
+  async createCategory(
+    adminId: number,
+    dto: {
+      name: string;
+      description?: string;
+      order?: number;
+      isActive?: boolean;
+    },
+  ) {
+    await this.checkMainAdmin(adminId);
+    const exists = await this.prisma.category.findUnique({
+      where: { name: dto.name },
+    });
+    if (exists)
+      throw new BadRequestException('Категория с таким именем уже существует');
+
+    return this.prisma.category.create({
+      data: {
+        name: dto.name,
+        description: dto.description ?? null,
+        order: dto.order ?? 0,
+        isActive: dto.isActive ?? true,
+      },
+    });
+  }
+
+  /** Обновить категорию (main admin) */
+  async updateCategory(
+    adminId: number,
+    categoryId: number,
+    dto: {
+      name?: string;
+      description?: string;
+      order?: number;
+      isActive?: boolean;
+    },
+  ) {
+    await this.checkMainAdmin(adminId);
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+    if (!category) throw new NotFoundException('Категория не найдена');
+
+    if (dto.name && dto.name !== category.name) {
+      const duplicate = await this.prisma.category.findUnique({
+        where: { name: dto.name },
+      });
+      if (duplicate)
+        throw new BadRequestException(
+          'Категория с таким именем уже существует',
+        );
+    }
+
+    return this.prisma.category.update({
+      where: { id: categoryId },
+      data: { ...dto },
+      include: { _count: { select: { Act: true } } },
+    });
+  }
+
+  /** Удалить категорию (акты не удаляются, просто отвязываются) */
+  async deleteCategory(adminId: number, categoryId: number) {
+    await this.checkMainAdmin(adminId);
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+    if (!category) throw new NotFoundException('Категория не найдена');
+
+    // Отвязываем все акты от этой категории
+    await this.prisma.act.updateMany({
+      where: { categoryId },
+      data: { categoryId: null },
+    });
+
+    await this.prisma.category.delete({ where: { id: categoryId } });
+    return { message: 'Категория удалена' };
+  }
+
+  /** Назначить акт в категорию */
+  async setActCategory(
+    adminId: number,
+    actId: number,
+    categoryId: number | null,
+  ) {
+    await this.checkMainAdmin(adminId);
+
+    if (categoryId !== null) {
+      const category = await this.prisma.category.findUnique({
+        where: { id: categoryId },
+      });
+      if (!category) throw new NotFoundException('Категория не найдена');
+    }
+
+    const act = await this.prisma.act.findUnique({ where: { id: actId } });
+    if (!act) throw new NotFoundException('Акт не найден');
+
+    return this.prisma.act.update({
+      where: { id: actId },
+      data: { categoryId },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        categoryId: true,
+        category: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  /** Массовое назначение актов в категорию */
+  async setActsToCategory(
+    adminId: number,
+    categoryId: number,
+    actIds: number[],
+  ) {
+    await this.checkMainAdmin(adminId);
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+    if (!category) throw new NotFoundException('Категория не найдена');
+
+    await this.prisma.act.updateMany({
+      where: { id: { in: actIds } },
+      data: { categoryId },
+    });
+
+    return {
+      message: `${actIds.length} актов добавлено в категорию "${category.name}"`,
+    };
+  }
+
+  /** Убрать акты из категории (categoryId → null) */
+  async removeActsFromCategory(
+    adminId: number,
+    categoryId: number,
+    actIds: number[],
+  ) {
+    await this.checkMainAdmin(adminId);
+
+    await this.prisma.act.updateMany({
+      where: { id: { in: actIds }, categoryId },
+      data: { categoryId: null },
+    });
+
+    return { message: `${actIds.length} актов убрано из категории` };
+  }
 }

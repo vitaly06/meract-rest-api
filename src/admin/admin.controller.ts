@@ -28,6 +28,8 @@ import { CreatePolicyDto } from './dto/create-policy.dto';
 import { UpdatePolicyDto } from './dto/update-policy.dto';
 import { CreateConsentDto } from './dto/create-consent.dto';
 import { UpdateConsentDto } from './dto/update-consent.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -105,6 +107,20 @@ export class AdminController {
   @Get('consents')
   async getConsents() {
     return this.adminService.getConsents();
+  }
+
+  @ApiOperation({ summary: 'Все категории актов' })
+  @UseGuards(JwtAuthGuard)
+  @Get('categories')
+  async getCategories() {
+    return this.adminService.getCategories();
+  }
+
+  @ApiOperation({ summary: 'Категория + её акты' })
+  @UseGuards(JwtAuthGuard)
+  @Get('categories/:categoryId/acts')
+  async getCategoryWithActs(@Param('categoryId') categoryId: string) {
+    return this.adminService.getCategoryWithActs(+categoryId);
   }
 
   @Get(':id')
@@ -410,5 +426,83 @@ export class AdminController {
     @Req() req: RequestWithUser,
   ) {
     return this.adminService.deleteConsent(req.user.sub, +consentId);
+  }
+
+  // ============================================
+  // КАТЕГОРИИ АКТОВ
+  // ============================================
+
+  @ApiOperation({ summary: 'Создать категорию (main admin)' })
+  @UseGuards(JwtAuthGuard)
+  @Post('categories')
+  async createCategory(
+    @Body() dto: CreateCategoryDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.createCategory(req.user.sub, dto);
+  }
+
+  @ApiOperation({ summary: 'Обновить категорию (main admin)' })
+  @UseGuards(JwtAuthGuard)
+  @Patch('categories/:categoryId')
+  async updateCategory(
+    @Param('categoryId') categoryId: string,
+    @Body() dto: UpdateCategoryDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.updateCategory(req.user.sub, +categoryId, dto);
+  }
+
+  @ApiOperation({ summary: 'Удалить категорию (main admin)' })
+  @UseGuards(JwtAuthGuard)
+  @Delete('categories/:categoryId')
+  async deleteCategory(
+    @Param('categoryId') categoryId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.deleteCategory(req.user.sub, +categoryId);
+  }
+
+  @ApiOperation({
+    summary: 'Назначить один акт в категорию (categoryId=null — убрать)',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Patch('categories/:categoryId/acts/:actId')
+  async setActCategory(
+    @Param('categoryId') categoryId: string,
+    @Param('actId') actId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.setActCategory(req.user.sub, +actId, +categoryId);
+  }
+
+  @ApiOperation({ summary: 'Массово добавить акты в категорию' })
+  @UseGuards(JwtAuthGuard)
+  @Post('categories/:categoryId/acts')
+  async setActsToCategory(
+    @Param('categoryId') categoryId: string,
+    @Body('actIds') actIds: number[],
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.setActsToCategory(
+      req.user.sub,
+      +categoryId,
+      actIds,
+    );
+  }
+
+  @ApiOperation({ summary: 'Убрать акты из категории' })
+  @UseGuards(JwtAuthGuard)
+  @Delete('categories/:categoryId/acts')
+  async removeActsFromCategory(
+    @Param('categoryId') categoryId: string,
+    @Body('actIds') actIds: number[],
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.removeActsFromCategory(
+      req.user.sub,
+      +categoryId,
+      actIds,
+    );
   }
 }
