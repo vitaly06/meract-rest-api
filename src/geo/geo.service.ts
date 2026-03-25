@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 // https://countriesnow.space — бесплатно, без ключа
 const COUNTRIES_NOW_BASE = 'https://countriesnow.space/api/v0.1';
@@ -16,6 +17,8 @@ export class GeoService {
   private readonly logger = new Logger(GeoService.name);
   /** Кэш координат в рамках жизни процесса: "city|country" → Coords | null */
   private readonly coordsCache = new Map<string, Coords | null>();
+
+  constructor(private readonly prisma: PrismaService) {}
   async searchCountries(query: string) {
     if (!query || query.trim().length < 1) {
       return { countries: [] };
@@ -132,5 +135,14 @@ export class GeoService {
 
   private toRad(deg: number) {
     return (deg * Math.PI) / 180;
+  }
+
+  /** Активные диапазоны расстояний для ползунка локации (публичный метод) */
+  async getActiveLocationRanges() {
+    return this.prisma.locationRange.findMany({
+      where: { isActive: true },
+      orderBy: { order: 'asc' },
+      select: { id: true, label: true, minKm: true, maxKm: true, order: true },
+    });
   }
 }

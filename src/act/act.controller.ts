@@ -197,6 +197,20 @@ export class ActController {
     return await this.actService.stopAct(+id, req);
   }
 
+  @ApiOperation({
+    summary: 'Запустить акт (перевести в ONLINE)',
+    description:
+      'Переводит акт из OFFLINE/PLANNED в ONLINE и запускает запись. Только создатель или администратор.',
+  })
+  @ApiResponse({ status: 200, description: 'Акт запущен' })
+  @ApiResponse({ status: 403, description: 'Нет прав' })
+  @ApiResponse({ status: 404, description: 'Акт не найден' })
+  @Post('start-act/:id')
+  @UseGuards(JwtAuthGuard)
+  async startAct(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return await this.actService.startAct(+id, req.user.sub);
+  }
+
   @ApiOperation({ summary: 'Оценить акт (0–10, шаг 0.5)' })
   @ApiBody({
     schema: {

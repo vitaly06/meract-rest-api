@@ -30,6 +30,8 @@ import { CreateConsentDto } from './dto/create-consent.dto';
 import { UpdateConsentDto } from './dto/update-consent.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CreateLocationRangeDto } from './dto/create-location-range.dto';
+import { UpdateLocationRangeDto } from './dto/update-location-range.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -121,6 +123,13 @@ export class AdminController {
   @Get('categories/:categoryId/acts')
   async getCategoryWithActs(@Param('categoryId') categoryId: string) {
     return this.adminService.getCategoryWithActs(+categoryId);
+  }
+
+  @ApiOperation({ summary: 'Все диапазоны расстояний для ползунка' })
+  @UseGuards(JwtAuthGuard)
+  @Get('location-ranges')
+  async getLocationRanges() {
+    return this.adminService.getLocationRanges();
   }
 
   @Get(':id')
@@ -504,5 +513,40 @@ export class AdminController {
       +categoryId,
       actIds,
     );
+  }
+
+  // ============================================
+  // ДИАПАЗОНЫ РАССТОЯНИЙ ДЛЯ ПОЛЗУНКА ЛОКАЦИИ
+  // ============================================
+
+  @ApiOperation({ summary: 'Создать диапазон расстояния (main admin)' })
+  @UseGuards(JwtAuthGuard)
+  @Post('location-ranges')
+  async createLocationRange(
+    @Body() dto: CreateLocationRangeDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.createLocationRange(req.user.sub, dto);
+  }
+
+  @ApiOperation({ summary: 'Обновить диапазон расстояния (main admin)' })
+  @UseGuards(JwtAuthGuard)
+  @Patch('location-ranges/:rangeId')
+  async updateLocationRange(
+    @Param('rangeId') rangeId: string,
+    @Body() dto: UpdateLocationRangeDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.updateLocationRange(req.user.sub, +rangeId, dto);
+  }
+
+  @ApiOperation({ summary: 'Удалить диапазон расстояния (main admin)' })
+  @UseGuards(JwtAuthGuard)
+  @Delete('location-ranges/:rangeId')
+  async deleteLocationRange(
+    @Param('rangeId') rangeId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.deleteLocationRange(req.user.sub, +rangeId);
   }
 }

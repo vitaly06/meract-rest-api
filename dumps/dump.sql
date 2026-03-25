@@ -1267,6 +1267,46 @@ ALTER SEQUENCE public."Intro_id_seq" OWNED BY public."Intro".id;
 
 
 --
+-- Name: LocationRange; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."LocationRange" (
+    id integer NOT NULL,
+    label text NOT NULL,
+    "minKm" double precision NOT NULL,
+    "maxKm" double precision NOT NULL,
+    "order" integer DEFAULT 0 NOT NULL,
+    "isActive" boolean DEFAULT true NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."LocationRange" OWNER TO postgres;
+
+--
+-- Name: LocationRange_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."LocationRange_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."LocationRange_id_seq" OWNER TO postgres;
+
+--
+-- Name: LocationRange_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."LocationRange_id_seq" OWNED BY public."LocationRange".id;
+
+
+--
 -- Name: Message; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2341,6 +2381,13 @@ ALTER TABLE ONLY public."Intro" ALTER COLUMN id SET DEFAULT nextval('public."Int
 
 
 --
+-- Name: LocationRange id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."LocationRange" ALTER COLUMN id SET DEFAULT nextval('public."LocationRange_id_seq"'::regclass);
+
+
+--
 -- Name: Message id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2757,6 +2804,14 @@ COPY public."IconPackItem" (id, name, url, "s3Key", "packId", "createdAt") FROM 
 
 COPY public."Intro" (id, "fileName", "userId") FROM stdin;
 1	uploads/intros/1764162877115-75180112.mp4	\N
+\.
+
+
+--
+-- Data for Name: LocationRange; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."LocationRange" (id, label, "minKm", "maxKm", "order", "isActive", "createdAt", "updatedAt") FROM stdin;
 \.
 
 
@@ -3258,6 +3313,13 @@ SELECT pg_catalog.setval('public."Intro_id_seq"', 1, true);
 
 
 --
+-- Name: LocationRange_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."LocationRange_id_seq"', 1, false);
+
+
+--
 -- Name: Message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -3642,6 +3704,14 @@ ALTER TABLE ONLY public."IconPack"
 
 ALTER TABLE ONLY public."Intro"
     ADD CONSTRAINT "Intro_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: LocationRange LocationRange_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."LocationRange"
+    ADD CONSTRAINT "LocationRange_pkey" PRIMARY KEY (id);
 
 
 --
@@ -4115,6 +4185,13 @@ CREATE INDEX "IconPackItem_packId_idx" ON public."IconPackItem" USING btree ("pa
 --
 
 CREATE INDEX "IconPack_type_isActive_idx" ON public."IconPack" USING btree (type, "isActive");
+
+
+--
+-- Name: LocationRange_order_isActive_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "LocationRange_order_isActive_idx" ON public."LocationRange" USING btree ("order", "isActive");
 
 
 --

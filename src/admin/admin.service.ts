@@ -12,6 +12,8 @@ import * as path from 'path';
 import { CreateAdminRequest } from './dto/create-admin.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateAdminRequest } from './dto/update-admin.dto';
+import { CreateLocationRangeDto } from './dto/create-location-range.dto';
+import { UpdateLocationRangeDto } from './dto/update-location-range.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { MainGateway } from 'src/gateway/main.gateway';
@@ -995,5 +997,46 @@ export class AdminService {
     });
 
     return { message: `${actIds.length} актов убрано из категории` };
+  }
+
+  // ============================================
+  // ДИАПАЗОНЫ РАССТОЯНИЙ ДЛЯ ПОЛЗУНКА ЛОКАЦИИ
+  // ============================================
+
+  async getLocationRanges() {
+    return this.prisma.locationRange.findMany({
+      orderBy: { order: 'asc' },
+    });
+  }
+
+  async createLocationRange(adminId: number, dto: CreateLocationRangeDto) {
+    await this.checkMainAdmin(adminId);
+    return this.prisma.locationRange.create({ data: dto });
+  }
+
+  async updateLocationRange(
+    adminId: number,
+    rangeId: number,
+    dto: UpdateLocationRangeDto,
+  ) {
+    await this.checkMainAdmin(adminId);
+    const range = await this.prisma.locationRange.findUnique({
+      where: { id: rangeId },
+    });
+    if (!range) throw new NotFoundException('Диапазон не найден');
+    return this.prisma.locationRange.update({
+      where: { id: rangeId },
+      data: dto,
+    });
+  }
+
+  async deleteLocationRange(adminId: number, rangeId: number) {
+    await this.checkMainAdmin(adminId);
+    const range = await this.prisma.locationRange.findUnique({
+      where: { id: rangeId },
+    });
+    if (!range) throw new NotFoundException('Диапазон не найден');
+    await this.prisma.locationRange.delete({ where: { id: rangeId } });
+    return { message: 'Диапазон удалён' };
   }
 }

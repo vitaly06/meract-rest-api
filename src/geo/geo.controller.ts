@@ -21,4 +21,14 @@ export class GeoController {
   async searchCities(@Query('country') country: string, @Query('q') q: string) {
     return await this.geoService.searchCities(country, q);
   }
+
+  @ApiOperation({
+    summary: 'Активные диапазоны расстояний для ползунка локации',
+    description:
+      'Возвращает отсортированный список диапазонов (id, label, minKm, maxKm, order). Используется фронтендом для рендеринга ползунка.',
+  })
+  @Get('location-ranges')
+  async getLocationRanges() {
+    return this.geoService.getActiveLocationRanges();
+  }
 }

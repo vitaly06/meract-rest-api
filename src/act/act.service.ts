@@ -85,8 +85,7 @@ export class ActService {
         sequelId: sequelId ?? null,
         userId,
         previewFileName: filename ? `/uploads/acts/${filename}` : null,
-        status: 'ONLINE',
-        startedAt: new Date(),
+        status: 'OFFLINE',
         tags: tags ?? [], // ← Добавляем теги
         teams: {
           create: (teams ?? []).map((team) => ({
@@ -148,10 +147,6 @@ export class ActService {
     await this.utilsService.addRecordToActivityJournal(
       `Пользователь ${user.login || user.email} создал акт: '${act.title}'`,
       [userId],
-    );
-
-    this.startRecordingForAct(act.id, act.title, userId).catch((err) =>
-      console.error(`Не удалось запустить запись: ${err.message}`),
     );
 
     return act;
@@ -490,6 +485,34 @@ export class ActService {
     });
 
     return result.sort((a, b) => (a.id > b.id ? 1 : -1));
+  }
+
+  async startAct(id: number, userId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+    if (!act) throw new NotFoundException(`Акт с ID ${id} не найден`);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+    const isAdmin = ['admin', 'main admin'].includes(user?.role?.name ?? '');
+    if (act.userId !== userId && !isAdmin) {
+      throw new ForbiddenException('Нет прав для запуска этого акта');
+    }
+
+    const updated = await this.prisma.act.update({
+      where: { id },
+      data: { status: 'ONLINE', startedAt: new Date() },
+    });
+
+    this.startRecordingForAct(act.id, act.title, userId).catch((err) =>
+      this.logger.error(`Не удалось запустить запись: ${err.message}`),
+    );
+
+    return updated;
   }
 
   async stopAct(id: number, req: RequestWithUser) {

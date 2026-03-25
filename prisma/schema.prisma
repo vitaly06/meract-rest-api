@@ -607,6 +607,20 @@ model IconPackItem {
   @@index([packId])
 }
 
+// Диапазоны расстояний для ползунка локации (задаётся в админке)
+model LocationRange {
+  id        Int      @id @default(autoincrement())
+  label     String   // "Город", "Область", "Страна" и т.д.
+  minKm     Float    // нижняя граница диапазона (км)
+  maxKm     Float    // верхняя граница диапазона (км)
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order, isActive])
+}
+
 model GuildChatMessage {
   id        Int      @id @default(autoincrement())
   message   String
