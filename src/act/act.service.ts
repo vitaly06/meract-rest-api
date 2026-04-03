@@ -18,6 +18,8 @@ import { SelectionMethods } from '@prisma/client';
 import { GeoService } from 'src/geo/geo.service';
 import { NotificationService } from 'src/notification/notification.service';
 
+export type NavigatorVoiceTargetRole = 'initiator' | 'hero' | 'spot_agent';
+
 @Injectable()
 export class ActService {
   private readonly baseUrl: string;
@@ -1479,6 +1481,133 @@ export class ActService {
     });
 
     return { message: 'Spot agent removed successfully' };
+  }
+
+  async assertNavigatorCanSwitchVoice(actId: number, userId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: { id: true, status: true },
+    });
+
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    if (act.status !== 'ONLINE') {
+      throw new BadRequestException(
+        'Navigator voice switching is available only while act is ONLINE',
+      );
+    }
+
+    const navigator = await this.prisma.actParticipant.findFirst({
+      where: {
+        actId,
+        userId,
+        role: 'navigator',
+        status: { not: 'dropped' },
+      },
+      select: { id: true },
+    });
+
+    if (!navigator) {
+      throw new ForbiddenException(
+        'Only assigned navigator can switch private voice channel',
+      );
+    }
+
+    return true;
+  }
+
+  async resolveNavigatorVoiceTarget(
+    actId: number,
+    targetRole: NavigatorVoiceTargetRole,
+    targetUserId?: number,
+  ): Promise<{ targetRole: NavigatorVoiceTargetRole; targetUserId: number }> {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: { id: true, userId: true },
+    });
+
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    if (targetRole === 'initiator') {
+      if (targetUserId && targetUserId !== act.userId) {
+        throw new BadRequestException(
+          'For initiator targetRole, targetUserId must be equal to act initiator',
+        );
+      }
+
+      return { targetRole, targetUserId: act.userId };
+    }
+
+    if (targetRole === 'hero') {
+      const heroes = await this.prisma.actParticipant.findMany({
+        where: {
+          actId,
+          role: 'hero',
+          status: { not: 'dropped' },
+        },
+        select: { userId: true },
+      });
+
+      if (!heroes.length) {
+        throw new BadRequestException('No heroes assigned to this act');
+      }
+
+      const heroIds = heroes.map((h) => h.userId);
+
+      if (!targetUserId) {
+        if (heroIds.length > 1) {
+          throw new BadRequestException(
+            'targetUserId is required when multiple heroes are present',
+          );
+        }
+
+        return { targetRole, targetUserId: heroIds[0] };
+      }
+
+      if (!heroIds.includes(targetUserId)) {
+        throw new BadRequestException(
+          'targetUserId is not assigned as hero in this act',
+        );
+      }
+
+      return { targetRole, targetUserId };
+    }
+
+    const agents = await this.prisma.actSpotAgent.findMany({
+      where: {
+        actId,
+        status: { not: 'completed' },
+      },
+      select: { userId: true },
+    });
+
+    if (!agents.length) {
+      throw new BadRequestException('No spot agents assigned to this act');
+    }
+
+    const agentIds = agents.map((a) => a.userId);
+
+    if (!targetUserId) {
+      if (agentIds.length > 1) {
+        throw new BadRequestException(
+          'targetUserId is required when multiple spot agents are present',
+        );
+      }
+
+      return { targetRole, targetUserId: agentIds[0] };
+    }
+
+    if (!agentIds.includes(targetUserId)) {
+      throw new BadRequestException(
+        'targetUserId is not assigned as spot agent in this act',
+      );
+    }
+
+    return { targetRole, targetUserId };
   }
 
   // ... СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ РєРѕРґ ActService ...

@@ -23,6 +23,16 @@ interface AuthenticatedSocket extends Socket {
   guildId?: number;
 }
 
+type NavigatorVoiceTargetRole = 'initiator' | 'hero' | 'spot_agent';
+
+interface NavigatorVoiceState {
+  actId: number;
+  navigatorId: number;
+  targetRole: NavigatorVoiceTargetRole;
+  targetUserId: number;
+  updatedAt: string;
+}
+
 @WebSocketGateway({
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -38,6 +48,7 @@ export class MainGateway
 
   private logger = new Logger('MainGateway');
   private connectedUsers: Map<string, AuthenticatedSocket> = new Map();
+  private navigatorVoiceStateByAct = new Map<number, NavigatorVoiceState>();
   private timerInterval: NodeJS.Timeout;
 
   constructor(
@@ -189,6 +200,8 @@ export class MainGateway
             0,
           );
           socket.emit('chatHistory', { messages });
+
+          await this.broadcastNavigatorVoiceState(actId);
         } catch (error) {
           this.logger.error(`Error joining stream: ${error.message}`);
           socket.emit('error', { message: 'Failed to join stream chat' });
@@ -204,6 +217,100 @@ export class MainGateway
           );
           socket.actId = undefined;
           socket.emit('leftStream');
+        }
+      });
+
+      socket.on(
+        'navigator:voice:switch',
+        async (data: {
+          actId: number;
+          targetRole: NavigatorVoiceTargetRole;
+          targetUserId?: number;
+        }) => {
+          try {
+            if (!socket.userId) {
+              socket.emit('error', { message: 'Not authenticated' });
+              return;
+            }
+
+            const { actId, targetRole, targetUserId } = data || {};
+            if (!actId || !targetRole) {
+              socket.emit('navigator:voice:error', {
+                message: 'actId and targetRole are required',
+              });
+              return;
+            }
+
+            await this.actService.assertNavigatorCanSwitchVoice(
+              actId,
+              socket.userId,
+            );
+
+            const resolved = await this.actService.resolveNavigatorVoiceTarget(
+              actId,
+              targetRole,
+              targetUserId,
+            );
+
+            const state: NavigatorVoiceState = {
+              actId,
+              navigatorId: socket.userId,
+              targetRole: resolved.targetRole,
+              targetUserId: resolved.targetUserId,
+              updatedAt: new Date().toISOString(),
+            };
+
+            this.navigatorVoiceStateByAct.set(actId, state);
+
+            await this.broadcastNavigatorVoiceState(actId);
+
+            socket.emit('navigator:voice:switched', {
+              success: true,
+              state,
+            });
+          } catch (error) {
+            socket.emit('navigator:voice:error', {
+              message: error?.message || 'Failed to switch navigator voice',
+            });
+          }
+        },
+      );
+
+      socket.on('navigator:voice:get-state', async (data: { actId: number }) => {
+        try {
+          if (!socket.userId) {
+            socket.emit('error', { message: 'Not authenticated' });
+            return;
+          }
+
+          const { actId } = data || {};
+          if (!actId) {
+            socket.emit('navigator:voice:error', {
+              message: 'actId is required',
+            });
+            return;
+          }
+
+          const state = this.navigatorVoiceStateByAct.get(actId) ?? null;
+          socket.emit('navigator:voice:state', {
+            actId,
+            active: !!state,
+            state,
+          });
+
+          const permission = this.getNavigatorVoicePermission(
+            socket.userId,
+            state,
+          );
+          socket.emit('navigator:voice:permission', {
+            actId,
+            ...permission,
+            state,
+          });
+        } catch (error) {
+          socket.emit('navigator:voice:error', {
+            message: error?.message || 'Failed to get navigator voice state',
+          });
         }
       });
 
@@ -454,6 +561,72 @@ export class MainGateway
         this.logger.log(`Client ${socket.id} disconnected from /guild-chat`);
       });
     });
+  }
+
+  private getStreamChatSockets(actId: number): AuthenticatedSocket[] {
+    return Array.from(this.connectedUsers.values()).filter(
+      (socket) => socket.nsp?.name === '/chat' && socket.actId === actId,
+    );
+  }
+
+  private getTalkPairLabel(role: NavigatorVoiceTargetRole): string {
+    if (role === 'initiator') return 'инициатором';
+    if (role === 'hero') return 'героем';
+    return 'агентом';
+  }
+
+  private getNavigatorVoicePermission(
+    userId: number,
+    state: NavigatorVoiceState | null,
+  ) {
+    if (!state) {
+      return {
+        canSpeak: true,
+        reason: 'Вы можете говорить, канал навигатора не выбран',
+      };
+    }
+
+    if (userId === state.navigatorId) {
+      return {
+        canSpeak: true,
+        reason: `Вы в эфире с ${this.getTalkPairLabel(state.targetRole)}`,
+      };
+    }
+
+    if (userId === state.targetUserId) {
+      return {
+        canSpeak: true,
+        reason: 'Вы можете говорить, навигатор слушает вас',
+      };
+    }
+
+    return {
+      canSpeak: false,
+      reason: `Вы не можете говорить, навигатор в эфире с ${this.getTalkPairLabel(state.targetRole)}`,
+    };
+  }
+
+  private async broadcastNavigatorVoiceState(actId: number) {
+    const chatNs = this.server.of('/chat');
+    const state = this.navigatorVoiceStateByAct.get(actId) ?? null;
+
+    chatNs.to(`stream_${actId}`).emit('navigator:voice:state', {
+      actId,
+      active: !!state,
+      state,
+    });
+
+    const sockets = this.getStreamChatSockets(actId);
+    for (const socket of sockets) {
+      if (!socket.userId) continue;
+
+      const permission = this.getNavigatorVoicePermission(socket.userId, state);
+      socket.emit('navigator:voice:permission', {
+        actId,
+        ...permission,
+        state,
+      });
+    }
   }
 
   // ============================================
