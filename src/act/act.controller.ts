@@ -33,6 +33,7 @@ import { AssignSpotAgentDto } from './dto/assign-spot-agent.dto';
 import { ApplyForRoleDto } from './dto/apply-for-role.dto';
 import { VoteForCandidateDto } from './dto/vote-for-candidate.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
+import { VoteTeamCandidateDto } from './dto/vote-team-candidate.dto';
 
 @ApiTags('Акты')
 @Controller('act')
@@ -655,6 +656,24 @@ export class ActController {
     return this.actService.voteForCandidate(dto.candidateId, req.user.sub);
   }
 
+  @Post(':actId/vote-team-candidate')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Проголосовать за preset-кандидата (voting_candidates)',
+  })
+  @ApiBody({ type: VoteTeamCandidateDto })
+  async voteTeamCandidate(
+    @Param('actId') actId: string,
+    @Body() dto: VoteTeamCandidateDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.voteTeamCandidate(
+      +actId,
+      dto.candidateId,
+      req.user.sub,
+    );
+  }
+
   @Post(':actId/assign-role')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
@@ -680,7 +699,7 @@ export class ActController {
   })
   async getCandidates(
     @Param('actId') actId: string,
-    @Param('roleType') roleType: 'hero' | 'navigator',
+    @Param('roleType') roleType: 'hero' | 'navigator' | 'spot_agent',
   ) {
     return this.actService.getCandidates(+actId, roleType);
   }

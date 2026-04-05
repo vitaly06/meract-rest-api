@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+﻿import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -9,12 +9,12 @@ import {
 
 export class ApplyForRoleDto {
   @ApiProperty({
-    enum: ['hero', 'navigator'],
+    enum: ['hero', 'navigator', 'spot_agent'],
     example: 'hero',
     description: 'Роль, на которую подаётся заявка',
   })
-  @IsEnum(['hero', 'navigator'])
-  roleType: 'hero' | 'navigator';
+  @IsIn(['hero', 'navigator', 'spot_agent'])
+  roleType: 'hero' | 'navigator' | 'spot_agent';
 
   @ApiProperty({
     example: 100,

@@ -495,6 +495,42 @@ CREATE TABLE public."ActTeamCandidate" (
 ALTER TABLE public."ActTeamCandidate" OWNER TO postgres;
 
 --
+-- Name: ActTeamCandidateVote; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActTeamCandidateVote" (
+    id integer NOT NULL,
+    "candidateId" integer NOT NULL,
+    "voterId" integer NOT NULL,
+    "votedAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public."ActTeamCandidateVote" OWNER TO postgres;
+
+--
+-- Name: ActTeamCandidateVote_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ActTeamCandidateVote_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ActTeamCandidateVote_id_seq" OWNER TO postgres;
+
+--
+-- Name: ActTeamCandidateVote_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ActTeamCandidateVote_id_seq" OWNED BY public."ActTeamCandidateVote".id;
+
+
+--
 -- Name: ActTeamCandidate_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2255,6 +2291,13 @@ ALTER TABLE ONLY public."ActTeamCandidate" ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
+-- Name: ActTeamCandidateVote id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamCandidateVote" ALTER COLUMN id SET DEFAULT nextval('public."ActTeamCandidateVote_id_seq"'::regclass);
+
+
+--
 -- Name: ActTeamRoleConfig id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2641,6 +2684,14 @@ COPY public."ActTeam" (id, "actId", name, "createdAt") FROM stdin;
 --
 
 COPY public."ActTeamCandidate" (id, "configId", "userId") FROM stdin;
+\.
+
+
+--
+-- Data for Name: ActTeamCandidateVote; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActTeamCandidateVote" (id, "candidateId", "voterId", "votedAt") FROM stdin;
 \.
 
 
@@ -3166,6 +3217,13 @@ SELECT pg_catalog.setval('public."ActTask_id_seq"', 20, true);
 
 
 --
+-- Name: ActTeamCandidateVote_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ActTeamCandidateVote_id_seq"', 1, false);
+
+
+--
 -- Name: ActTeamCandidate_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -3528,6 +3586,14 @@ ALTER TABLE ONLY public."ActSpotAgent"
 
 ALTER TABLE ONLY public."ActTask"
     ADD CONSTRAINT "ActTask_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ActTeamCandidateVote ActTeamCandidateVote_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamCandidateVote"
+    ADD CONSTRAINT "ActTeamCandidateVote_pkey" PRIMARY KEY (id);
 
 
 --
@@ -4027,6 +4093,20 @@ CREATE INDEX "ActTask_actId_idx" ON public."ActTask" USING btree ("actId");
 
 
 --
+-- Name: ActTeamCandidateVote_candidateId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ActTeamCandidateVote_candidateId_idx" ON public."ActTeamCandidateVote" USING btree ("candidateId");
+
+
+--
+-- Name: ActTeamCandidateVote_candidateId_voterId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "ActTeamCandidateVote_candidateId_voterId_key" ON public."ActTeamCandidateVote" USING btree ("candidateId", "voterId");
+
+
+--
 -- Name: ActTeamCandidate_configId_userId_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -4478,6 +4558,22 @@ ALTER TABLE ONLY public."ActSpotAgent"
 
 ALTER TABLE ONLY public."ActTask"
     ADD CONSTRAINT "ActTask_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActTeamCandidateVote ActTeamCandidateVote_candidateId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamCandidateVote"
+    ADD CONSTRAINT "ActTeamCandidateVote_candidateId_fkey" FOREIGN KEY ("candidateId") REFERENCES public."ActTeamCandidate"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActTeamCandidateVote ActTeamCandidateVote_voterId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActTeamCandidateVote"
+    ADD CONSTRAINT "ActTeamCandidateVote_voterId_fkey" FOREIGN KEY ("voterId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

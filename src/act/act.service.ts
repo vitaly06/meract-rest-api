@@ -1615,22 +1615,43 @@ export class ActService {
   async applyForRole(
     actId: number,
     userId: number,
-    roleType: 'hero' | 'navigator',
+    roleType: 'hero' | 'navigator' | 'spot_agent',
     bidAmount?: number,
     bidItem?: string,
   ) {
+    const openConfig = await this.prisma.actTeamRoleConfig.findFirst({
+      where: {
+        team: { actId },
+        role: roleType,
+        openVoting: true,
+      },
+      select: { id: true },
+    });
+
+    if (!openConfig) {
+      throw new BadRequestException(
+        `Role "${roleType}" is not open for applications in this act`,
+      );
+    }
+
     const act = await this.prisma.act.findUnique({
       where: { id: actId },
       select: {
         heroMethods: true,
         navigatorMethods: true,
+        spotAgentMethods: true,
         biddingTime: true,
       },
     });
 
     if (!act) throw new NotFoundException('Act not found');
 
-    const method = roleType === 'hero' ? act.heroMethods : act.navigatorMethods;
+    const method =
+      roleType === 'hero'
+        ? act.heroMethods
+        : roleType === 'navigator'
+          ? act.navigatorMethods
+          : act.spotAgentMethods;
 
     // РџСЂРѕРІРµСЂРєР° РІСЂРµРјРµРЅРё С‚РѕСЂРіРѕРІ
     if (
@@ -1657,16 +1678,9 @@ export class ActService {
     }
 
     if (method === SelectionMethods.MANUAL) {
-      // Р”Р»СЏ MANUAL СЃСЂР°Р·Сѓ СЃРѕР·РґР°С‘Рј participant СЃ pending СЃС‚Р°С‚СѓСЃРѕРј
-      return this.prisma.actParticipant.create({
-        data: {
-          actId,
-          userId,
-          role: roleType,
-          status: 'pending',
-        },
-        include: { user: { select: { id: true, login: true, email: true } } },
-      });
+      throw new BadRequestException(
+        `Method ${SelectionMethods.MANUAL} does not accept open applications`,
+      );
     }
 
     // Р”Р»СЏ VOTING Рё BIDDING вЂ” СЃРѕР·РґР°С‘Рј РєР°РЅРґРёРґР°С‚СѓСЂСѓ
@@ -1690,7 +1704,13 @@ export class ActService {
     const candidate = await this.prisma.roleCandidate.findUnique({
       where: { id: candidateId },
       include: {
-        act: { select: { heroMethods: true, navigatorMethods: true } },
+        act: {
+          select: {
+            heroMethods: true,
+            navigatorMethods: true,
+            spotAgentMethods: true,
+          },
+        },
       },
     });
 
@@ -1699,7 +1719,9 @@ export class ActService {
     const method =
       candidate.roleType === 'hero'
         ? candidate.act.heroMethods
-        : candidate.act.navigatorMethods;
+        : candidate.roleType === 'navigator'
+          ? candidate.act.navigatorMethods
+          : candidate.act.spotAgentMethods;
 
     if (method !== SelectionMethods.VOTING) {
       throw new BadRequestException(
@@ -1732,6 +1754,56 @@ export class ActService {
       },
       include: {
         voter: { select: { id: true, login: true, email: true } },
+      },
+    });
+  }
+
+  async voteTeamCandidate(actId: number, candidateId: number, voterId: number) {
+    const candidate = await this.prisma.actTeamCandidate.findUnique({
+      where: { id: candidateId },
+      include: {
+        config: {
+          select: {
+            role: true,
+            openVoting: true,
+            team: { select: { actId: true } },
+          },
+        },
+      },
+    });
+
+    if (!candidate) throw new NotFoundException('Candidate not found');
+
+    if (candidate.config.team.actId !== actId) {
+      throw new BadRequestException('Candidate does not belong to this act');
+    }
+
+    if (candidate.config.openVoting) {
+      throw new BadRequestException('Use /vote-candidate for open voting roles');
+    }
+
+    const existingVote = await this.prisma.actTeamCandidateVote.findFirst({
+      where: {
+        voterId,
+        candidate: {
+          config: {
+            role: candidate.config.role,
+            team: { actId },
+          },
+        },
+      },
+    });
+
+    if (existingVote) {
+      throw new BadRequestException(
+        `You have already voted for a ${candidate.config.role} candidate in this act`,
+      );
+    }
+
+    return this.prisma.actTeamCandidateVote.create({
+      data: { candidateId, voterId },
+      include: {
+        voter: { select: { id: true, login: true } },
       },
     });
   }
@@ -1852,7 +1924,10 @@ export class ActService {
     return participant;
   }
 
-  async getCandidates(actId: number, roleType: 'hero' | 'navigator') {
+  async getCandidates(
+    actId: number,
+    roleType: 'hero' | 'navigator' | 'spot_agent',
+  ) {
     const act = await this.prisma.act.findUnique({ where: { id: actId } });
     if (!act) throw new NotFoundException('Act not found');
 
@@ -1877,7 +1952,9 @@ export class ActService {
             team: { select: { id: true, name: true } },
           },
         },
+        _count: { select: { votes: true } },
       },
+      orderBy: { votes: { _count: 'desc' } },
     });
 
     // Candidates from the manual apply-for-role flow
