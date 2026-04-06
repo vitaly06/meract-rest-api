@@ -64,7 +64,7 @@ export class ActController {
           description:
             'JSON-массив команд. Каждая команда: name, roles[], tasks?[]',
           example:
-            '[{"name":"Команда 1","roles":[{"role":"hero","openVoting":false,"candidateUserIds":[1,2]},{"role":"navigator","openVoting":true,"votingStartAt":"2026-03-01T10:00:00Z","votingDurationHours":24},{"role":"spot_agent","openVoting":false,"candidateUserIds":[3]}],"tasks":[{"description":"Задание 1","address":"ул. Ленина, 1"}]}]',
+            '[{"name":"Команда 1","roles":[{"role":"hero","openVoting":false,"candidateUserIds":[1,2]},{"role":"navigator","openVoting":true,"votingStartAt":"2026-03-01T10:00:00Z","votingDurationHours":24},{"role":"spot_agent","openVoting":false,"candidateUserIds":[3]}],"tasks":[{"description":"Задание 1","address":"ул. Ленина, 1","lat":55.751244,"lng":37.618423}]}]',
         },
         tags: {
           type: 'array',
@@ -375,6 +375,17 @@ export class ActController {
     @Req() req: RequestWithUser,
   ) {
     return this.actService.toggleTaskStatus(+actId, +taskId, req.user.sub);
+  }
+
+  @Patch(':actId/team-tasks/:taskId/toggle')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Переключить статус задания команды' })
+  async toggleTeamTask(
+    @Param('actId') actId: string,
+    @Param('taskId') taskId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.toggleTeamTaskStatus(+actId, +taskId, req.user.sub);
   }
 
   @Delete(':actId/tasks/:taskId')

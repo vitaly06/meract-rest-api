@@ -115,6 +115,8 @@ export class ActService {
                   create: team.tasks.map((task, index) => ({
                     description: task.description,
                     address: task.address ?? null,
+                    lat: task.lat ?? null,
+                    lng: task.lng ?? null,
                     order: index,
                   })),
                 }
@@ -1481,6 +1483,36 @@ export class ActService {
     });
 
     return { message: 'Spot agent removed successfully' };
+  }
+
+  async toggleTeamTaskStatus(actId: number, taskId: number, userId: number) {
+    const act = await this.prisma.act.findUnique({ where: { id: actId } });
+    if (!act) throw new NotFoundException('Act not found');
+    if (act.userId !== userId) {
+      throw new ForbiddenException('Only act owner can toggle tasks');
+    }
+
+    const task = await this.prisma.actTeamTask.findUnique({
+      where: { id: taskId },
+    });
+    if (!task) throw new NotFoundException('Task not found');
+
+    const team = await this.prisma.actTeam.findUnique({
+      where: { id: task.teamId },
+      select: { actId: true },
+    });
+
+    if (!team || team.actId !== actId) {
+      throw new BadRequestException('Task does not belong to this act');
+    }
+
+    return this.prisma.actTeamTask.update({
+      where: { id: taskId },
+      data: {
+        isCompleted: !task.isCompleted,
+        completedAt: !task.isCompleted ? new Date() : null,
+      },
+    });
   }
 
   async assertNavigatorCanSwitchVoice(actId: number, userId: number) {

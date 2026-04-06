@@ -12,6 +12,7 @@ import {
   ValidateNested,
   MaxLength,
   Min,
+  IsNumber,
 } from 'class-validator';
 
 // ─── Задание внутри команды ────────────────────────────────────────────────
@@ -34,6 +35,24 @@ export class ActTeamTaskDto {
   @IsOptional()
   @IsString()
   address?: string;
+
+  @ApiProperty({
+    example: 55.751244,
+    required: false,
+    description: 'Широта точки задания (опционально)',
+  })
+  @IsOptional()
+  @IsNumber()
+  lat?: number;
+
+  @ApiProperty({
+    example: 37.618423,
+    required: false,
+    description: 'Долгота точки задания (опционально)',
+  })
+  @IsOptional()
+  @IsNumber()
+  lng?: number;
 }
 
 // ─── Конфигурация роли (hero / navigator / spot_agent) ─────────────────────
@@ -157,7 +176,7 @@ export class CreateActRequest {
     description:
       'Массив команд акта. Передаётся как строка JSON при multipart/form-data',
     example:
-      '[{"name":"Команда 1","roles":[{"role":"hero","openVoting":false,"candidateUserIds":[1,2]},{"role":"navigator","openVoting":true,"votingStartAt":"2026-03-01T10:00:00Z","votingDurationHours":24},{"role":"spot_agent","openVoting":false,"candidateUserIds":[3]}],"tasks":[{"description":"Задание 1","address":"ул. Ленина, 1"}]}]',
+      '[{"name":"Команда 1","roles":[{"role":"hero","openVoting":false,"candidateUserIds":[1,2]},{"role":"navigator","openVoting":true,"votingStartAt":"2026-03-01T10:00:00Z","votingDurationHours":24},{"role":"spot_agent","openVoting":false,"candidateUserIds":[3]}],"tasks":[{"description":"Задание 1","address":"ул. Ленина, 1","lat":55.751244,"lng":37.618423}]}]',
   })
   @Transform(({ value }) => {
     const raw =
