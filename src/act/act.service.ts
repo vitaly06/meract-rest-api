@@ -1985,6 +1985,9 @@ export class ActService {
           },
         },
         _count: { select: { votes: true } },
+        votes: {
+          select: { voterId: true },
+        },
       },
       orderBy: { votes: { _count: 'desc' } },
     });
