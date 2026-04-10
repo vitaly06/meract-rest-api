@@ -6,7 +6,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { PresenceService } from 'src/presence/presence.service';
@@ -55,6 +55,7 @@ export class MainGateway
     private readonly jwtService: JwtService,
     private readonly chatService: ChatService,
     private readonly guildService: GuildService,
+    @Inject(forwardRef(() => ActService))
     private readonly actService: ActService,
     private readonly presenceService: PresenceService,
   ) {}

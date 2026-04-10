@@ -127,6 +127,19 @@ export class ChatController {
     return this.chatService.getOrCreateGuildChat(req.user.sub, guildId, actId);
   }
 
+  @ApiOperation({
+    summary: 'Найти или создать приватный командный чат акта',
+    description:
+      'Создаёт (или возвращает) групповой чат команды акта для ролей hero/navigator/spot_agent и инициатора.',
+  })
+  @Post('act-team/:actId')
+  async getOrCreateActTeamChat(
+    @Req() req: RequestWithUser,
+    @Param('actId', ParseIntPipe) actId: number,
+  ) {
+    return this.chatService.getOrCreateActTeamChat(req.user.sub, actId);
+  }
+
   // ─── Messages ────────────────────────────────────────────────────────────────
 
   @ApiOperation({

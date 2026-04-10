@@ -4,6 +4,8 @@
   ForbiddenException,
   BadRequestException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import moment from 'moment';
@@ -17,6 +19,7 @@ import { AgoraRecordingService } from 'src/agora-recording/agora-recording.servi
 import { SelectionMethods } from '@prisma/client';
 import { GeoService } from 'src/geo/geo.service';
 import { NotificationService } from 'src/notification/notification.service';
+import { MainGateway } from 'src/gateway/main.gateway';
 
 export type NavigatorVoiceTargetRole = 'initiator' | 'hero' | 'spot_agent';
 
@@ -32,6 +35,8 @@ export class ActService {
     private readonly agoraRecordingService: AgoraRecordingService,
     private readonly geoService: GeoService,
     private readonly notificationService: NotificationService,
+    @Inject(forwardRef(() => MainGateway))
+    private readonly gateway: MainGateway,
   ) {
     this.baseUrl = this.configService.get<string>(
       'BASE_URL',
@@ -88,7 +93,7 @@ export class ActService {
         userId,
         previewFileName: filename ? `/uploads/acts/${filename}` : null,
         status: 'OFFLINE',
-        tags: tags ?? [], // ← Добавляем теги
+        tags: tags ?? [], // < Добавляем теги
         teams: {
           create: (teams ?? []).map((team) => ({
             name: team.name,
@@ -503,7 +508,12 @@ export class ActService {
       include: { role: true },
     });
     const isAdmin = ['admin', 'main admin'].includes(user?.role?.name ?? '');
-    if (act.userId !== userId && !isAdmin) {
+    const isHeroParticipant = await this.prisma.actParticipant.findFirst({
+      where: { actId: id, userId, role: 'hero', status: 'active' },
+      select: { id: true },
+    });
+
+    if (act.userId !== userId && !isAdmin && !isHeroParticipant) {
       throw new ForbiddenException('Нет прав для запуска этого акта');
     }
 
@@ -1488,8 +1498,22 @@ export class ActService {
   async toggleTeamTaskStatus(actId: number, taskId: number, userId: number) {
     const act = await this.prisma.act.findUnique({ where: { id: actId } });
     if (!act) throw new NotFoundException('Act not found');
-    if (act.userId !== userId) {
-      throw new ForbiddenException('Only act owner can toggle tasks');
+
+    const isOwner = act.userId === userId;
+    const isHeroOrNavigator = await this.prisma.actParticipant.findFirst({
+      where: {
+        actId,
+        userId,
+        role: { in: ['hero', 'navigator'] },
+        status: { not: 'dropped' },
+      },
+      select: { id: true },
+    });
+
+    if (!isOwner && !isHeroOrNavigator) {
+      throw new ForbiddenException(
+        'Only act owner, hero, or navigator can toggle tasks',
+      );
     }
 
     const task = await this.prisma.actTeamTask.findUnique({
@@ -1506,13 +1530,21 @@ export class ActService {
       throw new BadRequestException('Task does not belong to this act');
     }
 
-    return this.prisma.actTeamTask.update({
+    const updatedTask = await this.prisma.actTeamTask.update({
       where: { id: taskId },
       data: {
         isCompleted: !task.isCompleted,
         completedAt: !task.isCompleted ? new Date() : null,
       },
     });
+
+    this.gateway.server.of('/chat').to(`stream_${actId}`).emit('taskToggled', {
+      taskId,
+      isCompleted: updatedTask.isCompleted,
+      completedAt: updatedTask.completedAt,
+    });
+
+    return updatedTask;
   }
 
   async assertNavigatorCanSwitchVoice(actId: number, userId: number) {
@@ -2011,3 +2043,7 @@ export class ActService {
     };
   }
 }
+
+
+
+

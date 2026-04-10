@@ -320,6 +320,58 @@ export class ChatService {
     return { id: chat.id, type: 'guild', guildId };
   }
 
+  async getOrCreateActTeamChat(userId: number, actId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      include: {
+        participants: {
+          where: {
+            role: { in: ['hero', 'navigator', 'spot_agent'] },
+            status: 'active',
+          },
+          select: { userId: true },
+        },
+      },
+    });
+    if (!act) throw new NotFoundException('Act not found');
+
+    const isCreator = act.userId === userId;
+    const isParticipant = act.participants.some((p) => p.userId === userId);
+    if (!isCreator && !isParticipant) {
+      throw new ForbiddenException('You are not a team member of this act');
+    }
+
+    const existing = await this.prisma.chat.findFirst({
+      where: { actId, type: 'group' },
+      orderBy: { id: 'asc' },
+    });
+
+    if (existing) {
+      await this.prisma.chatMember.upsert({
+        where: { chatId_userId: { chatId: existing.id, userId } },
+        create: { chatId: existing.id, userId },
+        update: {},
+      });
+      return { id: existing.id, type: 'group', actId };
+    }
+
+    const memberIds = [
+      ...new Set([act.userId, userId, ...act.participants.map((p) => p.userId)]),
+    ];
+
+    const chat = await this.prisma.chat.create({
+      data: {
+        type: 'group',
+        name: 'Team Chat',
+        actId,
+        creatorId: userId,
+        members: { create: memberIds.map((id) => ({ userId: id })) },
+      },
+    });
+
+    return { id: chat.id, type: 'group', actId };
+  }
+
   // ─── Messages ────────────────────────────────────────────────────────────────
 
   async getMessages(

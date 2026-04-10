@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ActService } from './act.service';
 import { ActController } from './act.controller';
 import { ActGateway } from './act.gateway';
@@ -8,6 +8,7 @@ import { diskStorage } from 'multer';
 import * as path from 'path';
 import { AgoraRecordingModule } from 'src/agora-recording/agora-recording.module';
 import { GeoModule } from 'src/geo/geo.module';
+import { GatewayModule } from 'src/gateway/gateway.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { GeoModule } from 'src/geo/geo.module';
     }),
     AgoraRecordingModule,
     GeoModule,
+    forwardRef(() => GatewayModule),
   ],
   controllers: [ActController],
   providers: [ActService, ActGateway],
