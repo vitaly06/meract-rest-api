@@ -6,6 +6,7 @@ import {
   Get,
   Delete,
   Param,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -104,8 +105,17 @@ export class AgoraRecordingController {
     status: 200,
     description: 'List of recordings for the act',
   })
-  async getActRecordings(@Param('actId') actId: string) {
-    return this.agoraRecordingService.getActRecordingsFromS3(+actId);
+  async getActRecordings(
+    @Param('actId') actId: string,
+    @Query('heroUserId') heroUserId?: string,
+  ) {
+    if (!heroUserId) {
+      return this.agoraRecordingService.getActRecordingsFromS3(+actId);
+    }
+    return this.agoraRecordingService.getActRecordingsFromS3ByHero(
+      +actId,
+      +heroUserId,
+    );
   }
 
   /**

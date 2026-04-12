@@ -212,6 +212,78 @@ export class ActController {
     return await this.actService.startAct(+id, req.user.sub);
   }
 
+  @ApiOperation({
+    summary: 'Список hero-стримов акта',
+    description:
+      'Возвращает текущее состояние стримов по каждому hero-участнику акта.',
+  })
+  @Get(':actId/hero-streams')
+  @UseGuards(JwtAuthGuard)
+  async getHeroStreams(@Param('actId') actId: string) {
+    return await this.actService.getHeroStreams(+actId);
+  }
+
+  @ApiOperation({
+    summary: 'Запустить hero-стрим',
+    description:
+      'Доступно владельцу акта, администратору или самому hero-пользователю.',
+  })
+  @Post(':actId/hero-streams/:heroUserId/start')
+  @UseGuards(JwtAuthGuard)
+  async startHeroStream(
+    @Param('actId') actId: string,
+    @Param('heroUserId') heroUserId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.actService.startHeroStream(
+      +actId,
+      +heroUserId,
+      req.user.sub,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Остановить hero-стрим',
+    description:
+      'Доступно владельцу акта, администратору или самому hero-пользователю.',
+  })
+  @Post(':actId/hero-streams/:heroUserId/stop')
+  @UseGuards(JwtAuthGuard)
+  async stopHeroStream(
+    @Param('actId') actId: string,
+    @Param('heroUserId') heroUserId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.actService.stopHeroStream(
+      +actId,
+      +heroUserId,
+      req.user.sub,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Токен Agora для hero-канала',
+    description:
+      'role=publisher|subscriber, expiry в секундах. publisher разрешён только owner/admin/hero.',
+  })
+  @Get(':actId/hero-streams/:heroUserId/token')
+  @UseGuards(JwtAuthGuard)
+  async getHeroStreamToken(
+    @Param('actId') actId: string,
+    @Param('heroUserId') heroUserId: string,
+    @Req() req: RequestWithUser,
+    @Query('role') role?: 'publisher' | 'subscriber',
+    @Query('expiry') expiry?: string,
+  ) {
+    return await this.actService.getHeroStreamToken(
+      +actId,
+      +heroUserId,
+      req.user.sub,
+      role ?? 'subscriber',
+      expiry ? +expiry : 3600,
+    );
+  }
+
   @ApiOperation({ summary: 'Оценить акт (0–10, шаг 0.5)' })
   @ApiBody({
     schema: {

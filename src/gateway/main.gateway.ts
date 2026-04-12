@@ -850,6 +850,35 @@ export class MainGateway
     this.logger.log(`poll:closed → stream_${actId} (pollId=${pollId})`);
   }
 
+  emitHeroStreamStarted(payload: {
+    actId: number;
+    heroUserId: number;
+    channelName: string;
+    startedAt: string;
+  }) {
+    const chatNs = this.server.of('/chat');
+    chatNs.to(`stream_${payload.actId}`).emit('heroStreamStarted', payload);
+  }
+
+  emitHeroStreamStopped(payload: {
+    actId: number;
+    heroUserId: number;
+    channelName: string;
+    endedAt: string;
+  }) {
+    const chatNs = this.server.of('/chat');
+    chatNs.to(`stream_${payload.actId}`).emit('heroStreamStopped', payload);
+  }
+
+  emitHeroStreamFailed(payload: {
+    actId: number;
+    heroUserId: number;
+    reason: string;
+  }) {
+    const chatNs = this.server.of('/chat');
+    chatNs.to(`stream_${payload.actId}`).emit('heroStreamFailed', payload);
+  }
+
   // ============================================
   // ПУБЛИЧНЫЕ МЕТОДЫ ДЛЯ GUILD CHAT
   // ============================================

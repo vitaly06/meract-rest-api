@@ -171,6 +171,7 @@ model User {
   ActSpotAgentVote      ActSpotAgentVote[]
 
   ActParticipants   ActParticipant[]   @relation("UserActParticipants")
+  ActHeroStreams   ActHeroStream[]
   RoleCandidates    RoleCandidate[]    @relation("UserRoleCandidates")
   RoleVotes         RoleVote[]         @relation("UserRoleVotes")
   ActTeamCandidates ActTeamCandidate[]
@@ -323,10 +324,32 @@ model Act {
 
   // Teams
   teams ActTeam[]
+  heroStreams ActHeroStream[]
 
   polls Poll[]
   chats Chat[]
   ratings ActRating[]
+}
+
+model ActHeroStream {
+  id                  Int      @id @default(autoincrement())
+  actId               Int
+  act                 Act      @relation(fields: [actId], references: [id], onDelete: Cascade)
+  heroUserId          Int
+  heroUser            User     @relation(fields: [heroUserId], references: [id], onDelete: Cascade)
+  channelName         String
+  status              String   @default("OFFLINE") // OFFLINE | ONLINE | ENDED | FAILED
+  startedAt           DateTime?
+  endedAt             DateTime?
+  recordingSid        String?
+  recordingResourceId String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([actId, heroUserId])
+  @@index([actId, heroUserId])
+  @@index([actId, status])
+  @@index([channelName, startedAt])
 }
 
 model ActParticipant {

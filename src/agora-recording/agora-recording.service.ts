@@ -817,6 +817,22 @@ export class AgoraRecordingService {
     }
   }
 
+  async getActRecordingsFromS3ByHero(
+    actId: number,
+    heroUserId: number,
+  ): Promise<any[]> {
+    try {
+      const allRecordings = await this.getAllRecordingsFromS3();
+      const heroPrefix = `/recordings/${actId}_hero_${heroUserId}/`;
+      return allRecordings.filter((r) => String(r.key || '').includes(heroPrefix));
+    } catch (error) {
+      this.logger.error(
+        `Failed to get hero recordings from S3: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
   /**
    * Получить presigned URL для скачивания из S3
    */

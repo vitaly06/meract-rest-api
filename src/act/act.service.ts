@@ -22,6 +22,7 @@ import { NotificationService } from 'src/notification/notification.service';
 import { MainGateway } from 'src/gateway/main.gateway';
 
 export type NavigatorVoiceTargetRole = 'initiator' | 'hero' | 'spot_agent';
+export type HeroStreamRole = 'publisher' | 'subscriber';
 
 @Injectable()
 export class ActService {
@@ -608,6 +609,324 @@ export class ActService {
       console.error(`Error stopping act ${id}: ${error}`);
       throw new NotFoundException(`Failed to stop act: ${error}`);
     }
+  }
+
+  private async isAdminUser(userId: number): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+    return ['admin', 'main admin'].includes(user?.role?.name ?? '');
+  }
+
+  private async getActiveHeroParticipant(actId: number, heroUserId: number) {
+    return this.prisma.actParticipant.findFirst({
+      where: {
+        actId,
+        userId: heroUserId,
+        role: 'hero',
+        status: 'active',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getHeroStreams(actId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: {
+        id: true,
+        participants: {
+          where: {
+            role: 'hero',
+            status: { in: ['approved', 'onboard', 'active'] },
+          },
+          include: {
+            user: { select: { id: true, login: true, email: true } },
+          },
+        },
+      },
+    });
+
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    const heroIds = act.participants.map((p) => p.userId);
+    const streams = heroIds.length
+      ? await this.prisma.actHeroStream.findMany({
+          where: {
+            actId,
+            heroUserId: { in: heroIds },
+          },
+        })
+      : [];
+
+    const streamMap = new Map(streams.map((s) => [s.heroUserId, s]));
+
+    return act.participants.map((hero) => {
+      const stream = streamMap.get(hero.userId);
+      return {
+        heroUserId: hero.userId,
+        heroLogin: hero.user.login || hero.user.email,
+        channelName: stream?.channelName ?? `act_${actId}_hero_${hero.userId}`,
+        status: stream?.status ?? 'OFFLINE',
+        startedAt: stream?.startedAt ?? null,
+        endedAt: stream?.endedAt ?? null,
+      };
+    });
+  }
+
+  async startHeroStream(actId: number, heroUserId: number, actorUserId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: { id: true, userId: true },
+    });
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    const heroParticipant = await this.getActiveHeroParticipant(actId, heroUserId);
+    if (!heroParticipant) {
+      throw new BadRequestException(
+        'Hero must be an active participant of this act',
+      );
+    }
+
+    const isAdmin = await this.isAdminUser(actorUserId);
+    const isActOwner = act.userId === actorUserId;
+    const isSameHero = heroUserId === actorUserId;
+    if (!isAdmin && !isActOwner && !isSameHero) {
+      throw new ForbiddenException('No rights to start this hero stream');
+    }
+
+    const channelName = `act_${actId}_hero_${heroUserId}`;
+    const now = new Date();
+
+    const current = await this.prisma.actHeroStream.findUnique({
+      where: { actId_heroUserId: { actId, heroUserId } },
+    });
+    if (current?.status === 'ONLINE') {
+      return current;
+    }
+
+    try {
+      const uid = `${heroUserId}`;
+      const token = this.generateToken(
+        channelName,
+        'PUBLISHER',
+        'uid',
+        uid,
+        86400,
+      );
+      const resourceId = await this.agoraRecordingService.acquire(channelName, uid);
+      const { sid } = await this.agoraRecordingService.startRecording(
+        resourceId,
+        channelName,
+        uid,
+        token,
+      );
+
+      const stream = await this.prisma.actHeroStream.upsert({
+        where: { actId_heroUserId: { actId, heroUserId } },
+        create: {
+          actId,
+          heroUserId,
+          channelName,
+          status: 'ONLINE',
+          startedAt: now,
+          endedAt: null,
+          recordingResourceId: resourceId,
+          recordingSid: sid,
+        },
+        update: {
+          channelName,
+          status: 'ONLINE',
+          startedAt: now,
+          endedAt: null,
+          recordingResourceId: resourceId,
+          recordingSid: sid,
+        },
+      });
+
+      this.gateway.emitHeroStreamStarted({
+        actId,
+        heroUserId,
+        channelName,
+        startedAt: now.toISOString(),
+      });
+
+      await this.utilsService.addRecordToActivityJournal(
+        `User ${actorUserId} started hero stream for hero ${heroUserId} in act ${actId}`,
+        [actorUserId, heroUserId, act.userId],
+      );
+
+      return stream;
+    } catch (error) {
+      await this.prisma.actHeroStream.upsert({
+        where: { actId_heroUserId: { actId, heroUserId } },
+        create: {
+          actId,
+          heroUserId,
+          channelName,
+          status: 'FAILED',
+          startedAt: now,
+          endedAt: now,
+        },
+        update: {
+          channelName,
+          status: 'FAILED',
+          endedAt: now,
+        },
+      });
+
+      this.gateway.emitHeroStreamFailed({
+        actId,
+        heroUserId,
+        reason: error?.message || 'Failed to start hero stream',
+      });
+
+      throw new BadRequestException(
+        error?.message || 'Failed to start hero stream',
+      );
+    }
+  }
+
+  async stopHeroStream(actId: number, heroUserId: number, actorUserId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: { id: true, userId: true },
+    });
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    const stream = await this.prisma.actHeroStream.findUnique({
+      where: { actId_heroUserId: { actId, heroUserId } },
+    });
+    if (!stream) {
+      throw new NotFoundException('Hero stream session not found');
+    }
+
+    const isAdmin = await this.isAdminUser(actorUserId);
+    const isActOwner = act.userId === actorUserId;
+    const isSameHero = heroUserId === actorUserId;
+    if (!isAdmin && !isActOwner && !isSameHero) {
+      throw new ForbiddenException('No rights to stop this hero stream');
+    }
+
+    const now = new Date();
+
+    try {
+      if (stream.status === 'ONLINE' && stream.recordingResourceId && stream.recordingSid) {
+        await this.agoraRecordingService.stopRecording(
+          stream.recordingResourceId,
+          stream.recordingSid,
+          stream.channelName,
+          `${heroUserId}`,
+        );
+      }
+
+      const updated = await this.prisma.actHeroStream.update({
+        where: { actId_heroUserId: { actId, heroUserId } },
+        data: {
+          status: 'ENDED',
+          endedAt: now,
+        },
+      });
+
+      this.gateway.emitHeroStreamStopped({
+        actId,
+        heroUserId,
+        channelName: updated.channelName,
+        endedAt: now.toISOString(),
+      });
+
+      await this.utilsService.addRecordToActivityJournal(
+        `User ${actorUserId} stopped hero stream for hero ${heroUserId} in act ${actId}`,
+        [actorUserId, heroUserId, act.userId],
+      );
+
+      return updated;
+    } catch (error) {
+      await this.prisma.actHeroStream.update({
+        where: { actId_heroUserId: { actId, heroUserId } },
+        data: {
+          status: 'FAILED',
+          endedAt: now,
+        },
+      });
+
+      this.gateway.emitHeroStreamFailed({
+        actId,
+        heroUserId,
+        reason: error?.message || 'Failed to stop hero stream',
+      });
+
+      throw new BadRequestException(
+        error?.message || 'Failed to stop hero stream',
+      );
+    }
+  }
+
+  async getHeroStreamToken(
+    actId: number,
+    heroUserId: number,
+    requesterId: number,
+    role: HeroStreamRole = 'subscriber',
+    expiry = 3600,
+  ) {
+    if (!['publisher', 'subscriber'].includes(role)) {
+      throw new BadRequestException('role must be publisher or subscriber');
+    }
+
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: { id: true, userId: true },
+    });
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    const heroParticipant = await this.getActiveHeroParticipant(actId, heroUserId);
+    if (!heroParticipant) {
+      throw new BadRequestException('Hero is not active in this act');
+    }
+
+    const isAdmin = await this.isAdminUser(requesterId);
+    const isActOwner = act.userId === requesterId;
+    const isSameHero = heroUserId === requesterId;
+
+    if (role === 'publisher' && !isAdmin && !isActOwner && !isSameHero) {
+      throw new ForbiddenException('Only owner/admin/hero can publish stream');
+    }
+
+    const channelName = `act_${actId}_hero_${heroUserId}`;
+    const agoraRole = role === 'publisher' ? 'PUBLISHER' : 'SUBSCRIBER';
+    const token = this.generateToken(
+      channelName,
+      agoraRole,
+      'uid',
+      `${requesterId}`,
+      expiry,
+    );
+
+    return {
+      token,
+      role,
+      channelName,
+      expiry,
+      actId,
+      heroUserId,
+    };
   }
 
   async getStatistic() {

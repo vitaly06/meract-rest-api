@@ -228,6 +228,49 @@ CREATE TABLE public."Act" (
 ALTER TABLE public."Act" OWNER TO postgres;
 
 --
+-- Name: ActHeroStream; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ActHeroStream" (
+    id integer NOT NULL,
+    "actId" integer NOT NULL,
+    "heroUserId" integer NOT NULL,
+    "channelName" text NOT NULL,
+    status text DEFAULT 'OFFLINE'::text NOT NULL,
+    "startedAt" timestamp(3) without time zone,
+    "endedAt" timestamp(3) without time zone,
+    "recordingSid" text,
+    "recordingResourceId" text,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."ActHeroStream" OWNER TO postgres;
+
+--
+-- Name: ActHeroStream_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."ActHeroStream_id_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."ActHeroStream_id_seq" OWNER TO postgres;
+
+--
+-- Name: ActHeroStream_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."ActHeroStream_id_seq" OWNED BY public."ActHeroStream".id;
+
+
+--
 -- Name: ActMusic; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2239,6 +2282,13 @@ ALTER TABLE ONLY public."Act" ALTER COLUMN id SET DEFAULT nextval('public."Act_i
 
 
 --
+-- Name: ActHeroStream id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActHeroStream" ALTER COLUMN id SET DEFAULT nextval('public."ActHeroStream_id_seq"'::regclass);
+
+
+--
 -- Name: ActParticipant id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2605,6 +2655,14 @@ COPY public."Act" (id, title, "previewFileName", "sequelId", type, format, "hero
 
 
 --
+-- Data for Name: ActHeroStream; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."ActHeroStream" (id, "actId", "heroUserId", "channelName", status, "startedAt", "endedAt", "recordingSid", "recordingResourceId", "createdAt", "updatedAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: ActMusic; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -2795,6 +2853,7 @@ COPY public."Guild" (id, name, description, "logoFileName", "ownerId", "createdA
 --
 
 COPY public."GuildAchievement" ("guildId", "achievementId", "awardedAt", featured, "order") FROM stdin;
+4	4	2026-04-10 16:50:02.268	f	0
 \.
 
 
@@ -3045,8 +3104,8 @@ COPY public."Transaction" (id, type, status, amount, "userId", "counterpartId", 
 COPY public."User" (id, login, password, email, status, "warningCount", "roleId", "terminateCount", "createdAt", "updatedAt", "refreshToken", "guildId", "avatarUrl", "fullName", "timeZone", "notifyActProgress", "notifyActStatusRealtime", "notifyAll", "notifyChatMentions", "notifyGuildInvites", "communicationLanguages", city, country, "twoFactorEnabled", "twoFactorSecret", "whoCanMessage", points, "lastSeenAt", balance, "phoneNumber") FROM stdin;
 4	\N	$2b$10$ICF9VM5m0TaWBEhOJJexmuoK56YQqvIX0XJPBuses7bHL2keZR51K	vitaly.sadikov2@yandex.ru	ACTIVE	0	1	\N	2025-11-29 10:59:03.756	2026-03-05 14:09:29.194	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImxvZ2luIjpudWxsLCJpYXQiOjE3NjQ0OTA1MzgsImV4cCI6MTc2NTA5NTMzOH0.WpKpL5-zkwTgvLD7GW_VD2g0gtpffnL-dMTPsxFkW8E	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N	0	\N
 2	vitalysadikov9@gmail.com	$2b$10$FnGfnHFYSS8DsS2lWbCQEOuYoEalNHGH4TJbOpR1jUZ7qQkkvcASm	vitalysadikov9@gmail.com	ACTIVE	0	2	\N	2025-11-26 13:35:49.708	2026-03-20 21:12:56.964	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImxvZ2luIjoidml0YWx5c2FkaWtvdjlAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY0MTQ5LCJleHAiOjE3NjQ3Njg5NDl9.I-Nf3fjG3We-mpaLGN6IqRLbc51o1jESFG_aSPMXifo	4	\N	\N	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	1000	\N	1000	\N
-1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-04-06 13:33:21.827	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzU0ODI0MDEsImV4cCI6MTc3NjA4NzIwMX0.LG_b3cAVzFw63dck-WIqRvaODvtCJxG-Z4f1BTAfuL4	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
 8	vitaly.sadikov1	$2b$10$W/NPCUdqoXg.cRQ3eBbcG.yu0rRfPbxqEUSOqHkfIYHH2WcwdJJF.	tgflk_tuv@mail.ru	ACTIVE	0	1	\N	2026-02-19 15:47:24.271	2026-03-19 22:01:40.245	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImxvZ2luIjoidml0YWx5LnNhZGlrb3YxIiwiaWF0IjoxNzcxNjAxMjc0LCJleHAiOjE3NzIyMDYwNzR9.zUurOQO0fL8u_SMbviSENqQvQF4TUyI7VjmqqLm4a_E	4	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1771515756316-1bf7162ef48e583ada7f7a6bac6fc87cb6b2f949.png	Vitaly Sadikov	\N	t	t	t	t	t	{}	\N	\N	f	\N	all	500	\N	30	\N
+1	sadikov.vd2194	$2b$10$2DkduXtBD8ewN/Q3yaDksuwl5GomzvmnO.52mgaz7qAl0rC2rgywW	vitaly.sadikov1@yandex.ru	ACTIVE	0	3	\N	2025-11-26 08:27:36.21	2026-04-10 16:49:55.044	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImxvZ2luIjoic2FkaWtvdi52ZDIxOTQiLCJpYXQiOjE3NzU4Mzk3OTUsImV4cCI6MTc3NjQ0NDU5NX0.Gc8PjyNg6J6jdWgWzQfZ3Cy5i0Ae1oyyNbEUYzsAl_o	\N	https://s3.twcstorage.ru/db40905a-a32d-43ce-a541-af9428eeecda/1772136605758-5925d59599e00615e0c23fb5d4ba772448a52c58.png	Sadikov Vitaly Dmitrievich	UTC −09:30	t	t	t	f	t	{English,Español}	\N	\N	t	ENNCSXLOHYURQVLH	all	1500	2026-03-07 02:54:21.552	500	+7 (951) 034 16-77
 \.
 
 
@@ -3173,6 +3232,13 @@ COPY public."_UserFollows" ("A", "B") FROM stdin;
 --
 
 SELECT pg_catalog.setval('public."Achievement_id_seq"', 4, true);
+
+
+--
+-- Name: ActHeroStream_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."ActHeroStream_id_seq"', 1, false);
 
 
 --
@@ -3531,6 +3597,14 @@ SELECT pg_catalog.setval('public."User_id_seq"', 8, true);
 
 ALTER TABLE ONLY public."Achievement"
     ADD CONSTRAINT "Achievement_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ActHeroStream ActHeroStream_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActHeroStream"
+    ADD CONSTRAINT "ActHeroStream_pkey" PRIMARY KEY (id);
 
 
 --
@@ -3986,6 +4060,34 @@ ALTER TABLE ONLY public."_UserFollows"
 --
 
 CREATE UNIQUE INDEX "Achievement_name_key" ON public."Achievement" USING btree (name);
+
+
+--
+-- Name: ActHeroStream_actId_heroUserId_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ActHeroStream_actId_heroUserId_idx" ON public."ActHeroStream" USING btree ("actId", "heroUserId");
+
+
+--
+-- Name: ActHeroStream_actId_heroUserId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "ActHeroStream_actId_heroUserId_key" ON public."ActHeroStream" USING btree ("actId", "heroUserId");
+
+
+--
+-- Name: ActHeroStream_actId_status_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ActHeroStream_actId_status_idx" ON public."ActHeroStream" USING btree ("actId", status);
+
+
+--
+-- Name: ActHeroStream_channelName_startedAt_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX "ActHeroStream_channelName_startedAt_idx" ON public."ActHeroStream" USING btree ("channelName", "startedAt");
 
 
 --
@@ -4455,6 +4557,22 @@ CREATE UNIQUE INDEX "User_login_key" ON public."User" USING btree (login);
 --
 
 CREATE INDEX "_UserFollows_B_index" ON public."_UserFollows" USING btree ("B");
+
+
+--
+-- Name: ActHeroStream ActHeroStream_actId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActHeroStream"
+    ADD CONSTRAINT "ActHeroStream_actId_fkey" FOREIGN KEY ("actId") REFERENCES public."Act"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ActHeroStream ActHeroStream_heroUserId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ActHeroStream"
+    ADD CONSTRAINT "ActHeroStream_heroUserId_fkey" FOREIGN KEY ("heroUserId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
