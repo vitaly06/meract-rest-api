@@ -83,6 +83,10 @@ export class ChatService {
     return member;
   }
 
+  async assertChatMember(chatId: number, userId: number) {
+    return this.assertMember(chatId, userId);
+  }
+
   private resolveFileType(mimetype: string): string {
     if (mimetype.startsWith('image/')) return 'image';
     if (mimetype.startsWith('video/')) return 'video';

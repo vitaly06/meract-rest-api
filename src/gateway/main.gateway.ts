@@ -221,6 +221,104 @@ export class MainGateway
         }
       });
 
+      socket.on('chat:join', async (data: { chatId: number }) => {
+        try {
+          if (!socket.userId) {
+            socket.emit('chat:error', { message: 'Not authenticated' });
+            return;
+          }
+
+          const { chatId } = data || {};
+          if (!chatId) {
+            socket.emit('chat:error', { message: 'chatId is required' });
+            return;
+          }
+
+          await this.chatService.assertChatMember(chatId, socket.userId);
+          socket.join(`chat_${chatId}`);
+          socket.emit('chat:joined', { chatId });
+        } catch (error) {
+          socket.emit('chat:error', {
+            message: error?.message || 'Failed to join chat room',
+          });
+        }
+      });
+
+      socket.on('chat:leave', (data: { chatId: number }) => {
+        const chatId = data?.chatId;
+        if (!chatId) {
+          socket.emit('chat:error', { message: 'chatId is required' });
+          return;
+        }
+        socket.leave(`chat_${chatId}`);
+        socket.emit('chat:left', { chatId });
+      });
+
+      socket.on(
+        'chat:send',
+        async (data: {
+          chatId: number;
+          text?: string;
+          replyToId?: number;
+          forwardedFromId?: number;
+        }) => {
+          try {
+            if (!socket.userId) {
+              socket.emit('chat:error', { message: 'Not authenticated' });
+              return;
+            }
+
+            const { chatId, text, replyToId, forwardedFromId } = data || {};
+            if (!chatId) {
+              socket.emit('chat:error', { message: 'chatId is required' });
+              return;
+            }
+
+            await this.chatService.assertChatMember(chatId, socket.userId);
+
+            const message = await this.chatService.sendMessage(
+              chatId,
+              socket.userId,
+              { text, replyToId, forwardedFromId },
+            );
+
+            ns.to(`chat_${chatId}`).emit('chat:message', message);
+          } catch (error) {
+            socket.emit('chat:error', {
+              message: error?.message || 'Failed to send chat message',
+            });
+          }
+        },
+      );
+
+      socket.on('chat:read', async (data: { chatId: number }) => {
+        try {
+          if (!socket.userId) {
+            socket.emit('chat:error', { message: 'Not authenticated' });
+            return;
+          }
+
+          const chatId = data?.chatId;
+          if (!chatId) {
+            socket.emit('chat:error', { message: 'chatId is required' });
+            return;
+          }
+
+          await this.chatService.assertChatMember(chatId, socket.userId);
+          await this.chatService.markAsRead(chatId, socket.userId);
+
+          ns.to(`chat_${chatId}`).emit('chat:read', {
+            chatId,
+            userId: socket.userId,
+            readAt: new Date().toISOString(),
+          });
+        } catch (error) {
+          socket.emit('chat:error', {
+            message: error?.message || 'Failed to mark chat as read',
+          });
+        }
+      });
+
       socket.on(
         'navigator:voice:switch',
         async (data: {

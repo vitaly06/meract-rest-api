@@ -498,6 +498,8 @@ export class ActService {
   }
 
   async startAct(id: number, userId: number) {
+    await this.syncFixedHeroParticipantsFromTeamConfig(id);
+
     const act = await this.prisma.act.findUnique({
       where: { id },
       include: { user: true },
@@ -510,11 +512,17 @@ export class ActService {
     });
     const isAdmin = ['admin', 'main admin'].includes(user?.role?.name ?? '');
     const isHeroParticipant = await this.prisma.actParticipant.findFirst({
-      where: { actId: id, userId, role: 'hero', status: 'active' },
+      where: {
+        actId: id,
+        userId,
+        role: 'hero',
+        status: { in: ['active', 'approved', 'onboard'] },
+      },
       select: { id: true },
     });
+    const isHeroInTeamConfig = await this.isHeroInTeamConfig(id, userId);
 
-    if (act.userId !== userId && !isAdmin && !isHeroParticipant) {
+    if (act.userId !== userId && !isAdmin && !isHeroParticipant && !isHeroInTeamConfig) {
       throw new ForbiddenException('Нет прав для запуска этого акта');
     }
 
@@ -531,6 +539,8 @@ export class ActService {
   }
 
   async stopAct(id: number, req: RequestWithUser) {
+    await this.syncFixedHeroParticipantsFromTeamConfig(id);
+
     const currentStream = await this.prisma.act.findUnique({
       where: { id },
       include: {
@@ -547,11 +557,24 @@ export class ActService {
       where: { id: req.user.sub },
       include: { role: true },
     });
+    const isHeroParticipant = await this.prisma.actParticipant.findFirst({
+      where: {
+        actId: id,
+        userId: req.user.sub,
+        role: 'hero',
+        status: { in: ['active', 'approved', 'onboard'] },
+      },
+      select: { id: true },
+    });
+    const isHeroInTeamConfig = await this.isHeroInTeamConfig(id, req.user.sub);
+    const isAdmin = ['admin', 'main admin'].includes(currentAdmin?.role?.name ?? '');
 
     if (
       !currentAdmin ||
       (currentAdmin.id !== currentStream.userId &&
-        !['admin', 'main admin'].includes(currentAdmin.role?.name))
+        !isAdmin &&
+        !isHeroParticipant &&
+        !isHeroInTeamConfig)
     ) {
       throw new ForbiddenException('You are not authorized to stop this act');
     }
@@ -619,13 +642,64 @@ export class ActService {
     return ['admin', 'main admin'].includes(user?.role?.name ?? '');
   }
 
+  private async isHeroInTeamConfig(actId: number, userId: number): Promise<boolean> {
+    const teamHero = await this.prisma.actTeamRoleConfig.findFirst({
+      where: {
+        team: { actId },
+        role: 'hero',
+        candidates: { some: { userId } },
+      },
+      select: { id: true },
+    });
+    return !!teamHero;
+  }
+
+  private async syncFixedHeroParticipantsFromTeamConfig(actId: number): Promise<void> {
+    const heroRoleConfigs = await this.prisma.actTeamRoleConfig.findMany({
+      where: {
+        team: { actId },
+        role: 'hero',
+        openVoting: false,
+      },
+      select: {
+        candidates: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    const fixedHeroIds = heroRoleConfigs
+      .filter((cfg) => cfg.candidates.length === 1)
+      .map((cfg) => cfg.candidates[0].userId);
+
+    if (!fixedHeroIds.length) return;
+
+    await Promise.all(
+      [...new Set(fixedHeroIds)].map((heroUserId) =>
+        this.prisma.actParticipant.upsert({
+          where: { actId_userId_role: { actId, userId: heroUserId, role: 'hero' } },
+          create: {
+            actId,
+            userId: heroUserId,
+            role: 'hero',
+            status: 'active',
+          },
+          update: {
+            status: 'active',
+            leftAt: null,
+          },
+        }),
+      ),
+    );
+  }
+
   private async getActiveHeroParticipant(actId: number, heroUserId: number) {
-    return this.prisma.actParticipant.findFirst({
+    let participant = await this.prisma.actParticipant.findFirst({
       where: {
         actId,
         userId: heroUserId,
         role: 'hero',
-        status: 'active',
+        status: { in: ['active', 'approved', 'onboard'] },
       },
       include: {
         user: {
@@ -637,9 +711,49 @@ export class ActService {
         },
       },
     });
+
+    if (participant) return participant;
+
+    const isHeroByTeamConfig = await this.isHeroInTeamConfig(actId, heroUserId);
+    if (!isHeroByTeamConfig) return null;
+
+    await this.prisma.actParticipant.upsert({
+      where: { actId_userId_role: { actId, userId: heroUserId, role: 'hero' } },
+      create: {
+        actId,
+        userId: heroUserId,
+        role: 'hero',
+        status: 'active',
+      },
+      update: {
+        status: 'active',
+        leftAt: null,
+      },
+    });
+
+    participant = await this.prisma.actParticipant.findFirst({
+      where: {
+        actId,
+        userId: heroUserId,
+        role: 'hero',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return participant;
   }
 
   async getHeroStreams(actId: number) {
+    await this.syncFixedHeroParticipantsFromTeamConfig(actId);
+
     const act = await this.prisma.act.findUnique({
       where: { id: actId },
       select: {
@@ -660,7 +774,40 @@ export class ActService {
       throw new NotFoundException(`Act with ID ${actId} not found`);
     }
 
-    const heroIds = act.participants.map((p) => p.userId);
+    const teamHeroCandidates = await this.prisma.actTeamRoleConfig.findMany({
+      where: {
+        team: { actId },
+        role: 'hero',
+      },
+      select: {
+        candidates: {
+          select: {
+            userId: true,
+            user: { select: { id: true, login: true, email: true } },
+          },
+        },
+      },
+    });
+
+    const fallbackHeroes = teamHeroCandidates.flatMap((cfg) =>
+      cfg.candidates.map((c) => ({
+        userId: c.userId,
+        user: c.user,
+      })),
+    );
+
+    const heroById = new Map<number, { userId: number; user: { id: number; login: string | null; email: string } }>();
+    for (const p of act.participants) {
+      heroById.set(p.userId, { userId: p.userId, user: p.user });
+    }
+    for (const h of fallbackHeroes) {
+      if (!heroById.has(h.userId)) {
+        heroById.set(h.userId, h);
+      }
+    }
+
+    const heroes = [...heroById.values()];
+    const heroIds = heroes.map((p) => p.userId);
     const streams = heroIds.length
       ? await this.prisma.actHeroStream.findMany({
           where: {
@@ -672,7 +819,7 @@ export class ActService {
 
     const streamMap = new Map(streams.map((s) => [s.heroUserId, s]));
 
-    return act.participants.map((hero) => {
+    return heroes.map((hero) => {
       const stream = streamMap.get(hero.userId);
       return {
         heroUserId: hero.userId,
@@ -2262,12 +2409,23 @@ export class ActService {
     }
 
     // РќР°Р·РЅР°С‡Р°РµРј СЂРѕР»СЊ
-    const participant = await this.prisma.actParticipant.create({
-      data: {
+    const participant = await this.prisma.actParticipant.upsert({
+      where: {
+        actId_userId_role: {
+          actId,
+          userId: selectedUserId,
+          role: roleType,
+        },
+      },
+      create: {
         actId,
         userId: selectedUserId,
         role: roleType,
         status: 'active',
+      },
+      update: {
+        status: 'active',
+        leftAt: null,
       },
       include: {
         user: { select: { id: true, login: true, email: true } },
