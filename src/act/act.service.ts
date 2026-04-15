@@ -970,16 +970,40 @@ export class ActService {
       throw new ForbiddenException('No rights to stop this hero stream');
     }
 
+    // Idempotent stop: stream already stopped/failed/offline.
+    if (stream.status !== 'ONLINE') {
+      return stream;
+    }
+
     const now = new Date();
 
     try {
       if (stream.status === 'ONLINE' && stream.recordingResourceId && stream.recordingSid) {
-        await this.agoraRecordingService.stopRecording(
-          stream.recordingResourceId,
-          stream.recordingSid,
-          stream.channelName,
-          `${heroUserId}`,
-        );
+        try {
+          await this.agoraRecordingService.stopRecording(
+            stream.recordingResourceId,
+            stream.recordingSid,
+            stream.channelName,
+            `${heroUserId}`,
+          );
+        } catch (error) {
+          const upstreamStatusCode =
+            error?.response?.status ??
+            error?.statusCode ??
+            error?.$metadata?.httpStatusCode ??
+            null;
+
+          const upstreamBody = error?.response?.data ?? null;
+
+          this.logger.warn(
+            `Hero stream stop upstream error actId=${actId} heroUserId=${heroUserId} resourceId=${stream.recordingResourceId} sid=${stream.recordingSid} upstreamStatus=${upstreamStatusCode} upstreamBody=${JSON.stringify(upstreamBody)}`,
+          );
+
+          // Agora 404 means session already stopped/expired -> treat as success.
+          if (upstreamStatusCode !== 404) {
+            throw error;
+          }
+        }
       }
 
       const updated = await this.prisma.actHeroStream.update({

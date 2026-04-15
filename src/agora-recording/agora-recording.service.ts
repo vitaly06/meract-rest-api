@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -754,11 +754,112 @@ export class AgoraRecordingService {
   /**
    * Получить список всех записей из AWS S3
    */
+  private normalizeS3Error(
+    error: any,
+    context: {
+      operation: string;
+      bucket: string;
+      prefix?: string;
+      actId?: number;
+      heroUserId?: number;
+    },
+  ): HttpException {
+    const code = error?.Code || error?.code || error?.name || 'S3_ERROR';
+    const requestId = error?.$metadata?.requestId || error?.requestId || null;
+    const upstreamStatus =
+      error?.$metadata?.httpStatusCode || error?.statusCode || null;
+    const message = error?.message || 'S3 operation failed';
+
+    this.logger.error(
+      `S3 error [${context.operation}] code=${code} status=${upstreamStatus} requestId=${requestId} bucket=${context.bucket} prefix=${context.prefix || ''} actId=${context.actId ?? ''} heroUserId=${context.heroUserId ?? ''} message=${message}`,
+    );
+
+    const authErrors = [
+      'InvalidAccessKeyId',
+      'SignatureDoesNotMatch',
+      'AccessDenied',
+    ];
+    if (authErrors.includes(code)) {
+      return new HttpException(
+        {
+          errorCode: code,
+          message: 'Ошибка доступа к хранилищу записей (S3 auth).',
+          retryable: false,
+        },
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+
+    const timeoutErrors = [
+      'TimeoutError',
+      'RequestTimeout',
+      'NetworkingError',
+      'ETIMEDOUT',
+    ];
+    if (timeoutErrors.includes(code)) {
+      return new HttpException(
+        {
+          errorCode: code,
+          message: 'Таймаут при доступе к хранилищу записей.',
+          retryable: true,
+        },
+        HttpStatus.GATEWAY_TIMEOUT,
+      );
+    }
+
+    return new HttpException(
+      {
+        errorCode: code,
+        message: 'Сервис записей временно недоступен.',
+        retryable: true,
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  private parseRecordingKeyMeta(
+    key: string,
+  ): { actId: number | null; heroUserId: number | null } {
+    const parts = key.split('/');
+    const recordingsIndex = parts.findIndex((p) => p === 'recordings');
+    const folder = recordingsIndex >= 0 ? parts[recordingsIndex + 1] : '';
+
+    let actId: number | null = null;
+    let heroUserId: number | null = null;
+
+    const heroFolderMatch = folder?.match(/^(\d+)_hero_(\d+)$/);
+    if (heroFolderMatch) {
+      return {
+        actId: parseInt(heroFolderMatch[1], 10),
+        heroUserId: parseInt(heroFolderMatch[2], 10),
+      };
+    }
+
+    const actFolderMatch = folder?.match(/^(\d+)$/);
+    if (actFolderMatch) {
+      actId = parseInt(actFolderMatch[1], 10);
+    }
+
+    const fileName = parts[parts.length - 1] || '';
+    const actFromFile = fileName.match(/_act_(\d+)_/);
+    if (!actId && actFromFile) {
+      actId = parseInt(actFromFile[1], 10);
+    }
+
+    const heroFromFile = fileName.match(/_hero_(\d+)_/);
+    if (heroFromFile) {
+      heroUserId = parseInt(heroFromFile[1], 10);
+    }
+
+    return { actId, heroUserId };
+  }
+
   async getAllRecordingsFromS3(): Promise<any[]> {
+    const prefix = `${this.s3Prefix}/recordings/`;
     try {
       const command = new ListObjectsV2Command({
         Bucket: this.s3Bucket,
-        Prefix: `${this.s3Prefix}/recordings/`,
+        Prefix: prefix,
       });
 
       const response = await this.s3Client.send(command);
@@ -777,8 +878,7 @@ export class AgoraRecordingService {
         ).map(async (obj) => {
           const filename = obj.Key.split('/').pop();
           // Формат: {sid}_act_{actId}_timestamp.ts или {sid}_act_{actId}_timestamp_N.m3u8
-          const match = filename.match(/_act_(\d+)_/);
-          const actId = match ? parseInt(match[1]) : null;
+          const { actId, heroUserId } = this.parseRecordingKeyMeta(obj.Key);
 
           return {
             key: obj.Key,
@@ -786,6 +886,7 @@ export class AgoraRecordingService {
             size: obj.Size,
             lastModified: obj.LastModified,
             actId,
+            heroUserId,
             url: `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${obj.Key}`,
           };
         }),
@@ -797,8 +898,11 @@ export class AgoraRecordingService {
           new Date(a.lastModified).getTime(),
       );
     } catch (error) {
-      this.logger.error(`Failed to list S3 recordings: ${error.message}`);
-      throw error;
+      throw this.normalizeS3Error(error, {
+        operation: 'list-recordings',
+        bucket: this.s3Bucket,
+        prefix,
+      });
     }
   }
 
@@ -810,10 +914,13 @@ export class AgoraRecordingService {
       const allRecordings = await this.getAllRecordingsFromS3();
       return allRecordings.filter((r) => r.actId === actId);
     } catch (error) {
-      this.logger.error(
-        `Failed to get act recordings from S3: ${error.message}`,
-      );
-      throw error;
+      if (error instanceof HttpException) throw error;
+      throw this.normalizeS3Error(error, {
+        operation: 'list-recordings-by-act',
+        bucket: this.s3Bucket,
+        prefix: `${this.s3Prefix}/recordings/`,
+        actId,
+      });
     }
   }
 
@@ -821,15 +928,23 @@ export class AgoraRecordingService {
     actId: number,
     heroUserId: number,
   ): Promise<any[]> {
+    const heroPrefix = `${this.s3Prefix}/recordings/${actId}_hero_${heroUserId}/`;
     try {
       const allRecordings = await this.getAllRecordingsFromS3();
-      const heroPrefix = `/recordings/${actId}_hero_${heroUserId}/`;
-      return allRecordings.filter((r) => String(r.key || '').includes(heroPrefix));
-    } catch (error) {
-      this.logger.error(
-        `Failed to get hero recordings from S3: ${error.message}`,
+      return allRecordings.filter(
+        (r) =>
+          r.heroUserId === heroUserId ||
+          String(r.key || '').startsWith(heroPrefix),
       );
-      throw error;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw this.normalizeS3Error(error, {
+        operation: 'list-recordings-by-hero',
+        bucket: this.s3Bucket,
+        prefix: heroPrefix,
+        actId,
+        heroUserId,
+      });
     }
   }
 
