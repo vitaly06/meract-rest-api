@@ -31,6 +31,7 @@ import { MeractShopModule } from './meract-shop/meract-shop.module';
 import { HeroVideoModule } from './hero-video/hero-video.module';
 import { TicketModule } from './tickets/ticket.module';
 import { IconPackModule } from './icon-pack/icon-pack.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { IconPackModule } from './icon-pack/icon-pack.module';
     HeroVideoModule,
     TicketModule,
     IconPackModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

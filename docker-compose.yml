@@ -23,6 +23,18 @@ services:
       - uploads_data:/usr/src/app/uploads
       - recordings_data:/usr/src/app/recordings
     command: sh -c "sleep 20 && npx prisma generate && npx prisma db push && nest start --watch"
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://127.0.0.1:3000/api/health/ready',res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
 
   db:
     image: postgres:15-alpine
