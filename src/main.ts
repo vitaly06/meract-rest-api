@@ -4,8 +4,8 @@ import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-
-import type { Express } from 'express';
+import express, { type Express } from 'express';
+import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
@@ -28,15 +28,16 @@ async function bootstrap() {
     }),
   );
 
-  // Глобальный префикс для всех маршрутов
+  // Global API prefix
   app.setGlobalPrefix('api');
 
-  // Увеличиваем лимит на размер тела запроса до 20 МБ
+  // Body size limit
   const expressApp = app.getHttpAdapter().getInstance() as Express;
-  expressApp.use(require('express').json({ limit: '20mb' }));
-  expressApp.use(
-    require('express').urlencoded({ limit: '20mb', extended: true }),
-  );
+  expressApp.use(express.json({ limit: '20mb' }));
+  expressApp.use(express.urlencoded({ limit: '20mb', extended: true }));
+
+  // Explicit static mapping for uploads
+  expressApp.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   // Swagger
   const config = new DocumentBuilder()
