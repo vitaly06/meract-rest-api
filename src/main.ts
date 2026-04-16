@@ -4,7 +4,8 @@ import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import express, { type Express } from 'express';
+import * as express from 'express';
+import type { Express } from 'express';
 import { join } from 'path';
 
 async function bootstrap() {
