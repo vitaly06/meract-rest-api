@@ -751,6 +751,53 @@ export class ActService {
     return participant;
   }
 
+  private isUidConflictError(error: any): boolean {
+    const message = `${error?.message ?? ''}`.toLowerCase();
+    const upstreamCode = `${error?.response?.data?.code ?? ''}`.toLowerCase();
+    return (
+      message.includes('uid_conflict') ||
+      message.includes('uid conflict') ||
+      upstreamCode.includes('uid_conflict')
+    );
+  }
+
+  private async cleanupHeroStreamBeforeRestart(
+    stream: {
+      recordingResourceId: string | null;
+      recordingSid: string | null;
+      channelName: string;
+    },
+    heroUserId: number,
+  ) {
+    if (!stream.recordingResourceId || !stream.recordingSid) {
+      return;
+    }
+
+    try {
+      await this.agoraRecordingService.stopRecording(
+        stream.recordingResourceId,
+        stream.recordingSid,
+        stream.channelName,
+        `${heroUserId}`,
+      );
+    } catch (error) {
+      const upstreamStatusCode =
+        error?.response?.status ??
+        error?.statusCode ??
+        error?.$metadata?.httpStatusCode ??
+        null;
+
+      // Idempotent success for already-stopped sessions.
+      if (upstreamStatusCode === 404) {
+        return;
+      }
+
+      this.logger.warn(
+        `Hero stream pre-cleanup failed for hero ${heroUserId} channel ${stream.channelName}: ${error?.message || 'unknown error'}`,
+      );
+    }
+  }
+
   async getHeroStreams(actId: number) {
     await this.syncFixedHeroParticipantsFromTeamConfig(actId);
 
@@ -865,6 +912,10 @@ export class ActService {
       return current;
     }
 
+    if (current) {
+      await this.cleanupHeroStreamBeforeRestart(current, heroUserId);
+    }
+
     try {
       const uid = `${heroUserId}`;
       const token = this.generateToken(
@@ -918,6 +969,16 @@ export class ActService {
 
       return stream;
     } catch (error) {
+      if (this.isUidConflictError(error)) {
+        throw new BadRequestException({
+          errorCode: 'STREAM_RESTART_IN_PROGRESS',
+          message:
+            'Hero stream restart is in progress. Please retry shortly.',
+          retryAfterSec: 2,
+          retryable: true,
+        });
+      }
+
       await this.prisma.actHeroStream.upsert({
         where: { actId_heroUserId: { actId, heroUserId } },
         create: {
@@ -1990,19 +2051,28 @@ export class ActService {
     if (!act) throw new NotFoundException('Act not found');
 
     const isOwner = act.userId === userId;
-    const isHeroOrNavigator = await this.prisma.actParticipant.findFirst({
+    const participantRole = await this.prisma.actParticipant.findFirst({
       where: {
         actId,
         userId,
-        role: { in: ['hero', 'navigator'] },
-        status: { not: 'dropped' },
+        role: { in: ['hero', 'navigator', 'spot_agent'] },
+        status: { in: ['approved', 'onboard', 'active'] },
       },
-      select: { id: true },
+      select: { role: true },
     });
 
-    if (!isOwner && !isHeroOrNavigator) {
+    const teamRoleConfig = await this.prisma.actTeamRoleConfig.findFirst({
+      where: {
+        team: { actId },
+        role: { in: ['hero', 'navigator', 'spot_agent'] },
+        candidates: { some: { userId } },
+      },
+      select: { role: true },
+    });
+
+    if (!isOwner && !participantRole && !teamRoleConfig) {
       throw new ForbiddenException(
-        'Only act owner, hero, or navigator can toggle tasks',
+        'Only act owner, hero, navigator, or spot agent can toggle tasks',
       );
     }
 
@@ -2029,10 +2099,32 @@ export class ActService {
     });
 
     this.gateway.server.of('/chat').to(`stream_${actId}`).emit('taskToggled', {
+      actId,
       taskId,
       isCompleted: updatedTask.isCompleted,
       completedAt: updatedTask.completedAt,
+      updatedBy: userId,
     });
+
+    const taskSnapshot = await this.prisma.actTeamTask.findMany({
+      where: {
+        team: { actId },
+      },
+      select: {
+        id: true,
+        teamId: true,
+        isCompleted: true,
+        completedAt: true,
+      },
+    });
+
+    this.gateway.server
+      .of('/chat')
+      .to(`stream_${actId}`)
+      .emit('tasksSnapshotUpdated', {
+        actId,
+        tasks: taskSnapshot,
+      });
 
     return updatedTask;
   }

@@ -331,9 +331,21 @@ export class ChatService {
         participants: {
           where: {
             role: { in: ['hero', 'navigator', 'spot_agent'] },
-            status: 'active',
+            status: { in: ['approved', 'onboard', 'active'] },
           },
           select: { userId: true },
+        },
+        teams: {
+          include: {
+            roleConfigs: {
+              where: { role: { in: ['hero', 'navigator', 'spot_agent'] } },
+              include: {
+                candidates: {
+                  select: { userId: true },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -341,7 +353,13 @@ export class ChatService {
 
     const isCreator = act.userId === userId;
     const isParticipant = act.participants.some((p) => p.userId === userId);
-    if (!isCreator && !isParticipant) {
+    const isTeamCandidate = act.teams.some((team) =>
+      team.roleConfigs.some((cfg) =>
+        cfg.candidates.some((candidate) => candidate.userId === userId),
+      ),
+    );
+
+    if (!isCreator && !isParticipant && !isTeamCandidate) {
       throw new ForbiddenException('You are not a team member of this act');
     }
 
@@ -359,8 +377,19 @@ export class ChatService {
       return { id: existing.id, type: 'group', actId };
     }
 
+    const teamCandidateIds = act.teams.flatMap((team) =>
+      team.roleConfigs.flatMap((cfg) =>
+        cfg.candidates.map((candidate) => candidate.userId),
+      ),
+    );
+
     const memberIds = [
-      ...new Set([act.userId, userId, ...act.participants.map((p) => p.userId)]),
+      ...new Set([
+        act.userId,
+        userId,
+        ...act.participants.map((p) => p.userId),
+        ...teamCandidateIds,
+      ]),
     ];
 
     const chat = await this.prisma.chat.create({
@@ -862,8 +891,16 @@ export class ChatService {
 
     return {
       id: msg.id,
+      chatId: actId,
+      text: msg.message,
+      content: msg.message,
       message: msg.message,
       createdAt: msg.createdAt,
+      sender: {
+        id: msg.user.id,
+        login: msg.user.login,
+        email: msg.user.email,
+      },
       user: {
         id: msg.user.id,
         username: msg.user.login || msg.user.email,
@@ -884,8 +921,16 @@ export class ChatService {
     });
     return messages.map((m) => ({
       id: m.id,
+      chatId: actId,
+      text: m.message,
+      content: m.message,
       message: m.message,
       createdAt: m.createdAt,
+      sender: {
+        id: m.user.id,
+        login: m.user.login,
+        email: m.user.email,
+      },
       user: {
         id: m.user.id,
         username: m.user.login || m.user.email,
