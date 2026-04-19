@@ -372,7 +372,7 @@ export class ActService {
     };
   }
 
-  async getActs(currentUserId?: number) {
+  async getActs(currentUserId?: number, userCoords?: { lat: number; lng: number }) {
     const streams = await this.prisma.act.findMany({
       include: {
         user: {
@@ -401,7 +401,9 @@ export class ActService {
     if (!streams || streams.length === 0) return [];
 
     let currentUserCoords: { lat: number; lon: number } | null = null;
-    if (currentUserId) {
+    if (userCoords) {
+      currentUserCoords = { lat: userCoords.lat, lon: userCoords.lng };
+    } else if (currentUserId) {
       const me = await this.prisma.user.findUnique({
         where: { id: currentUserId },
         select: { city: true, country: true },
@@ -877,6 +879,27 @@ export class ActService {
         endedAt: stream?.endedAt ?? null,
       };
     });
+  }
+
+  async getHeroStreamViewersCount(actId: number, heroUserId: number) {
+    const act = await this.prisma.act.findUnique({
+      where: { id: actId },
+      select: { id: true },
+    });
+    if (!act) {
+      throw new NotFoundException(`Act with ID ${actId} not found`);
+    }
+
+    const viewersCount = this.gateway.getConnectedUsersCountExcludingUser(
+      actId,
+      heroUserId,
+    );
+
+    return {
+      actId,
+      heroUserId,
+      viewersCount: Math.max(0, viewersCount),
+    };
   }
 
   async startHeroStream(actId: number, heroUserId: number, actorUserId: number) {

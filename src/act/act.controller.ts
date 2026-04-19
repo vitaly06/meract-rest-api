@@ -169,8 +169,13 @@ export class ActController {
   })
   @Get('get-acts')
   @UseGuards(JwtAuthGuard)
-  async getActs(@Req() req: RequestWithUser) {
-    return await this.actService.getActs(req.user.sub);
+  async getActs(
+    @Req() req: RequestWithUser,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    const coords = lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : undefined;
+    return await this.actService.getActs(req.user.sub, coords);
   }
 
   @ApiOperation({
@@ -221,6 +226,20 @@ export class ActController {
   @UseGuards(JwtAuthGuard)
   async getHeroStreams(@Param('actId') actId: string) {
     return await this.actService.getHeroStreams(+actId);
+  }
+
+  @ApiOperation({
+    summary: 'Количество зрителей hero-стрима',
+    description:
+      'Возвращает текущее количество подключённых зрителей без учёта самого стримера (heroUserId).',
+  })
+  @Get(':actId/hero-streams/:heroUserId/viewers-count')
+  @UseGuards(JwtAuthGuard)
+  async getHeroStreamViewersCount(
+    @Param('actId') actId: string,
+    @Param('heroUserId') heroUserId: string,
+  ) {
+    return await this.actService.getHeroStreamViewersCount(+actId, +heroUserId);
   }
 
   @ApiOperation({
