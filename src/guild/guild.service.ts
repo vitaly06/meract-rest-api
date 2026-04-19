@@ -270,7 +270,26 @@ export class GuildService {
     return { message: 'Guild successfully updated' };
   }
 
-  async inviteUser(user: string, guildId: number) {
+  async inviteUser(user: string, guildId: number, inviterId: number) {
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+      select: { id: true, name: true, ownerId: true, logoFileName: true },
+    });
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
+    const inviter = await this.prisma.user.findUnique({
+      where: { id: inviterId },
+      include: { role: true },
+    });
+    const isAdmin = ['admin', 'main admin'].includes(inviter?.role?.name ?? '');
+    if (guild.ownerId !== inviterId && !isAdmin) {
+      throw new ForbiddenException(
+        'Only guild owner or admin can invite users',
+      );
+    }
+
     const checkUser = await this.prisma.user.findFirst({
       where: { OR: [{ email: user }, { login: user }] },
       include: {
@@ -295,16 +314,176 @@ export class GuildService {
       );
     }
 
-    await this.prisma.guild.update({
+    const existingInvite = await this.prisma.notification.findFirst({
+      where: {
+        userId: checkUser.id,
+        type: 'guild_invite',
+        isRead: false,
+        metadata: {
+          path: ['guildId'],
+          equals: guildId,
+        },
+      },
+    });
+    if (existingInvite) {
+      throw new BadRequestException(
+        'User already has a pending invitation to this guild',
+      );
+    }
+
+    const inviterName = inviter?.login || inviter?.email || 'Admin';
+    await this.notificationService.create({
+      userId: checkUser.id,
+      type: 'guild_invite',
+      title: `Приглашение в гильдию`,
+      body: `${inviterName} приглашает вас в "${guild.name}"`,
+      imageUrl: guild.logoFileName ?? null,
+      metadata: {
+        guildId: guild.id,
+        inviterId,
+      },
+    });
+
+    return { message: 'Invitation sent' };
+  }
+
+  async getMyGuildInvites(userId: number) {
+    const invites = await this.prisma.notification.findMany({
+      where: {
+        userId,
+        type: 'guild_invite',
+        isRead: false,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const guildIds = [
+      ...new Set(
+        invites
+          .map((invite: any) => Number(invite?.metadata?.guildId))
+          .filter((id) => Number.isFinite(id)),
+      ),
+    ];
+
+    const guilds = guildIds.length
+      ? await this.prisma.guild.findMany({
+          where: { id: { in: guildIds } },
+          select: {
+            id: true,
+            name: true,
+            logoFileName: true,
+            coverFileName: true,
+          },
+        })
+      : [];
+
+    const guildMap = new Map(guilds.map((guild) => [guild.id, guild]));
+
+    return invites
+      .map((invite: any) => {
+        const guildId = Number(invite?.metadata?.guildId);
+        const guild = guildMap.get(guildId);
+        if (!guild) return null;
+        return {
+          notificationId: invite.id,
+          guildId: guild.id,
+          guildName: guild.name,
+          guildLogo: guild.logoFileName,
+          guildCover: guild.coverFileName,
+          inviterId: invite?.metadata?.inviterId ?? null,
+          createdAt: invite.createdAt,
+          title: invite.title,
+          body: invite.body,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  async acceptGuildInvite(guildId: number, userId: number) {
+    const guild = await this.prisma.guild.findUnique({
       where: { id: guildId },
-      data: {
-        members: {
-          connect: { id: checkUser.id },
+      include: { members: { select: { id: true } } },
+    });
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
+    const isMember = guild.members.some((member) => member.id === userId);
+    if (isMember) {
+      throw new BadRequestException('You are already a member of this guild');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { Guild: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (user.guildId && user.guildId !== guildId) {
+      if (user.Guild?.ownerId === userId) {
+        throw new BadRequestException(
+          'You are an owner of another guild and cannot accept this invite',
+        );
+      }
+      throw new BadRequestException('You already belong to another guild');
+    }
+
+    const invite = await this.prisma.notification.findFirst({
+      where: {
+        userId,
+        type: 'guild_invite',
+        isRead: false,
+        metadata: {
+          path: ['guildId'],
+          equals: guildId,
         },
       },
     });
 
-    return { message: 'User successfully added to guild' };
+    if (!invite) {
+      throw new BadRequestException('No pending invitation for this guild');
+    }
+
+    await this.prisma.guild.update({
+      where: { id: guildId },
+      data: {
+        members: {
+          connect: { id: userId },
+        },
+      },
+    });
+
+    await this.prisma.notification.update({
+      where: { id: invite.id },
+      data: { isRead: true },
+    });
+
+    return { message: 'Guild invitation accepted' };
+  }
+
+  async rejectGuildInvite(guildId: number, userId: number) {
+    const invite = await this.prisma.notification.findFirst({
+      where: {
+        userId,
+        type: 'guild_invite',
+        isRead: false,
+        metadata: {
+          path: ['guildId'],
+          equals: guildId,
+        },
+      },
+    });
+
+    if (!invite) {
+      throw new BadRequestException('No pending invitation for this guild');
+    }
+
+    await this.prisma.notification.update({
+      where: { id: invite.id },
+      data: { isRead: true },
+    });
+
+    return { message: 'Guild invitation rejected' };
   }
 
   async kickOutUser(userId: number, guildId: number) {

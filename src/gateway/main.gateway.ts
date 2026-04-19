@@ -927,6 +927,11 @@ export class MainGateway
     return room ? room.size : 0;
   }
 
+  getConnectedUsersCountExcludingUser(actId: number, userId: number): number {
+    const sockets = this.getStreamChatSockets(actId);
+    return sockets.filter((socket) => socket.userId !== userId).length;
+  }
+
   // ============================================
   // ПУБЛИЧНЫЕ МЕТОДЫ ДЛЯ POLL
   // ============================================
