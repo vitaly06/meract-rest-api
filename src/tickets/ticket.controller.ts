@@ -8,6 +8,8 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   HttpStatus,
 } from '@nestjs/common';
 import {
@@ -16,7 +18,10 @@ import {
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { TicketService } from './ticket.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
@@ -43,14 +48,17 @@ export class TicketController {
   @ApiOperation({ summary: 'Add message to ticket' })
   @ApiParam({ name: 'ticketId', type: 'number' })
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   @Post('tickets/:ticketId/message')
   async sendTicketMessage(
     @Param('ticketId') ticketId: string,
     @Body() dto: CreateMessageDto,
+    @UploadedFile() file: Express.Multer.File,
     @Req() req: RequestWithUser,
   ) {
-    return await this.ticketService.sendMessage(+ticketId, req.user.sub, dto);
+    return await this.ticketService.sendMessage(+ticketId, req.user.sub, dto, file);
   }
 
   @ApiOperation({ summary: 'Get my tickets' })
