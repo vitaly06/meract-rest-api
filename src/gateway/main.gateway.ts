@@ -927,9 +927,20 @@ export class MainGateway
     return room ? room.size : 0;
   }
 
-  getConnectedUsersCountExcludingUser(actId: number, userId: number): number {
-    const sockets = this.getStreamChatSockets(actId);
-    return sockets.filter((socket) => socket.userId !== userId).length;
+  getConnectedUsersCountExcludingUser(actId: number, excludeUserId?: number): number {
+    const chatNs = this.server.of('/chat');
+    const room = chatNs.adapter.rooms.get(`stream_${actId}`);
+    if (!room) return 0;
+
+    let count = 0;
+    for (const socketId of room) {
+      const socket = chatNs.sockets.get(socketId) as AuthenticatedSocket | undefined;
+      if (!socket) continue;
+      if (excludeUserId && socket.userId === excludeUserId) continue;
+      count += 1;
+    }
+
+    return count;
   }
 
   // ============================================

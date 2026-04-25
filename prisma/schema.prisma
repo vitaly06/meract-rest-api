@@ -90,14 +90,16 @@ model Ticket {
 
 model TicketMessage {
   id        Int      @id @default(autoincrement())
-  text      String   @db.Text
-  
+  text      String?  @db.Text
+  fileUrl   String?  @db.Text
+  fileType  String?
+
   ticketId  Int
   ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  
+
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  
+
   createdAt DateTime @default(now())
 }
 
