@@ -836,6 +836,13 @@ export class AgoraRecordingService {
     );
   }
 
+  private isS3AuthError(error: any): boolean {
+    const code = error?.Code || error?.code || error?.name;
+    return ['InvalidAccessKeyId', 'SignatureDoesNotMatch', 'AccessDenied'].includes(
+      code,
+    );
+  }
+
   private parseRecordingKeyMeta(
     key: string,
   ): { actId: number | null; heroUserId: number | null } {
@@ -919,6 +926,12 @@ export class AgoraRecordingService {
           new Date(a.lastModified).getTime(),
       );
     } catch (error) {
+      if (this.isS3AuthError(error)) {
+        this.logger.warn(
+          `S3 list auth failed for bucket=${this.s3Bucket}, prefix=${prefix}. Returning empty recordings list.`,
+        );
+        return [];
+      }
       throw this.normalizeS3Error(error, {
         operation: 'list-recordings',
         bucket: this.s3Bucket,
