@@ -29,7 +29,7 @@ export class TicketService {
     });
   }
 
-  async sendMessage(ticketId: number, userId: number, dto: CreateMessageDto) {
+  async sendMessage(ticketId: number, userId: number, dto: CreateMessageDto, file?: Express.Multer.File) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
     });
@@ -43,11 +43,38 @@ export class TicketService {
       throw new ForbiddenException('Access denied');
     }
 
+    let fileUrl: string | null = null;
+    let fileType: string | null = null;
+
+    if (file) {
+      const filename = `${Date.now()}-${file.originalname}`;
+      const uploadPath = `uploads/tickets/${filename}`;
+      // Save file to disk
+      const fs = require('fs');
+      const dir = 'uploads/tickets';
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(uploadPath, file.buffer);
+      fileUrl = `/${uploadPath}`;
+      if (file.mimetype.startsWith('image/')) {
+        fileType = 'image';
+      } else if (file.mimetype.startsWith('video/')) {
+        fileType = 'video';
+      } else if (file.mimetype.startsWith('audio/')) {
+        fileType = 'audio';
+      } else {
+        fileType = 'file';
+      }
+    }
+
     const message = await this.prisma.ticketMessage.create({
       data: {
         text: dto.message,
         userId,
         ticketId,
+        fileUrl,
+        fileType,
       },
       include: {
         user: { select: { id: true, login: true, email: true, status: true } },
@@ -57,6 +84,8 @@ export class TicketService {
     const result = {
       id: message.id,
       text: message.text,
+      fileUrl: message.fileUrl,
+      fileType: message.fileType,
       createdAt: message.createdAt,
       user: {
         id: message.user.id,
