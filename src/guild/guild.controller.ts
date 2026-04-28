@@ -317,6 +317,42 @@ export class GuildController {
     return await this.guildService.toggleGuildNotifications(+id, req.user.sub);
   }
 
+  @ApiOperation({
+    summary: 'Передать владение гильдией другому пользователю',
+  })
+  @Patch(':guildId/owner/transfer')
+  @UseGuards(JwtAuthGuard)
+  async transferOwnership(
+    @Param('guildId') guildId: string,
+    @Req() req: RequestWithUser,
+    @Body() body: { newOwnerId: number },
+  ) {
+    return await this.guildService.transferGuildOwnership(
+      +guildId,
+      req.user.sub,
+      +body.newOwnerId,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Назначить/снять admin-роль у участника гильдии',
+  })
+  @Patch(':guildId/members/:userId/admin')
+  @UseGuards(JwtAuthGuard)
+  async setMemberAdmin(
+    @Param('guildId') guildId: string,
+    @Param('userId') userId: string,
+    @Req() req: RequestWithUser,
+    @Body() body: { isAdmin: boolean },
+  ) {
+    return await this.guildService.setGuildMemberAdmin(
+      +guildId,
+      req.user.sub,
+      +userId,
+      !!body.isAdmin,
+    );
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async deleteGuild(@Param('id') id: string, @Req() req: RequestWithUser) {
