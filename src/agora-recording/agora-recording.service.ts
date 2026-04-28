@@ -45,6 +45,10 @@ export class AgoraRecordingService {
   private readonly s3Bucket: string;
   private readonly s3Prefix: string;
   private readonly s3Region: string;
+  private readonly s3Endpoint?: string;
+  private readonly s3AccessKey: string;
+  private readonly s3SecretKey: string;
+  private readonly agoraStorageRegionCode: number;
 
   constructor(
     private readonly configService: ConfigService,
@@ -58,17 +62,34 @@ export class AgoraRecordingService {
     this.recordingsPath = path.join(process.cwd(), 'recordings');
 
     // Инициализация AWS S3 клиента для Agora Cloud Recording
-    this.s3Bucket = this.configService.get<string>('AWS_S3_BUCKET');
+    this.s3Bucket =
+      this.configService.get<string>('AWS_S3_BUCKET') ||
+      this.configService.get<string>('S3_BUCKET');
     this.s3Prefix = this.configService.get<string>('AWS_S3_PREFIX', 'meract');
     this.s3Region = this.configService.get<string>(
       'AWS_S3_REGION',
-      'us-east-1',
+      this.configService.get<string>('S3_REGION', 'us-east-1'),
+    );
+    this.s3Endpoint =
+      this.configService.get<string>('AWS_S3_ENDPOINT') ||
+      this.configService.get<string>('S3_ENDPOINT');
+    this.s3AccessKey =
+      this.configService.get<string>('AWS_S3_ACCESS_KEY') ||
+      this.configService.get<string>('S3_ACCESS_KEY');
+    this.s3SecretKey =
+      this.configService.get<string>('AWS_S3_SECRET_KEY') ||
+      this.configService.get<string>('S3_SECRET_KEY');
+    this.agoraStorageRegionCode = parseInt(
+      this.configService.get<string>('AGORA_S3_REGION_CODE', '6'),
+      10,
     );
     this.s3Client = new S3Client({
       region: this.s3Region,
+      endpoint: this.s3Endpoint,
+      forcePathStyle: Boolean(this.s3Endpoint),
       credentials: {
-        accessKeyId: this.configService.get<string>('AWS_S3_ACCESS_KEY'),
-        secretAccessKey: this.configService.get<string>('AWS_S3_SECRET_KEY'),
+        accessKeyId: this.s3AccessKey,
+        secretAccessKey: this.s3SecretKey,
       },
     });
 
@@ -230,10 +251,10 @@ export class AgoraRecordingService {
             },
             storageConfig: {
               vendor: 1, // 1: Amazon S3
-              region: 6, // 6: EU_CENTRAL_1 (Frankfurt)
+              region: this.agoraStorageRegionCode, // 6: EU_CENTRAL_1 (Frankfurt)
               bucket: this.s3Bucket,
-              accessKey: this.configService.get<string>('AWS_S3_ACCESS_KEY'),
-              secretKey: this.configService.get<string>('AWS_S3_SECRET_KEY'),
+              accessKey: this.s3AccessKey,
+              secretKey: this.s3SecretKey,
               fileNamePrefix: [
                 this.s3Prefix,
                 'recordings',
@@ -252,12 +273,10 @@ export class AgoraRecordingService {
       );
 
       // Логируем конфигурацию для отладки
-      const accessKey = this.configService.get<string>('AWS_S3_ACCESS_KEY');
-      const secretKey = this.configService.get<string>('AWS_S3_SECRET_KEY');
       this.logger.debug(
-        `S3 Config: bucket=${this.s3Bucket}, prefix=${this.s3Prefix}, region=6 (eu-central-1), ` +
-          `accessKey=${accessKey ? accessKey.substring(0, 4) + '***' : 'MISSING'}, ` +
-          `secretKey=${secretKey ? '***' + secretKey.slice(-4) : 'MISSING'}`,
+        `S3 Config: bucket=${this.s3Bucket}, prefix=${this.s3Prefix}, regionCode=${this.agoraStorageRegionCode}, endpoint=${this.s3Endpoint || 'aws-default'}, ` +
+          `accessKey=${this.s3AccessKey ? this.s3AccessKey.substring(0, 4) + '***' : 'MISSING'}, ` +
+          `secretKey=${this.s3SecretKey ? '***' + this.s3SecretKey.slice(-4) : 'MISSING'}`,
       );
 
       this.logger.log(
@@ -887,7 +906,9 @@ export class AgoraRecordingService {
             lastModified: obj.LastModified,
             actId,
             heroUserId,
-            url: `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${obj.Key}`,
+            url: this.s3Endpoint
+              ? `${this.s3Endpoint.replace(/\/$/, '')}/${this.s3Bucket}/${obj.Key}`
+              : `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${obj.Key}`,
           };
         }),
       );

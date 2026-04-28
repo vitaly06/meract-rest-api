@@ -985,6 +985,32 @@ export class ActService {
         startedAt: now.toISOString(),
       });
 
+      const actParticipants = await this.prisma.actParticipant.findMany({
+        where: { actId, userId: { notIn: [heroUserId, actorUserId] } },
+        select: { userId: true },
+      });
+
+      const heroUser = await this.prisma.user.findUnique({
+        where: { id: heroUserId },
+      });
+      const actDetails = await this.prisma.act.findUnique({
+        where: { id: actId },
+        select: { title: true, previewFileName: true },
+      });
+
+      for (const participant of actParticipants) {
+        this.notificationService
+          .create({
+            userId: participant.userId,
+            type: 'stream_invite',
+            title: `${heroUser?.login || 'Someone'} started streaming`,
+            body: `Watch the live stream in act "${actDetails?.title || 'Unknown'}"`,
+            imageUrl: actDetails?.previewFileName ?? null,
+            metadata: { actId, heroUserId, channelName },
+          })
+          .catch(() => {});
+      }
+
       await this.utilsService.addRecordToActivityJournal(
         `User ${actorUserId} started hero stream for hero ${heroUserId} in act ${actId}`,
         [actorUserId, heroUserId, act.userId],
