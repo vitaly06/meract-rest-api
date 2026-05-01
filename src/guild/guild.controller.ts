@@ -211,11 +211,49 @@ export class GuildController {
     summary: 'Adding a user to a guild',
   })
   @Post('invite-user')
+  @UseGuards(JwtAuthGuard)
   async inviteUser(
     @Query('user') user: string,
     @Query('guildId') guildId: string,
+    @Req() req: RequestWithUser,
   ) {
-    return await this.guildService.inviteUser(user, +guildId);
+    return await this.guildService.inviteUser(user, +guildId, req.user.sub);
+  }
+
+  @ApiTags('Guild requests')
+  @ApiOperation({
+    summary: 'Get my pending guild invitations',
+  })
+  @Get('my-invites')
+  @UseGuards(JwtAuthGuard)
+  async getMyInvites(@Req() req: RequestWithUser) {
+    return await this.guildService.getMyGuildInvites(req.user.sub);
+  }
+
+  @ApiTags('Guild requests')
+  @ApiOperation({
+    summary: 'Accept guild invitation',
+  })
+  @Post(':guildId/invite/accept')
+  @UseGuards(JwtAuthGuard)
+  async acceptGuildInvite(
+    @Param('guildId') guildId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.acceptGuildInvite(+guildId, req.user.sub);
+  }
+
+  @ApiTags('Guild requests')
+  @ApiOperation({
+    summary: 'Reject guild invitation',
+  })
+  @Post(':guildId/invite/reject')
+  @UseGuards(JwtAuthGuard)
+  async rejectGuildInvite(
+    @Param('guildId') guildId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.rejectGuildInvite(+guildId, req.user.sub);
   }
 
   @ApiTags('Guild requests')
@@ -277,6 +315,42 @@ export class GuildController {
     @Req() req: RequestWithUser,
   ) {
     return await this.guildService.toggleGuildNotifications(+id, req.user.sub);
+  }
+
+  @ApiOperation({
+    summary: 'Передать владение гильдией другому пользователю',
+  })
+  @Patch(':guildId/owner/transfer')
+  @UseGuards(JwtAuthGuard)
+  async transferOwnership(
+    @Param('guildId') guildId: string,
+    @Req() req: RequestWithUser,
+    @Body() body: { newOwnerId: number },
+  ) {
+    return await this.guildService.transferGuildOwnership(
+      +guildId,
+      req.user.sub,
+      +body.newOwnerId,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Назначить/снять admin-роль у участника гильдии',
+  })
+  @Patch(':guildId/members/:userId/admin')
+  @UseGuards(JwtAuthGuard)
+  async setMemberAdmin(
+    @Param('guildId') guildId: string,
+    @Param('userId') userId: string,
+    @Req() req: RequestWithUser,
+    @Body() body: { isAdmin: boolean },
+  ) {
+    return await this.guildService.setGuildMemberAdmin(
+      +guildId,
+      req.user.sub,
+      +userId,
+      !!body.isAdmin,
+    );
   }
 
   @Delete(':id')
