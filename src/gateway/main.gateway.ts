@@ -13,6 +13,7 @@ import { PresenceService } from 'src/presence/presence.service';
 import { ChatService } from '../chat/chat.service';
 import { GuildService } from '../guild/guild.service';
 import { ActService } from '../act/act.service';
+import { PollService } from '../poll/poll.service';
 
 import { SendGuildMessageDto } from '../guild/dto/send-guild-message.dto';
 import moment from 'moment';
@@ -58,6 +59,8 @@ export class MainGateway
     @Inject(forwardRef(() => ActService))
     private readonly actService: ActService,
     private readonly presenceService: PresenceService,
+    @Inject(forwardRef(() => PollService))
+    private readonly pollService: PollService,
   ) {}
 
   afterInit(server: Server) {
@@ -202,6 +205,11 @@ export class MainGateway
           );
           socket.emit('chatHistory', { messages });
 
+          const pinnedMessages = await this.chatService.getPinnedStreamMessages(actId);
+          if (pinnedMessages.length > 0) {
+            socket.emit('stream:messages:pinned', { messages: pinnedMessages });
+          }
+
           await this.broadcastNavigatorVoiceState(actId);
         } catch (error) {
           this.logger.error(`Error joining stream: ${error.message}`);
@@ -313,11 +321,134 @@ export class MainGateway
             readAt: new Date().toISOString(),
           });
         } catch (error) {
-          socket.emit('chat:error', {
+          this.socket.emit('chat:error', {
             message: error?.message || 'Failed to mark chat as read',
           });
         }
       });
+
+      // Send stream chat message
+      socket.on(
+        'stream:send',
+        async (data: { actId: number; message: string }) => {
+          try {
+            if (!socket.userId) {
+              socket.emit('error', { message: 'Not authenticated' });
+              return;
+            }
+            const { actId, message: text } = data || {};
+            if (!actId || !text) {
+              socket.emit('error', { message: 'actId and message are required' });
+              return;
+            }
+            const msg = await this.chatService.sendStreamMessage(actId, socket.userId, { message: text });
+            ns.to(`stream_${actId}`).emit('stream:message', msg);
+          } catch (error) {
+            socket.emit('error', { message: error?.message || 'Failed to send message' });
+          }
+        },
+      );
+
+      // Pin stream message
+      socket.on(
+        'stream:pin',
+        async (data: { messageId: number }) => {
+          try {
+            if (!socket.userId) {
+              socket.emit('error', { message: 'Not authenticated' });
+              return;
+            }
+            const { messageId } = data || {};
+            const result = await this.chatService.pinStreamMessage(messageId, socket.userId);
+            const chatNs = this.server?.of('/chat');
+            if (chatNs) {
+              chatNs.to(`stream_${result.chatId}`).emit('stream:message:pinned', result);
+            }
+          } catch (error) {
+            socket.emit('error', { message: error?.message || 'Failed to pin message' });
+          }
+        },
+      );
+
+      // Unpin stream message
+      socket.on(
+        'stream:unpin',
+        async (data: { messageId: number }) => {
+          try {
+            if (!socket.userId) {
+              socket.emit('error', { message: 'Not authenticated' });
+              return;
+            }
+            const { messageId } = data || {};
+            const result = await this.chatService.unpinStreamMessage(messageId, socket.userId);
+            const chatNs = this.server?.of('/chat');
+            if (chatNs) {
+              chatNs.to(`stream_${result.actId}`).emit('stream:message:unpinned', { messageId: result.messageId });
+            }
+          } catch (error) {
+            socket.emit('error', { message: error?.message || 'Failed to unpin message' });
+          }
+        },
+      );
+
+      // Propose task for voting in chat (creates a poll and sends a pinned message)
+      socket.on(
+        'task:propose',
+        async (data: { actId: number; description: string; address?: string; lat?: number; lng?: number; biddingTime?: number }) => {
+          try {
+            if (!socket.userId) {
+              socket.emit('error', { message: 'Not authenticated' });
+              return;
+            }
+            const { actId, description, address, lat, lng, biddingTime = 10 } = data || {};
+
+            // Create poll for task voting
+            const pollDto = {
+              title: 'Новое задание на голосовании',
+              description,
+              options: ['За', 'Против'],
+              biddingTime,
+            };
+            const poll = await this.pollService.createPoll(actId, socket.userId, pollDto);
+
+            // Create pinned stream message with task proposal
+            const taskMsg = await this.chatService.sendStreamMessage(actId, socket.userId, {
+              message: `📋 Предложено задание: ${description}${address ? ` 📍 ${address}` : ''}`,
+            });
+            const pinnedMsg = await this.chatService.pinStreamMessage(taskMsg.id, socket.userId);
+
+            const chatNs = this.server?.of('/chat');
+            if (chatNs) {
+              chatNs.to(`stream_${actId}`).emit('stream:message:pinned', pinnedMsg);
+              chatNs.to(`stream_${actId}`).emit('poll:new', poll);
+            }
+          } catch (error) {
+            socket.emit('error', { message: error?.message || 'Failed to propose task' });
+          }
+        },
+      );
+
+      // Navigator adds a new task (no voting, direct add)
+      socket.on(
+        'task:add',
+        async (data: { actId: number; teamId: number; description: string; address?: string; lat?: number; lng?: number }) => {
+          try {
+            if (!socket.userId) {
+              socket.emit('error', { message: 'Not authenticated' });
+              return;
+            }
+            const { actId, teamId, description, address, lat, lng } = data || {};
+            const task = await this.actService.createTeamTask(actId, teamId, description, socket.userId, address, lat, lng);
+
+            const chatNs = this.server?.of('/chat');
+            if (chatNs) {
+              chatNs.to(`stream_${actId}`).emit('task:added', task);
+            }
+          } catch (error) {
+            socket.emit('error', { message: error?.message || 'Failed to add task' });
+          }
+        },
+      );
 
       socket.on(
         'navigator:voice:switch',

@@ -284,4 +284,31 @@ export class GuildController {
   async deleteGuild(@Param('id') id: string, @Req() req: RequestWithUser) {
     return await this.guildService.deleteGuild(+id, req);
   }
+
+  @ApiOperation({
+    summary: 'Transfer guild ownership to another member',
+  })
+  @Patch(':guildId/owner/transfer')
+  @UseGuards(JwtAuthGuard)
+  async transferOwner(
+    @Param('guildId') guildId: string,
+    @Body() body: { newOwnerId: number },
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.transferOwner(+guildId, body.newOwnerId, req.user.sub);
+  }
+
+  @ApiOperation({
+    summary: 'Set or remove admin role from guild member',
+  })
+  @Patch(':guildId/members/:userId/admin')
+  @UseGuards(JwtAuthGuard)
+  async setMemberAdmin(
+    @Param('guildId') guildId: string,
+    @Param('userId') userId: string,
+    @Body() body: { isAdmin: boolean },
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.setMemberAdmin(+guildId, +userId, body.isAdmin, req.user.sub);
+  }
 }

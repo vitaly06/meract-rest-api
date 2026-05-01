@@ -534,6 +534,7 @@ model ChatMessage {
   id        Int      @id @default(autoincrement())
   message   String
   createdAt DateTime @default(now())
+  isPinned  Boolean  @default(false)
 
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -27,6 +27,7 @@ import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { CreateActRequest } from './dto/create-act.dto';
 import { UpdateActDto } from './dto/update-act.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { CreateTeamTaskDto } from './dto/create-team-task.dto';
 import { ApplySpotAgentDto } from './dto/apply-spot-agent.dto';
 import { VoteSpotAgentDto } from './dto/vote-spot-agent.dto';
 import { AssignSpotAgentDto } from './dto/assign-spot-agent.dto';
@@ -440,6 +441,26 @@ export class ActController {
     @Req() req: RequestWithUser,
   ) {
     return this.actService.addTaskToAct(+actId, dto.title, req.user.sub);
+  }
+
+  @Post(':actId/team-tasks')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Добавить задачу команды (навигатор или владелец)' })
+  @ApiResponse({ status: 201, description: 'Задача создана' })
+  async createTeamTask(
+    @Param('actId') actId: string,
+    @Body() dto: CreateTeamTaskDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.actService.createTeamTask(
+      +actId,
+      dto.teamId,
+      dto.description,
+      req.user.sub,
+      dto.address,
+      dto.lat,
+      dto.lng,
+    );
   }
 
   @Patch(':actId/tasks/:taskId/toggle')

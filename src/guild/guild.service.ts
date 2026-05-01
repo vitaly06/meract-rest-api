@@ -138,6 +138,7 @@ export class GuildService {
             email: true,
             avatarUrl: true,
             lastSeenAt: true,
+            role: true,
           },
         },
         achievements: {
@@ -201,6 +202,7 @@ export class GuildService {
       members: guild.members.map(({ lastSeenAt, ...m }) => ({
         ...m,
         status: this.presenceService.formatPresence(m.id, lastSeenAt),
+        isAdmin: m.role?.name === 'admin',
       })),
       membersCount: guild.members.length,
       acts: acts.map((act) => ({
@@ -772,5 +774,87 @@ export class GuildService {
         ? 'Achievement marked as featured'
         : 'Achievement unmarked from featured',
     };
+  }
+
+  async transferOwner(guildId: number, newOwnerId: number, userId: number) {
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+      include: { members: { select: { id: true } } },
+    });
+
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
+    const isMainAdmin = await this.isMainAdmin(userId);
+    if (guild.ownerId !== userId && !isMainAdmin) {
+      throw new ForbiddenException('Only the guild owner or main admin can transfer ownership');
+    }
+
+    const isMember = guild.members.some(m => m.id === newOwnerId);
+    if (!isMember) {
+      await this.prisma.guild.update({
+        where: { id: guildId },
+        data: { members: { connect: { id: newOwnerId } } },
+      });
+    }
+
+    await this.prisma.guild.update({
+      where: { id: guildId },
+      data: { ownerId: newOwnerId },
+    });
+
+    return { message: 'Ownership transferred successfully' };
+  }
+
+  async setMemberAdmin(guildId: number, targetUserId: number, isAdmin: boolean, userId: number) {
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+      include: { members: true },
+    });
+
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
+    const isMainAdmin = await this.isMainAdmin(userId);
+    if (guild.ownerId !== userId && !isMainAdmin) {
+      throw new ForbiddenException('Only the guild owner or main admin can manage admins');
+    }
+
+    const targetUser = await this.prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    const mainAdminRole = await this.prisma.role.findFirst({ where: { name: 'main admin' } });
+    if (targetUser.roleId === mainAdminRole?.id) {
+      throw new ForbiddenException('Cannot modify main admin role');
+    }
+
+    const adminRole = await this.prisma.role.findFirst({ where: { name: 'admin' } });
+    const userRole = await this.prisma.role.findFirst({ where: { name: 'user' } });
+
+    if (isAdmin) {
+      await this.prisma.user.update({
+        where: { id: targetUserId },
+        data: { roleId: adminRole?.id },
+      });
+    } else {
+      await this.prisma.user.update({
+        where: { id: targetUserId },
+        data: { roleId: userRole?.id },
+      });
+    }
+
+    return { message: isAdmin ? 'User promoted to admin' : 'Admin status removed' };
+  }
+
+  private async isMainAdmin(userId: number): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+    return user?.role?.name === 'main admin';
   }
 }

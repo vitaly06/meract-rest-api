@@ -66,19 +66,27 @@ export class PollService {
   async createPoll(actId: number, userId: number, dto: CreatePollDto) {
     const act = await this.prisma.act.findUnique({ where: { id: actId } });
     if (!act) throw new NotFoundException('Акт не найден');
-    if (act.status !== 'ONLINE')
-      throw new ForbiddenException('Нельзя создавать опросы — акт не в эфире');
 
     const isOwner = act.userId === userId;
     if (!isOwner) {
-      const participant = await this.prisma.actParticipant.findFirst({
-        where: { actId, userId, role: 'navigator' },
+      const navigatorViaParticipant = await this.prisma.actParticipant.findFirst({
+        where: { actId, userId, role: 'navigator', status: { in: ['approved', 'onboard', 'active'] } },
       });
-      if (!participant)
+      const navigatorViaRoleConfig = await this.prisma.actTeamRoleConfig.findFirst({
+        where: {
+          team: { actId },
+          role: 'navigator',
+          candidates: { some: { userId } },
+        },
+      });
+      if (!navigatorViaParticipant && !navigatorViaRoleConfig)
         throw new ForbiddenException(
           'Только навигатор или владелец акта может создавать опросы',
         );
     }
+
+    if (act.status !== 'ONLINE')
+      throw new ForbiddenException('Нельзя создавать опросы — акт не в эфире');
 
     const endsAt = new Date(Date.now() + dto.biddingTime * 60 * 1000);
 

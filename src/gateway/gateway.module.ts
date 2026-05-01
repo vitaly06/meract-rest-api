@@ -6,6 +6,7 @@ import { ChatModule } from '../chat/chat.module';
 import { GuildModule } from '../guild/guild.module';
 import { ActModule } from '../act/act.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { PollModule } from '../poll/poll.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     forwardRef(() => ChatModule),
     forwardRef(() => GuildModule),
     forwardRef(() => ActModule),
+    forwardRef(() => PollModule),
   ],
   providers: [MainGateway],
   exports: [MainGateway],

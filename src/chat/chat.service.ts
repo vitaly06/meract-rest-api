@@ -896,6 +896,7 @@ export class ChatService {
       content: msg.message,
       message: msg.message,
       createdAt: msg.createdAt,
+      isPinned: msg.isPinned,
       sender: {
         id: msg.user.id,
         login: msg.user.login,
@@ -926,6 +927,7 @@ export class ChatService {
       content: m.message,
       message: m.message,
       createdAt: m.createdAt,
+      isPinned: m.isPinned,
       sender: {
         id: m.user.id,
         login: m.user.login,
@@ -966,5 +968,116 @@ export class ChatService {
 
   async getStreamMessageCount(actId: number) {
     return this.prisma.chatMessage.count({ where: { actId } });
+  }
+
+  async pinStreamMessage(messageId: number, userId: number) {
+    const msg = await this.prisma.chatMessage.findUnique({
+      where: { id: messageId },
+      include: { act: true },
+    });
+    if (!msg) throw new NotFoundException('Message not found');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+
+    const isNavigatorViaParticipant = await this.prisma.actParticipant.findFirst({
+      where: { actId: msg.actId, userId, role: 'navigator', status: { in: ['approved', 'onboard', 'active'] } },
+    });
+
+    const isNavigatorViaRoleConfig = await this.prisma.actTeamRoleConfig.findFirst({
+      where: {
+        team: { actId: msg.actId },
+        role: 'navigator',
+        candidates: { some: { userId } },
+      },
+    });
+
+    const canPin = msg.userId === userId || msg.act.userId === userId || isNavigatorViaParticipant || isNavigatorViaRoleConfig ||
+      ['admin', 'main admin'].includes(user?.role?.name);
+    if (!canPin) throw new ForbiddenException('No permission to pin this message');
+
+    await this.prisma.chatMessage.updateMany({
+      where: { actId: msg.actId, isPinned: true },
+      data: { isPinned: false },
+    });
+
+    const updated = await this.prisma.chatMessage.update({
+      where: { id: messageId },
+      data: { isPinned: true },
+      include: {
+        user: { select: { id: true, login: true, email: true, status: true } },
+      },
+    });
+
+    return {
+      id: updated.id,
+      isPinned: updated.isPinned,
+      chatId: updated.actId,
+      text: updated.message,
+      createdAt: updated.createdAt,
+      user: {
+        id: updated.user.id,
+        username: updated.user.login || updated.user.email,
+      },
+    };
+  }
+
+  async unpinStreamMessage(messageId: number, userId: number) {
+    const msg = await this.prisma.chatMessage.findUnique({
+      where: { id: messageId },
+      include: { act: true },
+    });
+    if (!msg) throw new NotFoundException('Message not found');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+
+    const isNavigatorViaParticipant = await this.prisma.actParticipant.findFirst({
+      where: { actId: msg.actId, userId, role: 'navigator', status: { in: ['approved', 'onboard', 'active'] } },
+    });
+
+    const isNavigatorViaRoleConfig = await this.prisma.actTeamRoleConfig.findFirst({
+      where: {
+        team: { actId: msg.actId },
+        role: 'navigator',
+        candidates: { some: { userId } },
+      },
+    });
+
+    const canUnpin = msg.userId === userId || msg.act.userId === userId || isNavigatorViaParticipant || isNavigatorViaRoleConfig ||
+      ['admin', 'main admin'].includes(user?.role?.name);
+    if (!canUnpin) throw new ForbiddenException('No permission to unpin this message');
+
+    await this.prisma.chatMessage.update({
+      where: { id: messageId },
+      data: { isPinned: false },
+    });
+
+    return { message: 'Message unpinned', actId: msg.actId, messageId };
+  }
+
+  async getPinnedStreamMessages(actId: number) {
+    const messages = await this.prisma.chatMessage.findMany({
+      where: { actId, isPinned: true },
+      include: {
+        user: { select: { id: true, login: true, email: true, status: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return messages.map((m) => ({
+      id: m.id,
+      chatId: m.actId,
+      text: m.message,
+      createdAt: m.createdAt,
+      isPinned: m.isPinned,
+      user: {
+        id: m.user.id,
+        username: m.user.login || m.user.email,
+      },
+    }));
   }
 }

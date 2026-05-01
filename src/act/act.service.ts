@@ -159,6 +159,22 @@ export class ActService {
       [userId],
     );
 
+    const notificationPayloads = act.teams.flatMap((team) =>
+      team.roleConfigs.flatMap((roleConfig) =>
+        roleConfig.candidates.map((candidate) => ({
+          userId: candidate.userId,
+          type: 'act_invite',
+          title: 'Вас пригласили в акт',
+          body: `Вы приглашены в акт "${act.title}" в роли ${roleConfig.role === 'hero' ? 'Героя' : roleConfig.role === 'navigator' ? 'Навигатора' : 'Агента'}`,
+          imageUrl: act.previewFileName ?? null,
+          metadata: { actId: act.id },
+        })),
+      ),
+    );
+    if (notificationPayloads.length) {
+      this.notificationService.createMany(notificationPayloads).catch(() => {});
+    }
+
     return act;
   }
 
@@ -438,13 +454,19 @@ export class ActService {
       const initiatorCoords = stream.user.city
         ? (uniqueCityMap.get(key) ?? null)
         : null;
+
+      const firstTaskWithLocation = stream.tasks?.find(t => t.lat != null && t.lng != null);
+      const streamLocation = firstTaskWithLocation
+        ? { lat: firstTaskWithLocation.lat, lon: firstTaskWithLocation.lng }
+        : initiatorCoords;
+
       let distanceKm: number | null = null;
-      if (currentUserCoords && initiatorCoords) {
+      if (currentUserCoords && streamLocation) {
         distanceKm = this.geoService.haversineKm(
           currentUserCoords.lat,
           currentUserCoords.lon,
-          initiatorCoords.lat,
-          initiatorCoords.lon,
+          streamLocation.lat,
+          streamLocation.lon,
         );
       }
       const heroes = stream.participants
@@ -465,6 +487,8 @@ export class ActService {
           country: stream.user.country ?? null,
         },
         distanceKm,
+        lat: streamLocation?.lat ?? null,
+        lng: streamLocation?.lon ?? null,
         heroes,
         navigators,
         category: stream.category?.name || '',
@@ -1560,8 +1584,50 @@ export class ActService {
     return newTask;
   }
 
+  async createTeamTask(actId: number, teamId: number, description: string, userId: number, address?: string, lat?: number, lng?: number) {
+    const act = await this.prisma.act.findUnique({ where: { id: actId } });
+    if (!act) throw new NotFoundException('Act not found');
+
+    const isOwner = act.userId === userId;
+
+    const isNavigatorViaParticipant = await this.prisma.actParticipant.findFirst({
+      where: { actId, userId, role: 'navigator', status: { in: ['approved', 'onboard', 'active'] } },
+    });
+
+    const isNavigatorViaRoleConfig = await this.prisma.actTeamRoleConfig.findFirst({
+      where: {
+        team: { actId },
+        role: 'navigator',
+        candidates: { some: { userId } },
+      },
+    });
+
+    if (!isOwner && !isNavigatorViaParticipant && !isNavigatorViaRoleConfig) {
+      throw new ForbiddenException('Only act owner or navigator can add tasks');
+    }
+
+    const team = await this.prisma.actTeam.findFirst({ where: { id: teamId, actId } });
+    if (!team) throw new NotFoundException('Team not found');
+
+    const maxOrder = await this.prisma.actTeamTask.aggregate({ where: { teamId }, _max: { order: true } });
+
+    const newTask = await this.prisma.actTeamTask.create({
+      data: {
+        teamId,
+        description,
+        address: address ?? null,
+        lat: lat ?? null,
+        lng: lng ?? null,
+        order: (maxOrder._max.order ?? 0) + 1,
+        isCompleted: false,
+      },
+    });
+
+    return newTask;
+  }
+
   /**
-   * РЈРґР°Р»РёС‚СЊ Р·Р°РґР°С‡Сѓ
+   * Удалить задачу
    */
   async deleteTask(actId: number, taskId: number, userId: number) {
     // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ Р°РєС‚ СЃСѓС‰РµСЃС‚РІСѓРµС‚ Рё РїСЂРёРЅР°РґР»РµР¶РёС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ
