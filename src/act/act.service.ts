@@ -455,9 +455,9 @@ export class ActService {
         ? (uniqueCityMap.get(key) ?? null)
         : null;
 
-      const firstTaskWithLocation = stream.tasks?.find(t => t.lat != null && t.lng != null);
-      const streamLocation = firstTaskWithLocation
-        ? { lat: firstTaskWithLocation.lat, lon: firstTaskWithLocation.lng }
+      const firstRoutePoint = stream.routePoints?.[0];
+      const streamLocation = firstRoutePoint
+        ? { lat: firstRoutePoint.latitude, lon: firstRoutePoint.longitude }
         : initiatorCoords;
 
       let distanceKm: number | null = null;

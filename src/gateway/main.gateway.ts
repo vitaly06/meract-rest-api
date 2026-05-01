@@ -321,7 +321,7 @@ export class MainGateway
             readAt: new Date().toISOString(),
           });
         } catch (error) {
-          this.socket.emit('chat:error', {
+          socket.emit('chat:error', {
             message: error?.message || 'Failed to mark chat as read',
           });
         }
