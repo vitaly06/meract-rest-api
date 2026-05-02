@@ -680,6 +680,22 @@ export class ActService {
     return !!teamHero;
   }
 
+  private async isHeroInLegacyRoleCandidates(
+    actId: number,
+    userId: number,
+  ): Promise<boolean> {
+    const candidate = await this.prisma.roleCandidate.findFirst({
+      where: {
+        actId,
+        userId,
+        roleType: 'hero',
+        status: { in: ['approved', 'pending'] },
+      },
+      select: { id: true },
+    });
+    return !!candidate;
+  }
+
   private async syncFixedHeroParticipantsFromTeamConfig(actId: number): Promise<void> {
     const heroRoleConfigs = await this.prisma.actTeamRoleConfig.findMany({
       where: {
@@ -740,8 +756,13 @@ export class ActService {
 
     if (participant) return participant;
 
-    const isHeroByTeamConfig = await this.isHeroInTeamConfig(actId, heroUserId);
-    if (!isHeroByTeamConfig) return null;
+    const [isHeroByTeamConfig, isHeroByLegacyRoleCandidate] = await Promise.all(
+      [
+        this.isHeroInTeamConfig(actId, heroUserId),
+        this.isHeroInLegacyRoleCandidates(actId, heroUserId),
+      ],
+    );
+    if (!isHeroByTeamConfig && !isHeroByLegacyRoleCandidate) return null;
 
     await this.prisma.actParticipant.upsert({
       where: { actId_userId_role: { actId, userId: heroUserId, role: 'hero' } },
@@ -869,6 +890,18 @@ export class ActService {
       })),
     );
 
+    const legacyHeroCandidates = await this.prisma.roleCandidate.findMany({
+      where: {
+        actId,
+        roleType: 'hero',
+        status: { in: ['approved', 'pending'] },
+      },
+      select: {
+        userId: true,
+        user: { select: { id: true, login: true, email: true } },
+      },
+    });
+
     const heroById = new Map<number, { userId: number; user: { id: number; login: string | null; email: string } }>();
     for (const p of act.participants) {
       heroById.set(p.userId, { userId: p.userId, user: p.user });
@@ -876,6 +909,11 @@ export class ActService {
     for (const h of fallbackHeroes) {
       if (!heroById.has(h.userId)) {
         heroById.set(h.userId, h);
+      }
+    }
+    for (const h of legacyHeroCandidates) {
+      if (!heroById.has(h.userId)) {
+        heroById.set(h.userId, { userId: h.userId, user: h.user });
       }
     }
 
