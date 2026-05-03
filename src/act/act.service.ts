@@ -164,8 +164,8 @@ export class ActService {
         roleConfig.candidates.map((candidate) => ({
           userId: candidate.userId,
           type: 'act_invite',
-          title: 'Вас пригласили в акт',
-          body: `Вы приглашены в акт "${act.title}" в роли ${roleConfig.role === 'hero' ? 'Героя' : roleConfig.role === 'navigator' ? 'Навигатора' : 'Агента'}`,
+          title: 'You have been invited to an act',
+          body: `You have been invited to act "${act.title}" as ${roleConfig.role === 'hero' ? 'Hero' : roleConfig.role === 'navigator' ? 'Navigator' : 'Agent'}`,
           imageUrl: act.previewFileName ?? null,
           metadata: { actId: act.id },
         })),
