@@ -756,6 +756,8 @@ export class ActService {
 
     if (participant) return participant;
 
+    await this.syncFixedHeroParticipantsFromTeamConfig(actId);
+
     const [isHeroByTeamConfig, isHeroByLegacyRoleCandidate] = await Promise.all(
       [
         this.isHeroInTeamConfig(actId, heroUserId),
