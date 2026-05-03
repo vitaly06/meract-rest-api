@@ -975,18 +975,36 @@ export class ActService {
       throw new NotFoundException(`Act with ID ${actId} not found`);
     }
 
-    const heroParticipant = await this.getActiveHeroParticipant(actId, heroUserId);
-    if (!heroParticipant) {
-      throw new BadRequestException(
-        'Hero must be an active participant of this act',
-      );
-    }
-
     const isAdmin = await this.isAdminUser(actorUserId);
     const isActOwner = act.userId === actorUserId;
-    const isSameHero = heroUserId === actorUserId;
-    if (!isAdmin && !isActOwner && !isSameHero) {
-      throw new ForbiddenException('No rights to start this hero stream');
+
+    let heroParticipant = null;
+    if (!isAdmin && !isActOwner) {
+      heroParticipant = await this.getActiveHeroParticipant(actId, heroUserId);
+      if (!heroParticipant) {
+        throw new BadRequestException(
+          'Hero must be an active participant of this act',
+        );
+      }
+      const isSameHero = heroUserId === actorUserId;
+      if (!isSameHero) {
+        throw new ForbiddenException('No rights to start this hero stream');
+      }
+    } else {
+      heroParticipant = await this.getActiveHeroParticipant(actId, heroUserId);
+      if (!heroParticipant) {
+        const [isHeroByTeamConfig, isHeroByLegacy] = await Promise.all([
+          this.isHeroInTeamConfig(actId, heroUserId),
+          this.isHeroInLegacyRoleCandidates(actId, heroUserId),
+        ]);
+        if (!isHeroByTeamConfig && !isHeroByLegacy) {
+          throw new BadRequestException(
+            'Hero must be an active participant of this act',
+          );
+        }
+        await this.syncFixedHeroParticipantsFromTeamConfig(actId);
+        heroParticipant = await this.getActiveHeroParticipant(actId, heroUserId);
+      }
     }
 
     const channelName = `act_${actId}_hero_${heroUserId}`;
