@@ -47,6 +47,7 @@ export class ActService {
 
   async createAct(dto: CreateActRequest, userId: number, filename?: string) {
     const { title, description, sequelId, teams, tags } = dto;
+    try {
 
     // Проверка пользователя
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -176,6 +177,13 @@ export class ActService {
     }
 
     return act;
+    } catch (error) {
+      this.logger.error(
+        `createAct failed userId=${userId} title=${dto?.title || 'unknown'} teamsCount=${dto?.teams?.length || 0} message=${error?.message || 'unknown'}`,
+        error?.stack,
+      );
+      throw error;
+    }
   }
 
   async updateAct(

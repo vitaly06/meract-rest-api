@@ -4,6 +4,7 @@
   Delete,
   Get,
   HttpStatus,
+  Logger,
   Param,
   Patch,
   Post,
@@ -39,6 +40,8 @@ import { VoteTeamCandidateDto } from './dto/vote-team-candidate.dto';
 @ApiTags('Акты')
 @Controller('act')
 export class ActController {
+  private readonly logger = new Logger(ActController.name);
+
   constructor(private readonly actService: ActService) {}
 
   @ApiOperation({
@@ -98,7 +101,15 @@ export class ActController {
     @Body() dto: CreateActRequest,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return await this.actService.createAct(dto, req.user.sub, photo?.filename);
+    try {
+      return await this.actService.createAct(dto, req.user.sub, photo?.filename);
+    } catch (error) {
+      this.logger.error(
+        `createAct failed userId=${req?.user?.sub} photo=${photo?.filename || 'none'} message=${error?.message || 'unknown'}`,
+        error?.stack,
+      );
+      throw error;
+    }
   }
 
   @ApiOperation({ summary: 'Редактировать акт' })
