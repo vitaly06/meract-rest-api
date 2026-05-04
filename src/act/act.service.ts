@@ -1030,13 +1030,33 @@ export class ActService {
         uid,
         86400,
       );
-      const resourceId = await this.agoraRecordingService.acquire(channelName, uid);
-      const { sid } = await this.agoraRecordingService.startRecording(
-        resourceId,
-        channelName,
-        uid,
-        token,
-      );
+      let resourceId: string | null = null;
+      let sid: string | null = null;
+
+      try {
+        resourceId = await this.agoraRecordingService.acquire(channelName, uid);
+        const recording = await this.agoraRecordingService.startRecording(
+          resourceId,
+          channelName,
+          uid,
+          token,
+        );
+        sid = recording.sid;
+      } catch (recordingError) {
+        if (this.isUidConflictError(recordingError)) {
+          throw new BadRequestException({
+            errorCode: 'STREAM_RESTART_IN_PROGRESS',
+            message:
+              'Hero stream restart is in progress. Please retry shortly.',
+            retryAfterSec: 2,
+            retryable: true,
+          });
+        }
+
+        this.logger.warn(
+          `Hero stream recording start skipped actId=${actId} heroUserId=${heroUserId} channel=${channelName}. Reason: ${recordingError?.message || 'Unknown error'}`,
+        );
+      }
 
       const stream = await this.prisma.actHeroStream.upsert({
         where: { actId_heroUserId: { actId, heroUserId } },
@@ -1074,16 +1094,6 @@ export class ActService {
 
       return stream;
     } catch (error) {
-      if (this.isUidConflictError(error)) {
-        throw new BadRequestException({
-          errorCode: 'STREAM_RESTART_IN_PROGRESS',
-          message:
-            'Hero stream restart is in progress. Please retry shortly.',
-          retryAfterSec: 2,
-          retryable: true,
-        });
-      }
-
       await this.prisma.actHeroStream.upsert({
         where: { actId_heroUserId: { actId, heroUserId } },
         create: {
