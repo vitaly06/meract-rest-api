@@ -21,6 +21,70 @@ import { ChatService } from 'src/chat/chat.service';
 
 @Injectable()
 export class AdminService {
+  private readonly staticActCategories = [
+    { id: 1, key: 'popular', name: 'Popular', order: 1, isActive: true },
+    {
+      id: 2,
+      key: 'live_broadcasts',
+      name: 'Live broadcasts',
+      order: 2,
+      isActive: true,
+    },
+    { id: 3, key: 'new', name: 'New', order: 3, isActive: true },
+  ] as const;
+
+  private resolveStaticActCategory(act: {
+    id: number;
+    status?: string | null;
+  }, popularActIds: Set<number>) {
+    if (act.status === 'ONLINE') {
+      return this.staticActCategories[1];
+    }
+
+    if (popularActIds.has(act.id)) {
+      return this.staticActCategories[0];
+    }
+    return this.staticActCategories[2];
+  }
+
+  private async getPopularActIds(actIds: number[]): Promise<Set<number>> {
+    if (!actIds.length) return new Set<number>();
+
+    const [commentStats, viewerStats, likeStats] = await Promise.all([
+      this.prisma.chatMessage.groupBy({
+        by: ['actId'],
+        where: { actId: { in: actIds } },
+        _count: { _all: true },
+      }),
+      this.prisma.actParticipant.groupBy({
+        by: ['actId'],
+        where: { actId: { in: actIds }, role: 'viewer' },
+        _count: { _all: true },
+      }),
+      this.prisma.act.findMany({
+        where: { id: { in: actIds } },
+        select: { id: true, likes: true },
+      }),
+    ]);
+
+    const commentsMap = new Map(commentStats.map((s) => [s.actId, s._count._all]));
+    const viewersMap = new Map(viewerStats.map((s) => [s.actId, s._count._all]));
+    const likesMap = new Map(likeStats.map((s) => [s.id, s.likes ?? 0]));
+
+    const scored = actIds.map((actId) => {
+      const likes = likesMap.get(actId) ?? 0;
+      const comments = commentsMap.get(actId) ?? 0;
+      const views = viewersMap.get(actId) ?? 0;
+      const score = likes * 2 + comments * 1.5 + views * 1;
+      return { actId, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    const popularCount = Math.max(1, Math.ceil(scored.length * 0.3));
+    const popularIds = scored.slice(0, popularCount).map((item) => item.actId);
+    return new Set(popularIds);
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly utilsService: UtilsService,
@@ -820,35 +884,64 @@ export class AdminService {
 
   /** Все категории (публично, с кол-вом актов) */
   async getCategories() {
-    return this.prisma.category.findMany({
-      include: {
-        _count: { select: { Act: true } },
+    const acts = await this.prisma.act.findMany({
+      select: {
+        id: true,
+        status: true,
       },
-      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
     });
+    const popularActIds = await this.getPopularActIds(acts.map((act) => act.id));
+
+    const countMap = new Map<number, number>();
+    for (const category of this.staticActCategories) {
+      countMap.set(category.id, 0);
+    }
+
+    for (const act of acts) {
+      const category = this.resolveStaticActCategory(act, popularActIds);
+      countMap.set(category.id, (countMap.get(category.id) || 0) + 1);
+    }
+
+    return this.staticActCategories.map((category) => ({
+      ...category,
+      _count: { Act: countMap.get(category.id) || 0 },
+    }));
   }
 
   /** Категория + её акты */
   async getCategoryWithActs(categoryId: number) {
-    const category = await this.prisma.category.findUnique({
-      where: { id: categoryId },
-      include: {
-        Act: {
-          select: {
-            id: true,
-            title: true,
-            status: true,
-            previewFileName: true,
-            scheduledAt: true,
-            startedAt: true,
-            user: { select: { id: true, login: true, email: true } },
-          },
-          orderBy: { startedAt: 'desc' },
-        },
+    const selectedCategory = this.staticActCategories.find(
+      (category) => category.id === categoryId,
+    );
+    if (!selectedCategory) throw new NotFoundException('Категория не найдена');
+
+    const acts = await this.prisma.act.findMany({
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        previewFileName: true,
+        scheduledAt: true,
+        startedAt: true,
+        user: { select: { id: true, login: true, email: true } },
       },
+      orderBy: { startedAt: 'desc' },
     });
-    if (!category) throw new NotFoundException('Категория не найдена');
-    return category;
+    const popularActIds = await this.getPopularActIds(acts.map((act) => act.id));
+
+    const filtered = acts.filter((act) => {
+      const category = this.resolveStaticActCategory(act, popularActIds);
+      return category.id === categoryId;
+    });
+
+    return {
+      id: selectedCategory.id,
+      key: selectedCategory.key,
+      name: selectedCategory.name,
+      order: selectedCategory.order,
+      isActive: selectedCategory.isActive,
+      Act: filtered,
+    };
   }
 
   /** Создать категорию (main admin) */
@@ -862,20 +955,9 @@ export class AdminService {
     },
   ) {
     await this.checkMainAdmin(adminId);
-    const exists = await this.prisma.category.findUnique({
-      where: { name: dto.name },
-    });
-    if (exists)
-      throw new BadRequestException('Категория с таким именем уже существует');
-
-    return this.prisma.category.create({
-      data: {
-        name: dto.name,
-        description: dto.description ?? null,
-        order: dto.order ?? 0,
-        isActive: dto.isActive ?? true,
-      },
-    });
+    throw new BadRequestException(
+      'Dynamic categories are disabled. Use static categories: popular, live broadcasts, new',
+    );
   }
 
   /** Обновить категорию (main admin) */
@@ -890,44 +972,17 @@ export class AdminService {
     },
   ) {
     await this.checkMainAdmin(adminId);
-    const category = await this.prisma.category.findUnique({
-      where: { id: categoryId },
-    });
-    if (!category) throw new NotFoundException('Категория не найдена');
-
-    if (dto.name && dto.name !== category.name) {
-      const duplicate = await this.prisma.category.findUnique({
-        where: { name: dto.name },
-      });
-      if (duplicate)
-        throw new BadRequestException(
-          'Категория с таким именем уже существует',
-        );
-    }
-
-    return this.prisma.category.update({
-      where: { id: categoryId },
-      data: { ...dto },
-      include: { _count: { select: { Act: true } } },
-    });
+    throw new BadRequestException(
+      'Dynamic categories are disabled. Use static categories: popular, live broadcasts, new',
+    );
   }
 
   /** Удалить категорию (акты не удаляются, просто отвязываются) */
   async deleteCategory(adminId: number, categoryId: number) {
     await this.checkMainAdmin(adminId);
-    const category = await this.prisma.category.findUnique({
-      where: { id: categoryId },
-    });
-    if (!category) throw new NotFoundException('Категория не найдена');
-
-    // Отвязываем все акты от этой категории
-    await this.prisma.act.updateMany({
-      where: { categoryId },
-      data: { categoryId: null },
-    });
-
-    await this.prisma.category.delete({ where: { id: categoryId } });
-    return { message: 'Категория удалена' };
+    throw new BadRequestException(
+      'Dynamic categories are disabled. Use static categories: popular, live broadcasts, new',
+    );
   }
 
   /** Назначить акт в категорию */
@@ -937,28 +992,9 @@ export class AdminService {
     categoryId: number | null,
   ) {
     await this.checkMainAdmin(adminId);
-
-    if (categoryId !== null) {
-      const category = await this.prisma.category.findUnique({
-        where: { id: categoryId },
-      });
-      if (!category) throw new NotFoundException('Категория не найдена');
-    }
-
-    const act = await this.prisma.act.findUnique({ where: { id: actId } });
-    if (!act) throw new NotFoundException('Акт не найден');
-
-    return this.prisma.act.update({
-      where: { id: actId },
-      data: { categoryId },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        categoryId: true,
-        category: { select: { id: true, name: true } },
-      },
-    });
+    throw new BadRequestException(
+      'Act category assignment is disabled. Categories are static now.',
+    );
   }
 
   /** Массовое назначение актов в категорию */
@@ -968,19 +1004,9 @@ export class AdminService {
     actIds: number[],
   ) {
     await this.checkMainAdmin(adminId);
-    const category = await this.prisma.category.findUnique({
-      where: { id: categoryId },
-    });
-    if (!category) throw new NotFoundException('Категория не найдена');
-
-    await this.prisma.act.updateMany({
-      where: { id: { in: actIds } },
-      data: { categoryId },
-    });
-
-    return {
-      message: `${actIds.length} актов добавлено в категорию "${category.name}"`,
-    };
+    throw new BadRequestException(
+      'Act category assignment is disabled. Categories are static now.',
+    );
   }
 
   /** Убрать акты из категории (categoryId → null) */
@@ -990,13 +1016,9 @@ export class AdminService {
     actIds: number[],
   ) {
     await this.checkMainAdmin(adminId);
-
-    await this.prisma.act.updateMany({
-      where: { id: { in: actIds }, categoryId },
-      data: { categoryId: null },
-    });
-
-    return { message: `${actIds.length} актов убрано из категории` };
+    throw new BadRequestException(
+      'Act category assignment is disabled. Categories are static now.',
+    );
   }
 
   // ============================================

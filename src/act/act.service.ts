@@ -28,6 +28,11 @@ export type HeroStreamRole = 'publisher' | 'subscriber';
 export class ActService {
   private readonly baseUrl: string;
   private readonly logger = new Logger(ActService.name);
+  private readonly staticActCategories = {
+    POPULAR: 'popular',
+    LIVE_BROADCASTS: 'live broadcasts',
+    NEW: 'new',
+  } as const;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -184,6 +189,43 @@ export class ActService {
       );
       throw error;
     }
+  }
+
+  private async getPopularActIds(actIds: number[]): Promise<Set<number>> {
+    if (!actIds.length) return new Set<number>();
+
+    const [commentStats, viewerStats, likeStats] = await Promise.all([
+      this.prisma.chatMessage.groupBy({
+        by: ['actId'],
+        where: { actId: { in: actIds } },
+        _count: { _all: true },
+      }),
+      this.prisma.actParticipant.groupBy({
+        by: ['actId'],
+        where: { actId: { in: actIds }, role: 'viewer' },
+        _count: { _all: true },
+      }),
+      this.prisma.act.findMany({
+        where: { id: { in: actIds } },
+        select: { id: true, likes: true },
+      }),
+    ]);
+
+    const commentsMap = new Map(commentStats.map((s) => [s.actId, s._count._all]));
+    const viewersMap = new Map(viewerStats.map((s) => [s.actId, s._count._all]));
+    const likesMap = new Map(likeStats.map((s) => [s.id, s.likes ?? 0]));
+
+    const scored = actIds.map((actId) => {
+      const likes = likesMap.get(actId) ?? 0;
+      const comments = commentsMap.get(actId) ?? 0;
+      const views = viewersMap.get(actId) ?? 0;
+      const score = likes * 2 + comments * 1.5 + views * 1;
+      return { actId, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    const popularCount = Math.max(1, Math.ceil(scored.length * 0.3));
+    return new Set(scored.slice(0, popularCount).map((item) => item.actId));
   }
 
   async updateAct(
@@ -423,6 +465,7 @@ export class ActService {
     });
 
     if (!streams || streams.length === 0) return [];
+    const popularActIds = await this.getPopularActIds(streams.map((stream) => stream.id));
 
     let currentUserCoords: { lat: number; lon: number } | null = null;
     if (userCoords) {
@@ -463,18 +506,13 @@ export class ActService {
         ? (uniqueCityMap.get(key) ?? null)
         : null;
 
-      const firstRoutePoint = stream.routePoints?.[0];
-      const streamLocation = firstRoutePoint
-        ? { lat: firstRoutePoint.latitude, lon: firstRoutePoint.longitude }
-        : initiatorCoords;
-
       let distanceKm: number | null = null;
-      if (currentUserCoords && streamLocation) {
+      if (currentUserCoords && initiatorCoords) {
         distanceKm = this.geoService.haversineKm(
           currentUserCoords.lat,
           currentUserCoords.lon,
-          streamLocation.lat,
-          streamLocation.lon,
+          initiatorCoords.lat,
+          initiatorCoords.lon,
         );
       }
       const heroes = stream.participants
@@ -483,6 +521,13 @@ export class ActService {
       const navigators = stream.participants
         .filter((p) => p.role === 'navigator')
         .map((p) => p.user.login || p.user.email);
+
+      const staticCategory =
+        stream.status === 'ONLINE'
+          ? this.staticActCategories.LIVE_BROADCASTS
+          : popularActIds.has(stream.id)
+            ? this.staticActCategories.POPULAR
+            : this.staticActCategories.NEW;
 
       return {
         id: stream.id,
@@ -495,12 +540,15 @@ export class ActService {
           country: stream.user.country ?? null,
         },
         distanceKm,
-        lat: streamLocation?.lat ?? null,
-        lng: streamLocation?.lon ?? null,
         heroes,
         navigators,
-        category: stream.category?.name || '',
-        categoryId: stream.category?.id,
+        category: staticCategory,
+        categoryId:
+          staticCategory === this.staticActCategories.POPULAR
+            ? 1
+            : staticCategory === this.staticActCategories.LIVE_BROADCASTS
+              ? 2
+              : 3,
         status: stream.status || '',
         spectators: 'Not implemented',
         duration: this.formatTimeDifference(
