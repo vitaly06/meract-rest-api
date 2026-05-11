@@ -211,11 +211,13 @@ export class GuildController {
     summary: 'Adding a user to a guild',
   })
   @Post('invite-user')
+  @UseGuards(JwtAuthGuard)
   async inviteUser(
     @Query('user') user: string,
     @Query('guildId') guildId: string,
+    @Req() req: RequestWithUser,
   ) {
-    return await this.guildService.inviteUser(user, +guildId);
+    return await this.guildService.inviteUser(user, +guildId, req.user.sub);
   }
 
   @ApiTags('Guild requests')
@@ -223,11 +225,43 @@ export class GuildController {
     summary: 'Delete user from guild',
   })
   @Post('kick-out-user')
+  @UseGuards(JwtAuthGuard)
   async kickOutUser(
     @Query('userId') userId: string,
     @Query('guildId') guildId: string,
+    @Req() req: RequestWithUser,
   ) {
-    return await this.guildService.kickOutUser(+userId, +guildId);
+    return await this.guildService.kickOutUser(+userId, +guildId, req.user.sub);
+  }
+
+  @ApiTags('Guild requests')
+  @ApiOperation({ summary: 'Get my guild invites' })
+  @Get('invites/my')
+  @UseGuards(JwtAuthGuard)
+  async getMyInvites(@Req() req: RequestWithUser) {
+    return await this.guildService.getMyInvites(req.user.sub);
+  }
+
+  @ApiTags('Guild requests')
+  @ApiOperation({ summary: 'Accept guild invite' })
+  @Post(':guildId/invite/accept')
+  @UseGuards(JwtAuthGuard)
+  async acceptInvite(
+    @Param('guildId') guildId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.respondToInvite(+guildId, req.user.sub, true);
+  }
+
+  @ApiTags('Guild requests')
+  @ApiOperation({ summary: 'Reject guild invite' })
+  @Post(':guildId/invite/reject')
+  @UseGuards(JwtAuthGuard)
+  async rejectInvite(
+    @Param('guildId') guildId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.guildService.respondToInvite(+guildId, req.user.sub, false);
   }
 
   @ApiTags('Guild Achievements')

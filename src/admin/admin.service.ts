@@ -22,29 +22,85 @@ import { ChatService } from 'src/chat/chat.service';
 @Injectable()
 export class AdminService {
   private readonly staticActCategories = [
-    { id: 1, key: 'popular', name: 'Popular', order: 1, isActive: true },
+    { id: 1, key: 'fresh_drop', name: 'Fresh Drop', order: 1, isActive: true },
+    { id: 2, key: 'near_you', name: 'Near You', order: 2, isActive: true },
+    { id: 3, key: 'going_live', name: 'Going Live', order: 3, isActive: true },
+    { id: 4, key: 'live_now', name: 'Live Now', order: 4, isActive: true },
+    { id: 5, key: 'top_signals', name: 'Top Signals', order: 5, isActive: true },
+    { id: 6, key: 'rising_pulse', name: 'Rising Pulse', order: 6, isActive: true },
+    { id: 7, key: 'guild_runs', name: 'Guild Runs', order: 7, isActive: true },
+    { id: 8, key: 'storylines', name: 'Storylines', order: 8, isActive: true },
+    { id: 9, key: 'high_stakes', name: 'High Stakes', order: 9, isActive: true },
     {
-      id: 2,
-      key: 'live_broadcasts',
-      name: 'Live broadcasts',
-      order: 2,
+      id: 10,
+      key: 'completed_legends',
+      name: 'Completed Legends',
+      order: 10,
       isActive: true,
     },
-    { id: 3, key: 'new', name: 'New', order: 3, isActive: true },
   ] as const;
 
-  private resolveStaticActCategory(act: {
-    id: number;
-    status?: string | null;
-  }, popularActIds: Set<number>) {
-    if (act.status === 'ONLINE') {
-      return this.staticActCategories[1];
-    }
+  private resolveStaticActCategory(
+    act: {
+      id: number;
+      status?: string | null;
+      scheduledAt?: Date | null;
+      startedAt?: Date | null;
+      sequelId?: number | null;
+      chapterId?: number | null;
+      type?: string | null;
+      spotAgentCount?: number | null;
+      tags?: string[] | null;
+      user?: { guildId?: number | null } | null;
+      participants?: { role: string }[];
+      distanceKm?: number | null;
+      likes?: number | null;
+    },
+    popularActIds: Set<number>,
+  ) {
+    const now = Date.now();
+    const startedAtTs = act.startedAt ? new Date(act.startedAt).getTime() : 0;
+    const scheduledAtTs = act.scheduledAt ? new Date(act.scheduledAt).getTime() : 0;
+    const heroCount =
+      act.participants?.filter((p) => p.role === 'hero').length ?? 0;
+    const tags = (act.tags ?? []).map((t) => t.toLowerCase());
+    const hasHighStakeTag = tags.some((t) =>
+      ['premium', 'high_stakes', 'high-stakes', 'hard', 'expert', 'difficulty'].includes(t),
+    );
 
-    if (popularActIds.has(act.id)) {
-      return this.staticActCategories[0];
+    if (act.status === 'ONLINE') {
+      return this.staticActCategories.find((c) => c.key === 'live_now')!;
     }
-    return this.staticActCategories[2];
+    if (act.status === 'PLANNED' && scheduledAtTs > now) {
+      return this.staticActCategories.find((c) => c.key === 'going_live')!;
+    }
+    if (act.status === 'OFFLINE' && (act.likes ?? 0) >= 10) {
+      return this.staticActCategories.find((c) => c.key === 'completed_legends')!;
+    }
+    if ((act.user?.guildId ?? null) !== null) {
+      return this.staticActCategories.find((c) => c.key === 'guild_runs')!;
+    }
+    if ((act.sequelId ?? null) !== null || (act.chapterId ?? null) !== null) {
+      return this.staticActCategories.find((c) => c.key === 'storylines')!;
+    }
+    if (
+      act.type === 'MULTI' ||
+      (act.spotAgentCount ?? 0) >= 2 ||
+      heroCount > 1 ||
+      hasHighStakeTag
+    ) {
+      return this.staticActCategories.find((c) => c.key === 'high_stakes')!;
+    }
+    if ((act.distanceKm ?? null) !== null) {
+      return this.staticActCategories.find((c) => c.key === 'near_you')!;
+    }
+    if (startedAtTs > 0 && now - startedAtTs <= 1000 * 60 * 60 * 48) {
+      return this.staticActCategories.find((c) => c.key === 'rising_pulse')!;
+    }
+    if (popularActIds.has(act.id)) {
+      return this.staticActCategories.find((c) => c.key === 'top_signals')!;
+    }
+    return this.staticActCategories.find((c) => c.key === 'fresh_drop')!;
   }
 
   private async getPopularActIds(actIds: number[]): Promise<Set<number>> {
@@ -888,6 +944,17 @@ export class AdminService {
       select: {
         id: true,
         status: true,
+        scheduledAt: true,
+        startedAt: true,
+        sequelId: true,
+        chapterId: true,
+        type: true,
+        spotAgentCount: true,
+        likes: true,
+        tags: true,
+        user: { select: { guildId: true } },
+        participants: { select: { role: true } },
+        _count: { select: { ratings: true } },
       },
     });
     const popularActIds = await this.getPopularActIds(acts.map((act) => act.id));
@@ -898,7 +965,10 @@ export class AdminService {
     }
 
     for (const act of acts) {
-      const category = this.resolveStaticActCategory(act, popularActIds);
+      const category = this.resolveStaticActCategory(
+        { ...act, distanceKm: null },
+        popularActIds,
+      );
       countMap.set(category.id, (countMap.get(category.id) || 0) + 1);
     }
 
@@ -920,19 +990,51 @@ export class AdminService {
         id: true,
         title: true,
         status: true,
+        type: true,
+        spotAgentCount: true,
+        likes: true,
+        tags: true,
         previewFileName: true,
         scheduledAt: true,
         startedAt: true,
-        user: { select: { id: true, login: true, email: true } },
+        sequelId: true,
+        chapterId: true,
+        user: { select: { id: true, login: true, email: true, guildId: true } },
+        participants: { select: { role: true } },
+        _count: { select: { ratings: true } },
       },
       orderBy: { startedAt: 'desc' },
     });
     const popularActIds = await this.getPopularActIds(acts.map((act) => act.id));
 
     const filtered = acts.filter((act) => {
-      const category = this.resolveStaticActCategory(act, popularActIds);
+      const category = this.resolveStaticActCategory(
+        {
+          ...act,
+          user: act.user ?? null,
+          distanceKm: null,
+        },
+        popularActIds,
+      );
       return category.id === categoryId;
     });
+
+    const sorted = [...filtered];
+    if (selectedCategory.key === 'fresh_drop') {
+      sorted.sort((a, b) => +new Date(b.startedAt) - +new Date(a.startedAt));
+    } else if (selectedCategory.key === 'going_live') {
+      sorted.sort(
+        (a, b) =>
+          +new Date(a.scheduledAt ?? a.startedAt) -
+          +new Date(b.scheduledAt ?? b.startedAt),
+      );
+    } else if (selectedCategory.key === 'top_signals') {
+      sorted.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+    } else if (selectedCategory.key === 'rising_pulse') {
+      sorted.sort((a, b) => +new Date(b.startedAt) - +new Date(a.startedAt));
+    } else if (selectedCategory.key === 'completed_legends') {
+      sorted.sort((a, b) => +new Date(b.startedAt) - +new Date(a.startedAt));
+    }
 
     return {
       id: selectedCategory.id,
@@ -940,7 +1042,7 @@ export class AdminService {
       name: selectedCategory.name,
       order: selectedCategory.order,
       isActive: selectedCategory.isActive,
-      Act: filtered,
+      Act: sorted,
     };
   }
 
@@ -956,7 +1058,7 @@ export class AdminService {
   ) {
     await this.checkMainAdmin(adminId);
     throw new BadRequestException(
-      'Dynamic categories are disabled. Use static categories: popular, live broadcasts, new',
+      'Dynamic categories are disabled. Use static homepage categories.',
     );
   }
 
@@ -973,7 +1075,7 @@ export class AdminService {
   ) {
     await this.checkMainAdmin(adminId);
     throw new BadRequestException(
-      'Dynamic categories are disabled. Use static categories: popular, live broadcasts, new',
+      'Dynamic categories are disabled. Use static homepage categories.',
     );
   }
 
@@ -981,7 +1083,7 @@ export class AdminService {
   async deleteCategory(adminId: number, categoryId: number) {
     await this.checkMainAdmin(adminId);
     throw new BadRequestException(
-      'Dynamic categories are disabled. Use static categories: popular, live broadcasts, new',
+      'Dynamic categories are disabled. Use static homepage categories.',
     );
   }
 

@@ -272,7 +272,22 @@ export class GuildService {
     return { message: 'Guild successfully updated' };
   }
 
-  async inviteUser(user: string, guildId: number) {
+  async inviteUser(user: string, guildId: number, actorUserId: number) {
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+      select: { id: true, ownerId: true, name: true },
+    });
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
+    const isMainAdmin = await this.isMainAdmin(actorUserId);
+    if (guild.ownerId !== actorUserId && !isMainAdmin) {
+      throw new ForbiddenException(
+        'Only the guild owner or main admin can invite users',
+      );
+    }
+
     const checkUser = await this.prisma.user.findFirst({
       where: { OR: [{ email: user }, { login: user }] },
       include: {
@@ -297,19 +312,62 @@ export class GuildService {
       );
     }
 
-    await this.prisma.guild.update({
-      where: { id: guildId },
-      data: {
-        members: {
-          connect: { id: checkUser.id },
-        },
+    const existingRequest = await this.prisma.guildJoinRequest.findUnique({
+      where: {
+        guildId_userId: { guildId, userId: checkUser.id },
       },
     });
 
-    return { message: 'User successfully added to guild' };
+    if (existingRequest) {
+      if (existingRequest.status === 'invited') {
+        return { message: 'Invite already sent' };
+      }
+      await this.prisma.guildJoinRequest.update({
+        where: { id: existingRequest.id },
+        data: { status: 'invited', message: null },
+      });
+    } else {
+      await this.prisma.guildJoinRequest.create({
+        data: {
+          guildId,
+          userId: checkUser.id,
+          status: 'invited',
+          message: null,
+        },
+      });
+    }
+
+    this.notificationService
+      .create({
+        userId: checkUser.id,
+        type: 'guild_invite',
+        title: 'Guild invite',
+        body: `You were invited to join "${guild.name}"`,
+        imageUrl: null,
+        metadata: { guildId },
+      })
+      .catch(() => {});
+
+    return { message: 'Invite sent successfully' };
   }
 
-  async kickOutUser(userId: number, guildId: number) {
+  async kickOutUser(userId: number, guildId: number, actorUserId: number) {
+    const guild = await this.prisma.guild.findUnique({
+      where: { id: guildId },
+      select: { id: true, ownerId: true },
+    });
+    if (!guild) {
+      throw new NotFoundException('Guild not found');
+    }
+
+    const isMainAdmin = await this.isMainAdmin(actorUserId);
+    const canSelfLeave = actorUserId === userId;
+    if (!canSelfLeave && guild.ownerId !== actorUserId && !isMainAdmin) {
+      throw new ForbiddenException(
+        'Only the guild owner or main admin can remove members',
+      );
+    }
+
     const checkUser = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -327,6 +385,63 @@ export class GuildService {
     });
 
     return { message: 'User successfully removed from guild' };
+  }
+
+  async getMyInvites(userId: number) {
+    const invites = await this.prisma.guildJoinRequest.findMany({
+      where: { userId, status: 'invited' },
+      include: {
+        guild: {
+          select: {
+            id: true,
+            name: true,
+            logoFileName: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return invites.map((inv) => ({
+      guildId: inv.guild.id,
+      guildName: inv.guild.name,
+      guildLogo: inv.guild.logoFileName ?? null,
+      message: inv.message ?? null,
+      invitedAt: inv.createdAt,
+    }));
+  }
+
+  async respondToInvite(guildId: number, userId: number, accept: boolean) {
+    const invite = await this.prisma.guildJoinRequest.findUnique({
+      where: { guildId_userId: { guildId, userId } },
+      include: { guild: { select: { id: true, name: true } } },
+    });
+
+    if (!invite || invite.status !== 'invited') {
+      throw new NotFoundException('Invite not found');
+    }
+
+    if (accept) {
+      await this.prisma.guild.update({
+        where: { id: guildId },
+        data: {
+          members: {
+            connect: { id: userId },
+          },
+        },
+      });
+      await this.prisma.guildJoinRequest.update({
+        where: { id: invite.id },
+        data: { status: 'approved' },
+      });
+      return { message: 'Invite accepted' };
+    }
+
+    await this.prisma.guildJoinRequest.update({
+      where: { id: invite.id },
+      data: { status: 'rejected' },
+    });
+    return { message: 'Invite rejected' };
   }
 
   async deleteGuild(guildId: number, req: RequestWithUser) {
@@ -547,8 +662,8 @@ export class GuildService {
         .create({
           userId: guild.ownerId,
           type: 'guild_join_request',
-          title: `Заявка в гильдию`,
-          body: `${requesterName} хочет вступить в "${guild.name}"`,
+          title: 'Guild join request',
+          body: `${requesterName} wants to join "${guild.name}"`,
           imageUrl: requester?.avatarUrl ?? null,
           metadata: { guildId, requesterId: userId },
         })
@@ -644,8 +759,8 @@ export class GuildService {
           .create({
             userId: request.userId,
             type: 'guild_join_approved',
-            title: 'Заявка принята',
-            body: `Вы приняты в гильдию "${request.guild.name}"`,
+            title: 'Request approved',
+            body: `You were accepted to guild "${request.guild.name}"`,
             imageUrl: request.guild.logoFileName ?? null,
             metadata: { guildId: request.guildId },
           })
@@ -664,8 +779,8 @@ export class GuildService {
         .create({
           userId: request.userId,
           type: 'guild_join_rejected',
-          title: 'Заявка отклонена',
-          body: `Ваша заявка в гильдию "${request.guild.name}" отклонена`,
+          title: 'Request rejected',
+          body: `Your request to join guild "${request.guild.name}" was rejected`,
           imageUrl: request.guild.logoFileName ?? null,
           metadata: { guildId: request.guildId },
         })

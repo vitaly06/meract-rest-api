@@ -404,7 +404,7 @@ export class MainGateway
 
             // Create poll for task voting
             const pollDto = {
-              title: 'Новое задание на голосовании',
+              title: 'New task is up for voting',
               description,
               options: ['За', 'Против'],
               biddingTime,

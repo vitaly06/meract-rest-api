@@ -29,9 +29,16 @@ export class ActService {
   private readonly baseUrl: string;
   private readonly logger = new Logger(ActService.name);
   private readonly staticActCategories = {
-    POPULAR: 'popular',
-    LIVE_BROADCASTS: 'live broadcasts',
-    NEW: 'new',
+    FRESH_DROP: 1,
+    NEAR_YOU: 2,
+    GOING_LIVE: 3,
+    LIVE_NOW: 4,
+    TOP_SIGNALS: 5,
+    RISING_PULSE: 6,
+    GUILD_RUNS: 7,
+    STORYLINES: 8,
+    HIGH_STAKES: 9,
+    COMPLETED_LEGENDS: 10,
   } as const;
 
   constructor(
@@ -448,6 +455,7 @@ export class ActService {
             email: true,
             city: true,
             country: true,
+            guildId: true,
           },
         },
         category: true,
@@ -522,12 +530,44 @@ export class ActService {
         .filter((p) => p.role === 'navigator')
         .map((p) => p.user.login || p.user.email);
 
-      const staticCategory =
-        stream.status === 'ONLINE'
-          ? this.staticActCategories.LIVE_BROADCASTS
-          : popularActIds.has(stream.id)
-            ? this.staticActCategories.POPULAR
-            : this.staticActCategories.NEW;
+      const heroCount = stream.participants.filter((p) => p.role === 'hero').length;
+      const tags = (stream.tags ?? []).map((t) => t.toLowerCase());
+      const hasHighStakeTag = tags.some((t) =>
+        ['premium', 'high_stakes', 'high-stakes', 'hard', 'expert', 'difficulty'].includes(t),
+      );
+      const now = Date.now();
+      const startedAtTs = stream.startedAt ? new Date(stream.startedAt).getTime() : 0;
+      const isRisingPulse = startedAtTs > 0 && now - startedAtTs <= 1000 * 60 * 60 * 48;
+
+      let categoryId = this.staticActCategories.FRESH_DROP;
+      if (stream.status === 'ONLINE') {
+        categoryId = this.staticActCategories.LIVE_NOW;
+      } else if (
+        stream.status === 'PLANNED' &&
+        stream.scheduledAt &&
+        new Date(stream.scheduledAt).getTime() > now
+      ) {
+        categoryId = this.staticActCategories.GOING_LIVE;
+      } else if (stream.status === 'OFFLINE' && (stream.likes ?? 0) >= 10) {
+        categoryId = this.staticActCategories.COMPLETED_LEGENDS;
+      } else if ((stream.user as any).guildId != null) {
+        categoryId = this.staticActCategories.GUILD_RUNS;
+      } else if (stream.sequelId != null || stream.chapterId != null) {
+        categoryId = this.staticActCategories.STORYLINES;
+      } else if (
+        stream.type === 'MULTI' ||
+        (stream.spotAgentCount ?? 0) >= 2 ||
+        heroCount > 1 ||
+        hasHighStakeTag
+      ) {
+        categoryId = this.staticActCategories.HIGH_STAKES;
+      } else if (distanceKm != null) {
+        categoryId = this.staticActCategories.NEAR_YOU;
+      } else if (isRisingPulse) {
+        categoryId = this.staticActCategories.RISING_PULSE;
+      } else if (popularActIds.has(stream.id)) {
+        categoryId = this.staticActCategories.TOP_SIGNALS;
+      }
 
       return {
         id: stream.id,
@@ -542,13 +582,8 @@ export class ActService {
         distanceKm,
         heroes,
         navigators,
-        category: staticCategory,
-        categoryId:
-          staticCategory === this.staticActCategories.POPULAR
-            ? 1
-            : staticCategory === this.staticActCategories.LIVE_BROADCASTS
-              ? 2
-              : 3,
+        category: null,
+        categoryId,
         status: stream.status || '',
         spectators: 'Not implemented',
         duration: this.formatTimeDifference(
@@ -2772,8 +2807,8 @@ export class ActService {
       .create({
         userId: selectedUserId,
         type: 'role_assigned',
-        title: `Вы назначены ${roleType === 'hero' ? 'Героем' : 'Навигатором'}`,
-        body: `Вы стали ${roleType === 'hero' ? 'Героем' : 'Навигатором'} в акте "${act.title}"`,
+        title: `You were assigned as ${roleType === 'hero' ? 'Hero' : 'Navigator'}`,
+        body: `You are now ${roleType === 'hero' ? 'Hero' : 'Navigator'} in act "${act.title}"`,
         imageUrl: act.previewFileName ?? null,
         metadata: { actId, role: roleType },
       })
@@ -2784,8 +2819,8 @@ export class ActService {
       .create({
         userId: selectedUserId,
         type: 'role_assigned',
-        title: `Вы назначены ${roleType === 'hero' ? 'Героем' : 'Навигатором'}`,
-        body: `Вы стали ${roleType === 'hero' ? 'Героем' : 'Навигатором'} в акте "${act.title}"`,
+        title: `You were assigned as ${roleType === 'hero' ? 'Hero' : 'Navigator'}`,
+        body: `You are now ${roleType === 'hero' ? 'Hero' : 'Navigator'} in act "${act.title}"`,
         imageUrl: act.previewFileName ?? null,
         metadata: { actId, role: roleType },
       })
