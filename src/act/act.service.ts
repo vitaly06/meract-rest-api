@@ -20,6 +20,7 @@ import { SelectionMethods } from '@prisma/client';
 import { GeoService } from 'src/geo/geo.service';
 import { NotificationService } from 'src/notification/notification.service';
 import { MainGateway } from 'src/gateway/main.gateway';
+import { ActionChargeService } from 'src/payment/action-charge.service';
 
 export type NavigatorVoiceTargetRole = 'initiator' | 'hero' | 'spot_agent';
 export type HeroStreamRole = 'publisher' | 'subscriber';
@@ -48,6 +49,7 @@ export class ActService {
     private readonly agoraRecordingService: AgoraRecordingService,
     private readonly geoService: GeoService,
     private readonly notificationService: NotificationService,
+    private readonly actionChargeService: ActionChargeService,
     @Inject(forwardRef(() => MainGateway))
     private readonly gateway: MainGateway,
   ) {
@@ -60,6 +62,8 @@ export class ActService {
   async createAct(dto: CreateActRequest, userId: number, filename?: string) {
     const { title, description, sequelId, teams, tags } = dto;
     try {
+
+    await this.actionChargeService.chargeIfConfigured(userId, 'CREATE_ACT');
 
     // Проверка пользователя
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -539,7 +543,7 @@ export class ActService {
       const startedAtTs = stream.startedAt ? new Date(stream.startedAt).getTime() : 0;
       const isRisingPulse = startedAtTs > 0 && now - startedAtTs <= 1000 * 60 * 60 * 48;
 
-      let categoryId = this.staticActCategories.FRESH_DROP;
+      let categoryId: number = this.staticActCategories.FRESH_DROP;
       if (stream.status === 'ONLINE') {
         categoryId = this.staticActCategories.LIVE_NOW;
       } else if (
@@ -1764,6 +1768,11 @@ export class ActService {
     if (!isOwner && !isNavigatorViaParticipant && !isNavigatorViaRoleConfig) {
       throw new ForbiddenException('Only act owner or navigator can add tasks');
     }
+
+    await this.actionChargeService.chargeIfConfigured(
+      userId,
+      'ADD_TEAM_TASK',
+    );
 
     const team = await this.prisma.actTeam.findFirst({ where: { id: teamId, actId } });
     if (!team) throw new NotFoundException('Team not found');

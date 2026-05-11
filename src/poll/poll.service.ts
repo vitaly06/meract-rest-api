@@ -10,6 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { MainGateway } from 'src/gateway/main.gateway';
 import { CreatePollDto } from './dto/create-poll.dto';
 import { VotePollDto } from './dto/vote-poll.dto';
+import { ActionChargeService } from 'src/payment/action-charge.service';
 
 const creatorSelect = {
   id: true,
@@ -22,6 +23,7 @@ const creatorSelect = {
 export class PollService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly actionChargeService: ActionChargeService,
     @Inject(forwardRef(() => MainGateway))
     private readonly gateway: MainGateway,
   ) {}
@@ -87,6 +89,8 @@ export class PollService {
 
     if (act.status !== 'ONLINE')
       throw new ForbiddenException('Нельзя создавать опросы — акт не в эфире');
+
+    await this.actionChargeService.chargeIfConfigured(userId, 'CREATE_POLL');
 
     const endsAt = new Date(Date.now() + dto.biddingTime * 60 * 1000);
 
@@ -206,3 +210,4 @@ export class PollService {
     return { success: true };
   }
 }
+

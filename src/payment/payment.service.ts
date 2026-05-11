@@ -103,11 +103,18 @@ export class PaymentService {
     const formatted = transactions.map((t) => ({
       id: t.id,
       date: this.formatDate(t.createdAt),
-      type: t.type === 'TRANSFER' ? 'Transfer' : 'Purchase Echo',
+      type:
+        t.type === 'TRANSFER'
+          ? 'Transfer'
+          : t.type === 'ACTION'
+            ? 'Action fee'
+            : 'Purchase Echo',
       counterpart:
         t.type === 'TRANSFER'
           ? (t.counterpart?.login ?? t.counterpart?.email ?? 'Unknown')
-          : 'Meract shop',
+          : t.type === 'ACTION'
+            ? 'Meract action'
+            : 'Meract shop',
       amount: this.formatAmount(t.amount),
     }));
 
@@ -135,7 +142,7 @@ export class PaymentService {
     }
 
     let sender: string;
-    if (t.type === 'PURCHASE') {
+    if (t.type === 'PURCHASE' || t.type === 'ACTION') {
       sender = '@meract';
     } else if (t.amount > 0) {
       // Received — counterpart sent it
@@ -150,7 +157,11 @@ export class PaymentService {
       status: t.status === 'COMPLETED' ? 'Completed' : 'Failed',
       date: this.formatDateTime(t.createdAt),
       type:
-        t.type === 'TRANSFER' ? 'Transfer to user' : 'Purchasing from Meract',
+        t.type === 'TRANSFER'
+          ? 'Transfer to user'
+          : t.type === 'ACTION'
+            ? 'Action fee'
+            : 'Purchasing from Meract',
       amount: this.formatAmount(t.amount),
       sender,
     };

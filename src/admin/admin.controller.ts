@@ -32,6 +32,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateLocationRangeDto } from './dto/create-location-range.dto';
 import { UpdateLocationRangeDto } from './dto/update-location-range.dto';
+import { UpsertActionCostDto } from './dto/upsert-action-cost.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -130,6 +131,23 @@ export class AdminController {
   @Get('location-ranges')
   async getLocationRanges() {
     return this.adminService.getLocationRanges();
+  }
+
+  @ApiOperation({ summary: 'Action costs for wallet deductions' })
+  @UseGuards(JwtAuthGuard)
+  @Get('action-costs')
+  async getActionCosts() {
+    return this.adminService.getActionCosts();
+  }
+
+  @ApiOperation({ summary: 'Create/update action cost (main admin)' })
+  @UseGuards(JwtAuthGuard)
+  @Post('action-costs')
+  async upsertActionCost(
+    @Body() dto: UpsertActionCostDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.upsertActionCost(req.user.sub, dto);
   }
 
   @Get(':id')
@@ -550,3 +568,4 @@ export class AdminController {
     return this.adminService.deleteLocationRange(req.user.sub, +rangeId);
   }
 }
+

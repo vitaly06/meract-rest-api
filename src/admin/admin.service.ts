@@ -14,6 +14,7 @@ import * as bcrypt from 'bcrypt';
 import { UpdateAdminRequest } from './dto/update-admin.dto';
 import { CreateLocationRangeDto } from './dto/create-location-range.dto';
 import { UpdateLocationRangeDto } from './dto/update-location-range.dto';
+import { UpsertActionCostDto } from './dto/upsert-action-cost.dto';
 import { UtilsService } from 'src/common/utils/utils.serivice';
 import { RequestWithUser } from 'src/auth/interfaces/request-with-user.dto';
 import { MainGateway } from 'src/gateway/main.gateway';
@@ -1162,5 +1163,27 @@ export class AdminService {
     if (!range) throw new NotFoundException('Диапазон не найден');
     await this.prisma.locationRange.delete({ where: { id: rangeId } });
     return { message: 'Диапазон удалён' };
+  }
+
+  async getActionCosts() {
+    return this.prisma.actionCost.findMany({
+      orderBy: { actionKey: 'asc' },
+    });
+  }
+
+  async upsertActionCost(adminId: number, dto: UpsertActionCostDto) {
+    await this.checkMainAdmin(adminId);
+    return this.prisma.actionCost.upsert({
+      where: { actionKey: dto.actionKey },
+      update: {
+        amount: dto.amount,
+        isActive: dto.isActive,
+      },
+      create: {
+        actionKey: dto.actionKey,
+        amount: dto.amount,
+        isActive: dto.isActive,
+      },
+    });
   }
 }

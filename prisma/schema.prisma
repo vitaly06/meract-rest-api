@@ -38,6 +38,7 @@ enum SelectionMethods {
 enum TransactionType {
   TRANSFER
   PURCHASE
+  ACTION
 }
 
 enum TransactionStatus {
@@ -54,6 +55,7 @@ enum TicketStatus {
 enum IconPackType {
   ACHIEVEMENT
   RANK
+  TASK
 }
 
 model ActRating {
@@ -961,6 +963,17 @@ model Transaction {
 
   @@index([userId])
   @@index([userId, createdAt])
+}
+
+model ActionCost {
+  id        Int      @id @default(autoincrement())
+  actionKey String   @unique
+  amount    Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 model ShopProduct {

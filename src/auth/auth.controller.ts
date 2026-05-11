@@ -124,7 +124,10 @@ export class AuthController {
   ) {
     const result = await this.authService.signIn(dto, admin || null);
     this.setCookies(res, result.tokens);
-    return result.checkUser;
+    return {
+      user: result.checkUser,
+      accessToken: result.tokens.accessToken,
+    };
   }
 
   @ApiTags('Password recovery')
@@ -322,17 +325,21 @@ export class AuthController {
     tokens: { accessToken: string; refreshToken: string },
   ) {
     const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+    const isProd = process.env.NODE_ENV === 'production';
+    const sameSite: 'lax' | 'none' = isProd ? 'none' : 'lax';
     res.cookie('access_token', tokens.accessToken, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProd,
+      sameSite,
+      path: '/',
       maxAge: THIRTY_DAYS,
     });
 
     res.cookie('refresh_token', tokens.refreshToken, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProd,
+      sameSite,
+      path: '/',
       maxAge: THIRTY_DAYS,
     });
   }

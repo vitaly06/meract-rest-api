@@ -9,6 +9,7 @@ import * as path from 'path';
 import { AgoraRecordingModule } from 'src/agora-recording/agora-recording.module';
 import { GeoModule } from 'src/geo/geo.module';
 import { GatewayModule } from 'src/gateway/gateway.module';
+import { PaymentModule } from 'src/payment/payment.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { GatewayModule } from 'src/gateway/gateway.module';
     AgoraRecordingModule,
     GeoModule,
     forwardRef(() => GatewayModule),
+    PaymentModule,
   ],
   controllers: [ActController],
   providers: [ActService, ActGateway],
