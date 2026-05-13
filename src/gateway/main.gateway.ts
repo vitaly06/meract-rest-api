@@ -406,14 +406,14 @@ export class MainGateway
             const pollDto = {
               title: 'New task is up for voting',
               description,
-              options: ['За', 'Против'],
+              options: ['For', 'Against'],
               biddingTime,
             };
             const poll = await this.pollService.createPoll(actId, socket.userId, pollDto);
 
             // Create pinned stream message with task proposal
             const taskMsg = await this.chatService.sendStreamMessage(actId, socket.userId, {
-              message: `📋 Предложено задание: ${description}${address ? ` 📍 ${address}` : ''}`,
+              message: 'Proposed task: ' + description + (address ? ' | Location: ' + address : ''),
             });
             const pinnedMsg = await this.chatService.pinStreamMessage(taskMsg.id, socket.userId);
 
