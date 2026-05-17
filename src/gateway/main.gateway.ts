@@ -14,6 +14,7 @@ import { ChatService } from '../chat/chat.service';
 import { GuildService } from '../guild/guild.service';
 import { ActService } from '../act/act.service';
 import { PollService } from '../poll/poll.service';
+import { GeoService } from '../geo/geo.service';
 
 import { SendGuildMessageDto } from '../guild/dto/send-guild-message.dto';
 import moment from 'moment';
@@ -61,6 +62,7 @@ export class MainGateway
     private readonly presenceService: PresenceService,
     @Inject(forwardRef(() => PollService))
     private readonly pollService: PollService,
+    private readonly geoService: GeoService,
   ) {}
 
   afterInit(server: Server) {
@@ -411,9 +413,24 @@ export class MainGateway
             };
             const poll = await this.pollService.createPoll(actId, socket.userId, pollDto);
 
+            // Resolve address to English via reverse geocoding if lat/lng available
+            let locationText = address || '';
+            if (!locationText && lat != null && lng != null) {
+              try {
+                const englishAddress = await this.geoService.reverseGeocode(lat, lng);
+                if (englishAddress) {
+                  locationText = englishAddress;
+                } else {
+                  locationText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                }
+              } catch {
+                locationText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+              }
+            }
+
             // Create pinned stream message with task proposal
             const taskMsg = await this.chatService.sendStreamMessage(actId, socket.userId, {
-              message: 'Proposed task: ' + description + (address ? ' | Location: ' + address : ''),
+              message: 'Task proposed: ' + description + (locationText ? ' | Location: ' + locationText : ''),
             });
             const pinnedMsg = await this.chatService.pinStreamMessage(taskMsg.id, socket.userId);
 

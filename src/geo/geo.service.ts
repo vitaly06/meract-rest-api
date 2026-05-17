@@ -145,4 +145,40 @@ export class GeoService {
       select: { id: true, label: true, minKm: true, maxKm: true, order: true },
     });
   }
+
+  /**
+   * Reverse geocoding: convert lat/lng to an English address using Nominatim.
+   * Returns a formatted address string or null if not found.
+   */
+  async reverseGeocode(lat: number, lon: number): Promise<string | null> {
+    try {
+      const params = new URLSearchParams({
+        format: 'json',
+        lat: String(lat),
+        lon: String(lon),
+        zoom: '18',
+        addressdetails: '1',
+      });
+      const res = await fetch(
+        `${NOMINATIM_BASE}/reverse?${params.toString()}`,
+        {
+          headers: { 'User-Agent': 'Meract-App/1.0' },
+        },
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        display_name?: string;
+        address?: Record<string, string>;
+      };
+      if (!data?.display_name) return null;
+      // Return only the English name if available, otherwise the full display_name
+      return data.display_name;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `Nominatim reverse geocoding failed for ${lat},${lon}: ${msg}`,
+      );
+      return null;
+    }
+  }
 }

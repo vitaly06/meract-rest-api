@@ -31,4 +31,25 @@ export class GeoController {
   async getLocationRanges() {
     return this.geoService.getActiveLocationRanges();
   }
+
+  @ApiOperation({
+    summary: 'Reverse geocode lat/lng to English address',
+    description:
+      'Converts latitude and longitude to a formatted English address string using Nominatim (OpenStreetMap). Returns null if not found.',
+  })
+  @ApiQuery({ name: 'lat', description: 'Latitude', required: true, type: Number })
+  @ApiQuery({ name: 'lng', description: 'Longitude', required: true, type: Number })
+  @Get('reverse')
+  async reverseGeocode(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+  ) {
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    if (isNaN(latNum) || isNaN(lngNum)) {
+      return { address: null };
+    }
+    const address = await this.geoService.reverseGeocode(latNum, lngNum);
+    return { address };
+  }
 }

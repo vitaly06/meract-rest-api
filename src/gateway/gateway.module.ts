@@ -7,6 +7,7 @@ import { GuildModule } from '../guild/guild.module';
 import { ActModule } from '../act/act.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PollModule } from '../poll/poll.module';
+import { GeoModule } from '../geo/geo.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PollModule } from '../poll/poll.module';
     forwardRef(() => GuildModule),
     forwardRef(() => ActModule),
     forwardRef(() => PollModule),
+    GeoModule,
   ],
   providers: [MainGateway],
   exports: [MainGateway],

@@ -169,7 +169,7 @@ export class PollService {
       where: { pollId_userId: { pollId, userId } },
     });
     if (existing)
-      throw new BadRequestException('Вы уже проголосовали в этом опросе');
+      throw new BadRequestException('You have already voted in this poll');
 
     await this.prisma.pollVote.create({
       data: { pollId, optionId: dto.optionId, userId },

@@ -770,8 +770,14 @@ export class ActService {
         role: 'hero',
         candidates: { some: { userId } },
       },
-      select: { id: true },
+      select: { id: true, openVoting: true },
     });
+    
+    // If hero is in a role config with open voting - no rights until voting ends
+    if (teamHero?.openVoting) {
+      return false;
+    }
+    
     return !!teamHero;
   }
 
