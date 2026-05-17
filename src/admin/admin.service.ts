@@ -25,18 +25,19 @@ export class AdminService {
   private readonly staticActCategories = [
     { id: 1, key: 'fresh_drop', name: 'Fresh Drop', order: 1, isActive: true },
     { id: 2, key: 'near_you', name: 'Near You', order: 2, isActive: true },
-    { id: 3, key: 'going_live', name: 'Going Live', order: 3, isActive: true },
-    { id: 4, key: 'live_now', name: 'Live Now', order: 4, isActive: true },
-    { id: 5, key: 'top_signals', name: 'Top Signals', order: 5, isActive: true },
-    { id: 6, key: 'rising_pulse', name: 'Rising Pulse', order: 6, isActive: true },
-    { id: 7, key: 'guild_runs', name: 'Guild Runs', order: 7, isActive: true },
-    { id: 8, key: 'storylines', name: 'Storylines', order: 8, isActive: true },
-    { id: 9, key: 'high_stakes', name: 'High Stakes', order: 9, isActive: true },
+    { id: 3, key: 'starting_now', name: 'Starting Now', order: 3, isActive: true },
+    { id: 11, key: 'starting_soon', name: 'Starting Soon', order: 4, isActive: true },
+    { id: 4, key: 'live_now', name: 'Live Now', order: 5, isActive: true },
+    { id: 5, key: 'top_signals', name: 'Top Signals', order: 6, isActive: true },
+    { id: 6, key: 'rising_pulse', name: 'Rising Pulse', order: 7, isActive: true },
+    { id: 7, key: 'guild_runs', name: 'Guild Runs', order: 8, isActive: true },
+    { id: 8, key: 'storylines', name: 'Storylines', order: 9, isActive: true },
+    { id: 9, key: 'high_stakes', name: 'High Stakes', order: 10, isActive: true },
     {
       id: 10,
       key: 'completed_legends',
       name: 'Completed Legends',
-      order: 10,
+      order: 11,
       isActive: true,
     },
   ] as const;
@@ -62,6 +63,8 @@ export class AdminService {
     const now = Date.now();
     const startedAtTs = act.startedAt ? new Date(act.startedAt).getTime() : 0;
     const scheduledAtTs = act.scheduledAt ? new Date(act.scheduledAt).getTime() : 0;
+    const tenMinutesMs = 10 * 60 * 1000;
+    const sixHoursMs = 6 * 60 * 60 * 1000;
     const heroCount =
       act.participants?.filter((p) => p.role === 'hero').length ?? 0;
     const tags = (act.tags ?? []).map((t) => t.toLowerCase());
@@ -73,7 +76,13 @@ export class AdminService {
       return this.staticActCategories.find((c) => c.key === 'live_now')!;
     }
     if (act.status === 'PLANNED' && scheduledAtTs > now) {
-      return this.staticActCategories.find((c) => c.key === 'going_live')!;
+      const delta = scheduledAtTs - now;
+      if (delta <= tenMinutesMs) {
+        return this.staticActCategories.find((c) => c.key === 'starting_now')!;
+      }
+      if (delta <= sixHoursMs) {
+        return this.staticActCategories.find((c) => c.key === 'starting_soon')!;
+      }
     }
     if (act.status === 'OFFLINE' && (act.likes ?? 0) >= 10) {
       return this.staticActCategories.find((c) => c.key === 'completed_legends')!;
@@ -1023,7 +1032,7 @@ export class AdminService {
     const sorted = [...filtered];
     if (selectedCategory.key === 'fresh_drop') {
       sorted.sort((a, b) => +new Date(b.startedAt) - +new Date(a.startedAt));
-    } else if (selectedCategory.key === 'going_live') {
+    } else if (selectedCategory.key === 'starting_now' || selectedCategory.key === 'starting_soon') {
       sorted.sort(
         (a, b) =>
           +new Date(a.scheduledAt ?? a.startedAt) -

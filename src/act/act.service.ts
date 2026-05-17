@@ -32,7 +32,8 @@ export class ActService {
   private readonly staticActCategories = {
     FRESH_DROP: 1,
     NEAR_YOU: 2,
-    GOING_LIVE: 3,
+    STARTING_NOW: 3,
+    STARTING_SOON: 11,
     LIVE_NOW: 4,
     TOP_SIGNALS: 5,
     RISING_PULSE: 6,
@@ -541,6 +542,8 @@ export class ActService {
         ['premium', 'high_stakes', 'high-stakes', 'hard', 'expert', 'difficulty'].includes(t),
       );
       const now = Date.now();
+      const tenMinutesMs = 10 * 60 * 1000;
+      const sixHoursMs = 6 * 60 * 60 * 1000;
       const startedAtTs = stream.startedAt ? new Date(stream.startedAt).getTime() : 0;
       const isRisingPulse = startedAtTs > 0 && now - startedAtTs <= 1000 * 60 * 60 * 48;
 
@@ -552,7 +555,12 @@ export class ActService {
         stream.scheduledAt &&
         new Date(stream.scheduledAt).getTime() > now
       ) {
-        categoryId = this.staticActCategories.GOING_LIVE;
+        const delta = new Date(stream.scheduledAt).getTime() - now;
+        if (delta <= tenMinutesMs) {
+          categoryId = this.staticActCategories.STARTING_NOW;
+        } else if (delta <= sixHoursMs) {
+          categoryId = this.staticActCategories.STARTING_SOON;
+        }
       } else if (stream.status === 'OFFLINE' && (stream.likes ?? 0) >= 10) {
         categoryId = this.staticActCategories.COMPLETED_LEGENDS;
       } else if ((stream.user as any).guildId != null) {
