@@ -29,7 +29,7 @@ export class SequelService {
   ) {
     await this.checkUserOrFail(userId);
 
-    await this.prisma.sequel.create({
+    const sequel = await this.prisma.sequel.create({
       data: {
         title: dto.title,
         episodes: +dto.episodes,
@@ -38,7 +38,13 @@ export class SequelService {
       },
     });
 
-    return { message: 'Сиквел успешно создан' };
+    return {
+      id: sequel.id,
+      title: sequel.title,
+      episodes: sequel.episodes,
+      coverFileName: `${this.baseUrl}/${sequel.coverFileName}`,
+      message: 'Sequel created successfully',
+    };
   }
 
   async getMySequels(userId: number) {

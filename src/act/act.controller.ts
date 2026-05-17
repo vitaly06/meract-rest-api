@@ -44,6 +44,10 @@ export class ActController {
 
   constructor(private readonly actService: ActService) {}
 
+  private async resolveActIdParam(actRef: string): Promise<number> {
+    return this.actService.resolveActId(actRef);
+  }
+
   @ApiOperation({
     summary: 'Создание нового акта (стрима)',
     description:
@@ -135,7 +139,8 @@ export class ActController {
     @Req() req: RequestWithUser,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return await this.actService.updateAct(+id, req.user.sub, dto, photo);
+    const actId = await this.resolveActIdParam(id);
+    return await this.actService.updateAct(actId, req.user.sub, dto, photo);
   }
 
   @ApiOperation({
@@ -144,7 +149,8 @@ export class ActController {
   @Get('find-by-id/:id')
   @UseGuards(JwtAuthGuard)
   async getActById(@Param('id') id: string, @Req() req: RequestWithUser) {
-    return await this.actService.getActById(+id, req.user.sub);
+    const actId = await this.resolveActIdParam(id);
+    return await this.actService.getActById(actId, req.user.sub);
   }
 
   @ApiOperation({
@@ -212,7 +218,8 @@ export class ActController {
   @Post('stop-act')
   @UseGuards(JwtAuthGuard)
   async stopAct(@Query('id') id: string, @Req() req: RequestWithUser) {
-    return await this.actService.stopAct(+id, req);
+    const actId = await this.resolveActIdParam(id);
+    return await this.actService.stopAct(actId, req);
   }
 
   @ApiOperation({
@@ -226,7 +233,8 @@ export class ActController {
   @Post('start-act/:id')
   @UseGuards(JwtAuthGuard)
   async startAct(@Param('id') id: string, @Req() req: RequestWithUser) {
-    return await this.actService.startAct(+id, req.user.sub);
+    const actId = await this.resolveActIdParam(id);
+    return await this.actService.startAct(actId, req.user.sub);
   }
 
   @ApiOperation({
@@ -237,7 +245,8 @@ export class ActController {
   @Get(':actId/hero-streams')
   @UseGuards(JwtAuthGuard)
   async getHeroStreams(@Param('actId') actId: string) {
-    return await this.actService.getHeroStreams(+actId);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return await this.actService.getHeroStreams(resolvedActId);
   }
 
   @ApiOperation({
@@ -251,7 +260,8 @@ export class ActController {
     @Param('actId') actId: string,
     @Param('heroUserId') heroUserId: string,
   ) {
-    return await this.actService.getHeroStreamViewersCount(+actId, +heroUserId);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return await this.actService.getHeroStreamViewersCount(resolvedActId, +heroUserId);
   }
 
   @ApiOperation({
@@ -266,8 +276,9 @@ export class ActController {
     @Param('heroUserId') heroUserId: string,
     @Req() req: RequestWithUser,
   ) {
+    const resolvedActId = await this.resolveActIdParam(actId);
     return await this.actService.startHeroStream(
-      +actId,
+      resolvedActId,
       +heroUserId,
       req.user.sub,
     );
@@ -285,8 +296,9 @@ export class ActController {
     @Param('heroUserId') heroUserId: string,
     @Req() req: RequestWithUser,
   ) {
+    const resolvedActId = await this.resolveActIdParam(actId);
     return await this.actService.stopHeroStream(
-      +actId,
+      resolvedActId,
       +heroUserId,
       req.user.sub,
     );
@@ -306,8 +318,9 @@ export class ActController {
     @Query('role') role?: 'publisher' | 'subscriber',
     @Query('expiry') expiry?: string,
   ) {
+    const resolvedActId = await this.resolveActIdParam(actId);
     return await this.actService.getHeroStreamToken(
-      +actId,
+      resolvedActId,
       +heroUserId,
       req.user.sub,
       role ?? 'subscriber',
@@ -343,7 +356,8 @@ export class ActController {
     @Body('value') value: number,
     @Req() req: RequestWithUser,
   ) {
-    return await this.actService.rateAct(+id, req.user.sub, +value);
+    const actId = await this.resolveActIdParam(id);
+    return await this.actService.rateAct(actId, req.user.sub, +value);
   }
 
   @ApiOperation({
@@ -421,7 +435,8 @@ export class ActController {
     },
   })
   async getActTasks(@Param('actId') actId: string) {
-    return this.actService.getActTasks(+actId);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return this.actService.getActTasks(resolvedActId);
   }
 
   @Post(':actId/tasks')
@@ -451,7 +466,8 @@ export class ActController {
     @Body() dto: CreateTaskDto,
     @Req() req: RequestWithUser,
   ) {
-    return this.actService.addTaskToAct(+actId, dto.title, req.user.sub);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return this.actService.addTaskToAct(resolvedActId, dto.title, req.user.sub);
   }
 
   @Post(':actId/team-tasks')
@@ -463,8 +479,9 @@ export class ActController {
     @Body() dto: CreateTeamTaskDto,
     @Req() req: RequestWithUser,
   ) {
+    const resolvedActId = await this.resolveActIdParam(actId);
     return this.actService.createTeamTask(
-      +actId,
+      resolvedActId,
       dto.teamId,
       dto.description,
       req.user.sub,
@@ -497,7 +514,8 @@ export class ActController {
     @Param('taskId') taskId: string,
     @Req() req: RequestWithUser,
   ) {
-    return this.actService.toggleTaskStatus(+actId, +taskId, req.user.sub);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return this.actService.toggleTaskStatus(resolvedActId, +taskId, req.user.sub);
   }
 
   @Patch(':actId/team-tasks/:taskId/toggle')
@@ -508,7 +526,8 @@ export class ActController {
     @Param('taskId') taskId: string,
     @Req() req: RequestWithUser,
   ) {
-    return this.actService.toggleTeamTaskStatus(+actId, +taskId, req.user.sub);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return this.actService.toggleTeamTaskStatus(resolvedActId, +taskId, req.user.sub);
   }
 
   @Delete(':actId/tasks/:taskId')
@@ -526,7 +545,8 @@ export class ActController {
     @Param('taskId') taskId: string,
     @Req() req: RequestWithUser,
   ) {
-    return this.actService.deleteTask(+actId, +taskId, req.user.sub);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return this.actService.deleteTask(resolvedActId, +taskId, req.user.sub);
   }
 
   // ==================== SPOT AGENT ENDPOINTS ====================
@@ -611,7 +631,8 @@ export class ActController {
     },
   })
   async getSpotAgentCandidates(@Param('actId') actId: string) {
-    return this.actService.getSpotAgentCandidates(+actId);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return this.actService.getSpotAgentCandidates(resolvedActId);
   }
 
   @Post('spot-agent/vote')
@@ -730,7 +751,8 @@ export class ActController {
     },
   })
   async getAssignedSpotAgents(@Param('actId') actId: string) {
-    return this.actService.getAssignedSpotAgents(+actId);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return this.actService.getAssignedSpotAgents(resolvedActId);
   }
 
   @Delete(':actId/spot-agent/:spotAgentId')
@@ -751,7 +773,8 @@ export class ActController {
     @Param('spotAgentId') spotAgentId: string,
     @Req() req: RequestWithUser,
   ) {
-    return this.actService.removeSpotAgent(+actId, +spotAgentId, req.user.sub);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return this.actService.removeSpotAgent(resolvedActId, +spotAgentId, req.user.sub);
   }
 
   // ... существующий код ActController ...
@@ -767,8 +790,9 @@ export class ActController {
     @Body() dto: ApplyForRoleDto,
     @Req() req: RequestWithUser,
   ) {
+    const resolvedActId = await this.resolveActIdParam(actId);
     return this.actService.applyForRole(
-      +actId,
+      resolvedActId,
       req.user.sub,
       dto.roleType,
       dto.bidAmount,
@@ -801,8 +825,9 @@ export class ActController {
     @Body() dto: VoteTeamCandidateDto,
     @Req() req: RequestWithUser,
   ) {
+    const resolvedActId = await this.resolveActIdParam(actId);
     return this.actService.voteTeamCandidate(
-      +actId,
+      resolvedActId,
       dto.candidateId,
       req.user.sub,
     );
@@ -819,8 +844,9 @@ export class ActController {
     @Body() dto: AssignRoleDto,
     @Req() req: RequestWithUser,
   ) {
+    const resolvedActId = await this.resolveActIdParam(actId);
     return this.actService.assignRole(
-      +actId,
+      resolvedActId,
       req.user.sub,
       dto.roleType,
       dto.candidateId,
@@ -835,6 +861,7 @@ export class ActController {
     @Param('actId') actId: string,
     @Param('roleType') roleType: 'hero' | 'navigator' | 'spot_agent',
   ) {
-    return this.actService.getCandidates(+actId, roleType);
+    const resolvedActId = await this.resolveActIdParam(actId);
+    return this.actService.getCandidates(resolvedActId, roleType);
   }
 }

@@ -19,6 +19,15 @@ import {
 
 export class ActTeamTaskDto {
   @ApiProperty({
+    example: 'https://cdn.example.com/icons/task-1.png',
+    required: false,
+    description: 'URL иконки задания из активного task icon pack',
+  })
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @ApiProperty({
     example: 'Дойти до точки A',
     description: 'Описание задания',
   })

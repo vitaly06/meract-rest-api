@@ -683,9 +683,10 @@ export class GuildService {
       throw new NotFoundException('Guild not found');
     }
 
-    if (guild.ownerId !== userId) {
+    const isMainAdmin = await this.isMainAdmin(userId);
+    if (guild.ownerId !== userId && !isMainAdmin) {
       throw new ForbiddenException(
-        'Only the guild owner can view join requests',
+        'Only the guild owner or main admin can view join requests',
       );
     }
 
@@ -723,9 +724,10 @@ export class GuildService {
     }
 
     // Проверяем, что пользователь - владелец гильдии
-    if (request.guild.ownerId !== userId) {
+    const isMainAdmin = await this.isMainAdmin(userId);
+    if (request.guild.ownerId !== userId && !isMainAdmin) {
       throw new ForbiddenException(
-        'Only the guild owner can approve or reject requests',
+        'Only the guild owner or main admin can approve or reject requests',
       );
     }
 

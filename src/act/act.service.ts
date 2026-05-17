@@ -136,6 +136,7 @@ export class ActService {
             tasks: team.tasks?.length
               ? {
                   create: team.tasks.map((task, index) => ({
+                    imageUrl: task.imageUrl ?? null,
                     description: task.description,
                     address: task.address ?? null,
                     lat: task.lat ?? null,
@@ -575,9 +576,13 @@ export class ActService {
 
       return {
         id: stream.id,
+        publicId: stream.publicId,
         name: stream.title || '',
         description: stream.description,
         previewFileName: `${this.baseUrl}${stream.previewFileName}`,
+        scheduledAt: stream.scheduledAt,
+        startedAt: stream.startedAt,
+        endedAt: stream.endedAt,
         user: stream.user.login || stream.user.email,
         initiator: {
           city: stream.user.city ?? null,
@@ -790,11 +795,27 @@ export class ActService {
         actId,
         userId,
         roleType: 'hero',
-        status: { in: ['approved', 'pending'] },
+        status: 'approved',
       },
       select: { id: true },
     });
     return !!candidate;
+  }
+
+  async resolveActId(actRef: string): Promise<number> {
+    const numericId = Number(actRef);
+    if (!Number.isNaN(numericId) && Number.isInteger(numericId) && numericId > 0) {
+      return numericId;
+    }
+
+    const act = await this.prisma.act.findUnique({
+      where: { publicId: actRef },
+      select: { id: true },
+    });
+    if (!act) {
+      throw new NotFoundException(`Act with identifier ${actRef} not found`);
+    }
+    return act.id;
   }
 
   private async syncFixedHeroParticipantsFromTeamConfig(actId: number): Promise<void> {

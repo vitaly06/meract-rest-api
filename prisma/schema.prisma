@@ -258,6 +258,7 @@ model GuildNotificationMute {
 
 model Act {
   id              Int     @id @default(autoincrement())
+  publicId        String  @unique @default(uuid())
   title           String
   description     String?
   previewFileName String?
