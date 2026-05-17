@@ -628,6 +628,11 @@ export class GuildService {
           'You already have a pending request to join this guild',
         );
       }
+      if (existingRequest.status === 'invited') {
+        throw new BadRequestException(
+          'You already have an invite to this guild. Please accept or reject it.',
+        );
+      }
       if (existingRequest.status === 'rejected') {
         // Обновляем отклонённую заявку на новую
         await this.prisma.guildJoinRequest.update({
@@ -636,6 +641,11 @@ export class GuildService {
         });
         return { message: 'Join request resubmitted successfully' };
       }
+      await this.prisma.guildJoinRequest.update({
+        where: { id: existingRequest.id },
+        data: { status: 'pending', message },
+      });
+      return { message: 'Join request submitted successfully' };
     }
 
     // Создаём новую заявку
