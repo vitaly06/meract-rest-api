@@ -25,19 +25,20 @@ export class AdminService {
   private readonly staticActCategories = [
     { id: 1, key: 'fresh_drop', name: 'Fresh Drop', order: 1, isActive: true },
     { id: 2, key: 'near_you', name: 'Near You', order: 2, isActive: true },
-    { id: 3, key: 'starting_now', name: 'Starting Now', order: 3, isActive: true },
-    { id: 11, key: 'starting_soon', name: 'Starting Soon', order: 4, isActive: true },
-    { id: 4, key: 'live_now', name: 'Live Now', order: 5, isActive: true },
-    { id: 5, key: 'top_signals', name: 'Top Signals', order: 6, isActive: true },
-    { id: 6, key: 'rising_pulse', name: 'Rising Pulse', order: 7, isActive: true },
-    { id: 7, key: 'guild_runs', name: 'Guild Runs', order: 8, isActive: true },
-    { id: 8, key: 'storylines', name: 'Storylines', order: 9, isActive: true },
-    { id: 9, key: 'high_stakes', name: 'High Stakes', order: 10, isActive: true },
+    { id: 3, key: 'going_live', name: 'Going Live', order: 3, isActive: true },
+    { id: 11, key: 'starting_now', name: 'Starting Now', order: 4, isActive: true },
+    { id: 12, key: 'starting_soon', name: 'Starting Soon', order: 5, isActive: true },
+    { id: 4, key: 'live_now', name: 'Live Now', order: 6, isActive: true },
+    { id: 5, key: 'top_signals', name: 'Top Signals', order: 7, isActive: true },
+    { id: 6, key: 'rising_pulse', name: 'Rising Pulse', order: 8, isActive: true },
+    { id: 7, key: 'guild_runs', name: 'Guild Runs', order: 9, isActive: true },
+    { id: 8, key: 'storylines', name: 'Storylines', order: 10, isActive: true },
+    { id: 9, key: 'high_stakes', name: 'High Stakes', order: 11, isActive: true },
     {
       id: 10,
       key: 'completed_legends',
       name: 'Completed Legends',
-      order: 11,
+      order: 12,
       isActive: true,
     },
   ] as const;
@@ -55,6 +56,7 @@ export class AdminService {
       tags?: string[] | null;
       user?: { guildId?: number | null } | null;
       participants?: { role: string }[];
+      heroStreams?: { status?: string | null }[];
       distanceKm?: number | null;
       likes?: number | null;
     },
@@ -71,8 +73,11 @@ export class AdminService {
     const hasHighStakeTag = tags.some((t) =>
       ['premium', 'high_stakes', 'high-stakes', 'hard', 'expert', 'difficulty'].includes(t),
     );
+    const hasOnlineHeroStream = (act.heroStreams ?? []).some(
+      (hs) => hs.status === 'ONLINE',
+    );
 
-    if (act.status === 'ONLINE') {
+    if (act.status === 'ONLINE' && hasOnlineHeroStream) {
       return this.staticActCategories.find((c) => c.key === 'live_now')!;
     }
     if (act.status === 'PLANNED' && scheduledAtTs > now) {
@@ -83,6 +88,7 @@ export class AdminService {
       if (delta <= sixHoursMs) {
         return this.staticActCategories.find((c) => c.key === 'starting_soon')!;
       }
+      return this.staticActCategories.find((c) => c.key === 'going_live')!;
     }
     if (act.status === 'OFFLINE' && (act.likes ?? 0) >= 10) {
       return this.staticActCategories.find((c) => c.key === 'completed_legends')!;
@@ -964,6 +970,7 @@ export class AdminService {
         tags: true,
         user: { select: { guildId: true } },
         participants: { select: { role: true } },
+        heroStreams: { select: { status: true } },
         _count: { select: { ratings: true } },
       },
     });
@@ -1011,6 +1018,7 @@ export class AdminService {
         chapterId: true,
         user: { select: { id: true, login: true, email: true, guildId: true } },
         participants: { select: { role: true } },
+        heroStreams: { select: { status: true } },
         _count: { select: { ratings: true } },
       },
       orderBy: { startedAt: 'desc' },
@@ -1032,7 +1040,11 @@ export class AdminService {
     const sorted = [...filtered];
     if (selectedCategory.key === 'fresh_drop') {
       sorted.sort((a, b) => +new Date(b.startedAt) - +new Date(a.startedAt));
-    } else if (selectedCategory.key === 'starting_now' || selectedCategory.key === 'starting_soon') {
+    } else if (
+      selectedCategory.key === 'going_live' ||
+      selectedCategory.key === 'starting_now' ||
+      selectedCategory.key === 'starting_soon'
+    ) {
       sorted.sort(
         (a, b) =>
           +new Date(a.scheduledAt ?? a.startedAt) -

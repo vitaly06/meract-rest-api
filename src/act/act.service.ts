@@ -32,8 +32,7 @@ export class ActService {
   private readonly staticActCategories = {
     FRESH_DROP: 1,
     NEAR_YOU: 2,
-    STARTING_NOW: 3,
-    STARTING_SOON: 11,
+    GOING_LIVE: 3,
     LIVE_NOW: 4,
     TOP_SIGNALS: 5,
     RISING_PULSE: 6,
@@ -41,6 +40,8 @@ export class ActService {
     STORYLINES: 8,
     HIGH_STAKES: 9,
     COMPLETED_LEGENDS: 10,
+    STARTING_NOW: 11,
+    STARTING_SOON: 12,
   } as const;
 
   constructor(
@@ -471,6 +472,9 @@ export class ActService {
           where: { role: { in: ['hero', 'navigator'] } },
           include: { user: { select: { login: true, email: true } } },
         },
+        heroStreams: {
+          select: { status: true },
+        },
         ratings: currentUserId
           ? { where: { userId: currentUserId }, select: { value: true } }
           : false,
@@ -548,7 +552,11 @@ export class ActService {
       const isRisingPulse = startedAtTs > 0 && now - startedAtTs <= 1000 * 60 * 60 * 48;
 
       let categoryId: number = this.staticActCategories.FRESH_DROP;
-      if (stream.status === 'ONLINE') {
+      const hasOnlineHeroStream = (stream.heroStreams || []).some(
+        (hs) => hs.status === 'ONLINE',
+      );
+
+      if (stream.status === 'ONLINE' && hasOnlineHeroStream) {
         categoryId = this.staticActCategories.LIVE_NOW;
       } else if (
         stream.status === 'PLANNED' &&
@@ -560,6 +568,8 @@ export class ActService {
           categoryId = this.staticActCategories.STARTING_NOW;
         } else if (delta <= sixHoursMs) {
           categoryId = this.staticActCategories.STARTING_SOON;
+        } else {
+          categoryId = this.staticActCategories.GOING_LIVE;
         }
       } else if (stream.status === 'OFFLINE' && (stream.likes ?? 0) >= 10) {
         categoryId = this.staticActCategories.COMPLETED_LEGENDS;
