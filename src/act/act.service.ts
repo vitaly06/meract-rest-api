@@ -555,11 +555,13 @@ export class ActService {
       const hasOnlineHeroStream = (stream.heroStreams || []).some(
         (hs) => hs.status === 'ONLINE',
       );
+      const effectiveStatus =
+        stream.status === 'ONLINE' && !hasOnlineHeroStream ? 'OFFLINE' : stream.status;
 
-      if (stream.status === 'ONLINE' && hasOnlineHeroStream) {
+      if (effectiveStatus === 'ONLINE') {
         categoryId = this.staticActCategories.LIVE_NOW;
       } else if (
-        stream.status === 'PLANNED' &&
+        effectiveStatus === 'PLANNED' &&
         stream.scheduledAt &&
         new Date(stream.scheduledAt).getTime() > now
       ) {
@@ -571,7 +573,7 @@ export class ActService {
         } else {
           categoryId = this.staticActCategories.GOING_LIVE;
         }
-      } else if (stream.status === 'OFFLINE' && (stream.likes ?? 0) >= 10) {
+      } else if (effectiveStatus === 'OFFLINE' && (stream.likes ?? 0) >= 10) {
         categoryId = this.staticActCategories.COMPLETED_LEGENDS;
       } else if ((stream.user as any).guildId != null) {
         categoryId = this.staticActCategories.GUILD_RUNS;
@@ -611,7 +613,7 @@ export class ActService {
         navigators,
         category: null,
         categoryId,
-        status: stream.status || '',
+        status: effectiveStatus || '',
         spectators: 'Not implemented',
         duration: this.formatTimeDifference(
           stream.startedAt,
